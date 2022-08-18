@@ -1,2 +1,6 @@
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading format
+implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
+handle duplicate hashes
+use equals to specify command line arguments in case parameter value starts with dashes
+add support for command line args with no value

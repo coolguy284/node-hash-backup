@@ -1,6 +1,6 @@
 # Hash Backup Tool
 
-This program is used to create backups of a given folder tree by referencing each file by its hash. Each additional backup to the same backup dir will only add new files that have a different hash, so space is conserved. All file and folder timestamps (made available in node.js) are preserved, and so are empty folders.
+This program is used to create backups of a given folder tree by referencing each file by its hash. Each additional backup to the same backup dir will only add new files that have a different hash, so space is conserved. All file and folder timestamps (made available in node.js) are preserved (although only atime and mtime can be restored), and so are empty folders.
 
 # Usage
 
@@ -34,18 +34,19 @@ Command `backup`:
   Backs up a folder to the hash backup.
   
   Options:
-    --from <path> (required): The directory to backup.
+    --from <basePath> (required): The directory to backup.
     --to <backupDir> (required): The hash backup folder to use.
     --name <name> (required): The name of the backup.
-    --ignore-symlinks <value> (default false): If true, symlinks will be ignored. If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).
-    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.
+    --ignore-symlinks <value> (default false): If true, symlinks will be ignored (not implemented yet). If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).
+    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory (not implemented yet).
+    --check-duplicate-hash (default true): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).
 
 Command `restore`:
   Restores a folder from the hash backup.
   
   Options:
     --from <backupDir> (required): The hash backup folder to use.
-    --to <path> (required): The directory to restore to.
+    --to <basePath> (required): The directory to restore to.
     --name <name> (required): The name of the backup.
     --verify <value> (default true): If true, file checksums will be verified as they are copied out.
 ```

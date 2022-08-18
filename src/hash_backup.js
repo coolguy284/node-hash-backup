@@ -1,10 +1,7 @@
-// whether to check for file equality when hash compares equal
-let CHECK_HASH_COLLISION = true;
-
 let fs = require('fs');
 let path = require('path');
 
-async function getUserInput() {
+async function _getUserInput() {
   let prompt = 'Choice (y/n, default n): ';
   let choices = new Map([
     ['y', true],
@@ -22,27 +19,81 @@ async function getUserInput() {
   return choice;
 }
 
-async function getAllEntriesInDir(path, excludeDirs) {
+async function _recursiveReaddir(basePath, excludeDirs) {
   if (!Array.isArray(excludeDirs)) excludeDirs = [];
   
-  var entries = [];
+  let currentExcludeDirs = excludeDirs.filter(x => !x.includes('/'));
   
-  return entries;
+  let contents = (await fs.promises.readdir(basePath, { withFileTypes: true }))
+    .filter(x => !currentExcludeDirs.includes(x.name));
+  
+  var folders = [], files = [];
+  
+  contents.forEach(x => x.isDirectory() ? folders.push(x) : files.push(x));
+  
+  return [
+    '.',
+    ...(await Promise.all(folders.map(async x =>
+      (await _recursiveReaddir(
+        basePath + '/' + x.name,
+        excludeDirs
+          .filter(x => x.startsWith(x))
+          .map(x => x.split('/').slice(1).join('/'))
+      ))
+      .map(y => (x.name + '/' + y).replace(/\/\.$/, ''))
+    )))
+    .reduce((a, c) => (a.push(...c), a), []),
+    ...files.map(x => x.name)
+  ];
 }
 
-async function _checkBackupDirIsDir(path) {
+function _nsTimeToString(nstime) {
+  let string = nstime.toString().padStart(10, '0');
+  return string.slice(0, string.length - 9) + '.' + string.slice(string.length - 9);
+}
+
+function _stringToNsTime(string) {
+  let split = string.split('.');
+  if (split.length == 1) split = [ split, '0' ];
+  return BigInt(split[0]) * 1000000000n + BigInt(split[1].slice(0, 9).padEnd(9, '0'));
+}
+
+async function _getAllEntriesInDir(basePath, excludeDirs) {
+  return await Promise.all(
+    (await _recursiveReaddir(basePath, excludeDirs))
+      .map(async x => {
+        let stat = await fs.promises.stat(path.join(basePath, x), { bigint: true });
+        
+        let entryType;
+        if (stat.isDirectory()) entryType = 'directory';
+        else if (stat.isFile()) entryType = 'file';
+        else throw new Error(`Invalid entry type for ${basePath}/${x}: ${(stat.isBlockDevice() ? 'Block Device' : stat.isCharacterDevice() ? 'Character Device' : stat.isFIFO() ? 'FIFO' : stat.isSocket() ? 'Socket' : stat.isSymbolicLink() ? 'Symbolic Link' : stat.mode)}`);
+        
+        return {
+          name: x,
+          type: entryType,
+          atime: _nsTimeToString(stat.atimeNs),
+          mtime: _nsTimeToString(stat.mtimeNs),
+          ctime: _nsTimeToString(stat.ctimeNs),
+          birthtime: _nsTimeToString(stat.birthtimeNs),
+        };
+      })
+  );
+}
+
+async function _checkBackupDirIsDir(basePath) {
   let backupDirStats;
   try {
-    backupDirStats = await fs.promises.stat(path);
+    backupDirStats = await fs.promises.stat(basePath);
   } catch (e) {
     if (e.code != 'ENOENT') throw e;
   }
   
   if (backupDirStats == null)
-    throw new Error(`Error: ${path} does not exist.`);
+    throw new Error(`Error: ${basePath} does not exist.`);
   
   if (!backupDirStats.isDirectory())
-    throw new Error(`Error: ${path} not a directory.`);
+    throw new Error(`Error: ${basePath} not a directory.`);
 }
 
 async function initBackupDir(opts) {
@@ -67,8 +118,8 @@ async function initBackupDir(opts) {
   
   let hashSlices = typeof opts.hashSlices == 'string' ? Number(opts.hashSlices) : 2;
   
-  if (!Number.isSafeInteger(hashSlices) || hashSlices <= 0)
-    throw new Error(`Error: hash slices ${hashSlices} invalid (must be greater than zero and a safe integer).`);
+  if (!Number.isSafeInteger(hashSlices) || hashSlices < 0)
+    throw new Error(`Error: hash slices ${hashSlices} invalid (must be nonnegative and a safe integer).`);
   
   let compressAlgo = typeof opts.compressAlgo == 'string' ? (opts.compressAlgo == 'none' ? null : opts.compressAlgo) : 'brotli';
   
@@ -145,18 +196,19 @@ async function runIfMain() {
       '  Backs up a folder to the hash backup.\n' +
       '  \n' +
       '  Options:\n' +
-      '    --from <path> (required): The directory to backup.\n' +
+      '    --from <basePath> (required): The directory to backup.\n' +
       '    --to <backupDir> (required): The hash backup folder to use.\n' +
       '    --name <name> (required): The name of the backup.\n' +
-      '    --ignore-symlinks <value> (default false): If true, symlinks will be ignored. If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).\n' +
-      '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.\n' +
+      '    --ignore-symlinks <value> (default false): If true, symlinks will be ignored (not implemented yet). If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).\n' +
+      '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory (not implemented yet).\n' +
+      '    --check-duplicate-hash (default true): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
       '\n' +
       'Command `restore`:\n' +
       '  Restores a folder from the hash backup.\n' +
       '  \n' +
       '  Options:\n' +
       '    --from <backupDir> (required): The hash backup folder to use.\n' +
-      '    --to <path> (required): The directory to restore to.\n' +
+      '    --to <basePath> (required): The directory to restore to.\n' +
       '    --name <name> (required): The name of the backup.\n' +
       '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.'
     );
@@ -178,7 +230,7 @@ async function runIfMain() {
       case 'init': {
         let backupDir = commandArgs.get('to');
         
-        if (backupDir == null || backupDir == '') backupDir = '.';
+        if (backupDir == null || backupDir == '') throw new Error('Error: to dir must be specified.');
         
         _checkBackupDirIsDir(backupDir);
         
@@ -190,7 +242,7 @@ async function runIfMain() {
             'WARNING: This will remove all files in the directory!'
           );
           
-          let proceed = await getUserInput();
+          let proceed = await _getUserInput();
           if (!proceed) {
             console.log('Aborting.');
             return;
@@ -218,7 +270,7 @@ async function runIfMain() {
       case 'delete': {
         let backupDir = commandArgs.get('to');
         
-        if (backupDir == null || backupDir == '') backupDir = '.';
+        if (backupDir == null || backupDir == '') throw new Error('Error: to dir must be specified.');
         
         _checkBackupDirIsDir(backupDir);
         
@@ -231,7 +283,7 @@ async function runIfMain() {
         
         console.log(`WARNING: This will remove all files in "${backupDir}"! Proceed?`);
         
-        let proceed = await getUserInput();
+        let proceed = await _getUserInput();
         if (!proceed) {
           console.log('Aborting.');
           return;
@@ -247,8 +299,8 @@ async function runIfMain() {
 }
 
 module.exports = exports = {
-  _checkBackupDirIsDir,
-  getUserInput, getAllEntriesInDir,
+  _getUserInput, _recursiveReaddir, _getAllEntriesInDir, _checkBackupDirIsDir,
+  _nsTimeToString, _stringToNsTime,
   initBackupDir, deleteBackupDir,
   runIfMain,
 };
