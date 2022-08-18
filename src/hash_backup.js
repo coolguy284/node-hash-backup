@@ -55,7 +55,7 @@ async function initBackupDir(opts) {
     _checkBackupDirIsDir(backupDir);
     
     if ((await fs.promises.readdir(backupDir)).length != 0)
-      throw new Error(`Error: ${backupDir} already has files in it.`);
+      throw new Error(`Error: "${backupDir}" already has files in it.`);
   }
   
   let hash = typeof opts.hash == 'string' ? opts.hash : 'sha384';
@@ -140,7 +140,7 @@ async function runIfMain() {
         
         if (backupDirContents.length != 0) {
           console.log(
-            `Directory ${backupDir} is not empty, proceed anyway?\n` +
+            `Directory "${backupDir}" is not empty, proceed anyway?\n` +
             'WARNING: This will remove all files in the directory!'
           );
           
@@ -150,12 +150,12 @@ async function runIfMain() {
             return;
           }
           
-          console.log(`Deleting files in ${backupDir}.`);
+          console.log(`Deleting files in "${backupDir}".`);
           await deleteBackupDir({ backupDir, _performChecks: false, _backupDirContents: backupDirContents });
           console.log('Delete finished.');
         }
         
-        console.log(`Initializing new hash backup in ${backupDir}`);
+        console.log(`Initializing new hash backup in "${backupDir}"`);
         await initBackupDir({
           backupDir,
           hash: commandArgs.get('hash'),
@@ -177,11 +177,11 @@ async function runIfMain() {
         let backupDirContents = await fs.promises.readdir(backupDir, { withFileTypes: true });
         
         if (backupDirContents.length == 0) {
-          console.log(`Directory ${backupDir} already empty.`);
+          console.log(`Directory "${backupDir}" already empty.`);
           return;
         }
         
-        console.log('WARNING: This will remove all files in the directory! Proceed?');
+        console.log(`WARNING: This will remove all files in "${backupDir}"! Proceed?`);
         
         let proceed = await getUserInput();
         if (!proceed) {
@@ -189,7 +189,7 @@ async function runIfMain() {
           return;
         }
         
-        console.log(`Deleting files in ${backupDir}.`);
+        console.log(`Deleting files in "${backupDir}".`);
         await deleteBackupDir({ backupDir, _performChecks: false, _backupDirContents: backupDirContents });
         console.log('Finished.');
         break;
