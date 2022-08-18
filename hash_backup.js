@@ -30,6 +30,54 @@ async function getAllFilesInDir(path, excludeDirs) {
   return entries;
 }
 
+async function _checkBackupDirIsDir(path) {
+  let backupDirStats;
+  try {
+    backupDirStats = await fs.promises.stat(path);
+  } catch (e) {
+    if (e.code != 'ENOENT') throw e;
+  }
+  
+  if (backupDirStats == null)
+    throw new Error(`Error: ${path} does not exist.`);
+  
+  if (!backupDirStats.isDirectory())
+    throw new Error(`Error: ${path} not a directory.`);
+}
+
+async function initBackupDir(opts) {
+  if (typeof opts != 'object') opts = {};
+  
+  let performChecks = typeof opts.performChecks == 'boolean' ? opts.performChecks : true;
+  let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : '.';
+  
+  if (performChecks) {
+    _checkBackupDirIsDir(backupDir);
+    
+    if ((await fs.promises.readdir(backupDir)).length != 0)
+      throw new Error(`Error: ${backupDir} already has files in it.`);
+  }
+  
+  await fs.promises.mkdir(path.join(backupDir, 'files'));
+}
+
+async function deleteBackupDir(opts) {
+  if (typeof opts != 'object') opts = {};
+  
+  let performChecks = typeof opts.performChecks == 'boolean' ? opts.performChecks : true;
+  let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : '.';
+  
+  if (performChecks)
+    _checkBackupDirIsDir(backupDir);
+  
+  let backupDirContents = Array.isArray(opts._backupDirContents) ?
+    opts._backupDirContents :
+    await fs.promises.readdir(backupDir, { withFileTypes: true });
+  
+  for (let backupDirContent of backupDirContents)
+    await fs.promises.rm(path.join(backupDir, backupDirContent.name), { recursive: true });
+}
+
 async function runIfMain() {
   let argvSliced = process.argv.slice(2);
   
@@ -41,11 +89,11 @@ async function runIfMain() {
       '\n' +
       'Command `init`:\n' +
       '  Usage: node hash_backup.js init <backupDir>\n' +
-      '  Initalizes empty hash backup in backup dir\n' +
+      '  Initalizes empty hash backup in backup dir.\n' +
       '\n' +
       'Command `delete`:\n' +
       '  Usage: node hash_backup.js delete <backupDir>\n' +
-      '  Removes hash backup at backup dir'
+      '  Removes hash backup at backup dir.'
     );
   } else {
     let commandArgs = argvSliced.slice(1);
@@ -56,22 +104,7 @@ async function runIfMain() {
         
         if (backupDir == null || backupDir == '') backupDir = '.';
         
-        let backupDirStats;
-        try {
-          backupDirStats = await fs.promises.stat(backupDir);
-        } catch (e) {
-          if (e.code != 'ENOENT') throw e;
-        }
-        
-        if (backupDirStats == null) {
-          console.log(`Error: ${backupDir} does not exist.`);
-          return;
-        }
-        
-        if (!backupDirStats.isDirectory()) {
-          console.log(`Error: ${backupDir} not a directory.`);
-          return;
-        }
+        _checkBackupDirIsDir(backupDir);
         
         let backupDirContents = await fs.promises.readdir(backupDir, { withFileTypes: true });
         
@@ -80,24 +113,56 @@ async function runIfMain() {
             `Directory ${backupDir} is not empty, proceed anyway?\n` +
             'WARNING: This will remove all files in the directory!'
           );
-          let proceed = await getUserInput();
-          if (!proceed) return;
           
-          for (let backupDirContent of backupDirContents)
-            await fs.promises.rm(path.join(backupDir, backupDirContent.name), { recursive: true });
+          let proceed = await getUserInput();
+          if (!proceed) {
+            console.log('Aborting.');
+            return;
+          }
+          
+          console.log(`Deleting files in ${backupDir}.`);
+          await deleteBackupDir({ backupDir, performChecks: false, _backupDirContents: backupDirContents });
         }
         
-        await fs.promises.mkdir(path.join(backupDir, 'files'));
+        console.log(`Initializing new hash backup in ${backupDir}`);
+        await initBackupDir({ backupDir, performChecks: false });
         break;
       }
       
-      case 'delete':
+      case 'delete': {
+        let backupDir = commandArgs[0];
+        
+        if (backupDir == null || backupDir == '') backupDir = '.';
+        
+        _checkBackupDirIsDir(backupDir);
+        
+        let backupDirContents = await fs.promises.readdir(backupDir, { withFileTypes: true });
+        
+        if (backupDirContents.length == 0) {
+          console.log(`Directory ${backupDir} already empty.`);
+          return;
+        }
+        
+        console.log('WARNING: This will remove all files in the directory! Proceed?');
+        
+        let proceed = await getUserInput();
+        if (!proceed) {
+          console.log('Aborting.');
+          return;
+        }
+        
+        console.log(`Deleting files in ${backupDir}.`);
+        await deleteBackupDir({ backupDir, performChecks: false, _backupDirContents: backupDirContents });
         break;
+      }
     }
   }
 }
 
 module.exports = exports = {
+  _checkBackupDirIsDir,
+  getUserInput, getAllFilesInDir,
+  initBackupDir, deleteBackupDir,
   runIfMain,
 };
 
