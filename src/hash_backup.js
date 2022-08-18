@@ -70,13 +70,29 @@ async function initBackupDir(opts) {
   if (!Number.isSafeInteger(hashSlices) || hashSlices <= 0)
     throw new Error(`Error: hash slices ${hashSlices} invalid (must be greater than zero and a safe integer).`);
   
+  let compressAlgo = typeof opts.compressAlgo == 'string' ? (opts.compressAlgo == 'none' ? null : opts.compressAlgo) : 'brotli';
+  
+  let compressLevel;
+  if (compressAlgo == null) {
+    compressLevel = null;
+  } else {
+    compressLevel = typeof opts.compressLevel == 'string' ? Number(opts.compressLevel) : 6;
+    
+    if (!Number.isSafeInteger(compressLevel) || compressLevel < 0)
+      throw new Error(`Error: compression level ${compressLevel} invalid (must be nonnegative and a safe integer).`);
+  }
+  
   await fs.promises.mkdir(path.join(backupDir, 'files'));
+  
+  await fs.promises.mkdir(path.join(backupDir, 'files_meta'));
   
   await fs.promises.writeFile(path.join(backupDir, 'info.json'), JSON.stringify({
     version: 1,
     hash,
     hashSliceLength,
     hashSlices,
+    compressAlgo,
+    compressLevel,
   }, null, 2));
 }
 
@@ -161,6 +177,8 @@ async function runIfMain() {
           hash: commandArgs.get('hash'),
           hashSliceLength: commandArgs.get('hash-slice-length'),
           hashSlices: commandArgs.get('hash-slices'),
+          compressAlgo: commandArgs.get('compress-algo'),
+          compressLevel: commandArgs.get('compress-level'),
           _performChecks: false,
         });
         console.log('Finished.');

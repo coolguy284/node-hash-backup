@@ -1,0 +1,2 @@
+add check for valid hash or compression algorythm and valid compression level
+modify command that can modify backup dir parameters including upgrading or downgrading format

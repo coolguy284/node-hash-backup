@@ -1,6 +1,6 @@
 {
   "name": "hash-backup",
-  "version": "0.1.1a",
+  "version": "0.2.0a",
   "description": "A hash based incremental file backupper.",
   "main": "src/hash_backup.js",
   "scripts": {
