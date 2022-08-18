@@ -48,7 +48,7 @@ async function _checkBackupDirIsDir(path) {
 async function initBackupDir(opts) {
   if (typeof opts != 'object') opts = {};
   
-  let performChecks = typeof opts.performChecks == 'boolean' ? opts.performChecks : true;
+  let performChecks = typeof opts._performChecks == 'boolean' ? opts._performChecks : true;
   let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : '.';
   
   if (performChecks) {
@@ -58,13 +58,32 @@ async function initBackupDir(opts) {
       throw new Error(`Error: ${backupDir} already has files in it.`);
   }
   
+  let hash = typeof opts.hash == 'string' ? opts.hash : 'sha384';
+  
+  let hashSliceLength = typeof opts.hashSliceLength == 'string' ? Number(opts.hashSliceLength) : 2;
+  
+  if (!Number.isSafeInteger(hashSliceLength) || hashSliceLength <= 0)
+    throw new Error(`Error: hash slice length ${hashSliceLength} invalid (must be greater than zero and a safe integer).`);
+  
+  let hashSlices = typeof opts.hashSlices == 'string' ? Number(opts.hashSlices) : 2;
+  
+  if (!Number.isSafeInteger(hashSlices) || hashSlices <= 0)
+    throw new Error(`Error: hash slices ${hashSlices} invalid (must be greater than zero and a safe integer).`);
+  
   await fs.promises.mkdir(path.join(backupDir, 'files'));
+  
+  await fs.promises.writeFile(path.join(backupDir, 'info.json'), JSON.stringify({
+    version: 1,
+    hash,
+    hashSliceLength,
+    hashSlices,
+  }, null, 2));
 }
 
 async function deleteBackupDir(opts) {
   if (typeof opts != 'object') opts = {};
   
-  let performChecks = typeof opts.performChecks == 'boolean' ? opts.performChecks : true;
+  let performChecks = typeof opts._performChecks == 'boolean' ? opts._performChecks : true;
   let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : '.';
   
   if (performChecks)
@@ -96,11 +115,22 @@ async function runIfMain() {
       '  Removes hash backup at backup dir.'
     );
   } else {
-    let commandArgs = argvSliced.slice(1);
+    let commandArgsRaw = argvSliced.slice(1);
+    
+    let commandArgs = new Map();
+    
+    let commandArgName;
+    for (let commandArgRaw of commandArgsRaw) {
+      if (commandArgRaw.startsWith('--')) {
+        commandArgName = commandArgRaw.slice(2);
+      } else if (commandArgName) {
+        commandArgs.set(commandArgName, commandArgRaw);
+      }
+    }
     
     switch (argvSliced[0]) {
       case 'init': {
-        let backupDir = commandArgs[0];
+        let backupDir = commandArgs.get('to');
         
         if (backupDir == null || backupDir == '') backupDir = '.';
         
@@ -121,16 +151,24 @@ async function runIfMain() {
           }
           
           console.log(`Deleting files in ${backupDir}.`);
-          await deleteBackupDir({ backupDir, performChecks: false, _backupDirContents: backupDirContents });
+          await deleteBackupDir({ backupDir, _performChecks: false, _backupDirContents: backupDirContents });
+          console.log('Delete finished.');
         }
         
         console.log(`Initializing new hash backup in ${backupDir}`);
-        await initBackupDir({ backupDir, performChecks: false });
+        await initBackupDir({
+          backupDir,
+          hash: commandArgs.get('hash'),
+          hashSliceLength: commandArgs.get('hash-slice-length'),
+          hashSlices: commandArgs.get('hash-slices'),
+          _performChecks: false,
+        });
+        console.log('Finished.');
         break;
       }
       
       case 'delete': {
-        let backupDir = commandArgs[0];
+        let backupDir = commandArgs.get('to');
         
         if (backupDir == null || backupDir == '') backupDir = '.';
         
@@ -152,7 +190,8 @@ async function runIfMain() {
         }
         
         console.log(`Deleting files in ${backupDir}.`);
-        await deleteBackupDir({ backupDir, performChecks: false, _backupDirContents: backupDirContents });
+        await deleteBackupDir({ backupDir, _performChecks: false, _backupDirContents: backupDirContents });
+        console.log('Finished.');
         break;
       }
     }
