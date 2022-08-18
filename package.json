@@ -1,8 +1,8 @@
 {
   "name": "hash-backup",
-  "version": "0.1.0a",
+  "version": "0.1.1a",
   "description": "A hash based incremental file backupper.",
-  "main": "hash_backup.js",
+  "main": "src/hash_backup.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
