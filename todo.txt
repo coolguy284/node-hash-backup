@@ -4,3 +4,12 @@ implement backup command ignore-symlinks arg set to true, in-memory arg set to f
 handle duplicate hashes
 use equals to specify command line arguments in case parameter value starts with dashes
 add support for command line args with no value
+verify backup directory before performing backup
+add option to change hash digest encoding (currently just hex)
+prevent hash slices * hash slice length from going over the length of hash itself
+improve readme
+use custom error type when throwing, and print custom errors differently (without the traceback)
+add comments
+add remove command for removing backups
+add list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
+add prune command that removes files not referenced by any backup

@@ -18,10 +18,10 @@ Command `init`:
   
   Options:
     --to <backupDir> (required): The hash backup dir to initialize.
-    --hash <algorythm> (default `sha384`): The hash algorythm to use on the files.
+    --hash <algorithm> (default `sha384`): The hash algorithm to use on the files.
     --hash-slice-length (default `2`): The length of the hash slice used to split files into folders.
     --hash-slices (default `2`): The number of nested subfolders of hash slices each file should be under.
-    --compress-algo (default `brotli`): The algorythm to compress files (`none` for no algo).
+    --compress-algo (default `brotli`): The algorithm to compress files (`none` for no algo).
     --compress-level (default 6): The amount to compress files (valid is 1 through 9).
 
 Command `delete`:
@@ -39,7 +39,7 @@ Command `backup`:
     --name <name> (required): The name of the backup.
     --ignore-symlinks <value> (default false): If true, symlinks will be ignored (not implemented yet). If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).
     --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory (not implemented yet).
-    --check-duplicate-hash (default true): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).
+    --check-duplicate-hashes (default true): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).
 
 Command `restore`:
   Restores a folder from the hash backup.
