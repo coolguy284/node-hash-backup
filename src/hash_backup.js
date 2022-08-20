@@ -1,3 +1,4 @@
+let cp = require('child_process');
 let crypto = require('crypto');
 let fs = require('fs');
 let path = require('path');
@@ -10,15 +11,12 @@ async function _getUserInput() {
     ['n', false],
   ]);
   
-  let choice;
-  do {
-    process.stdout.write(prompt);
-    choice = choices.get(await new Promise(r => {
-      process.stdin.once('data', c => r(c.toString().trim()));
-    }));
-  } while (choice == null);
+  process.stdout.write(prompt);
+  let choice = choices.get(await new Promise(r => {
+    process.stdin.once('data', c => r(c.toString().trim()));
+  }));
   
-  return choice;
+  return choice == null ? choices.get('n') : choice;
 }
 
 async function _recursiveReaddir(basePath, excludeDirs) {
@@ -333,6 +331,81 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
   await fs.promises.rename(fileMetaPath + '_new', fileMetaPath);
 }
 
+function _procPromisify(procName, args, envVars, stdin) {
+  let proc = cp.spawn(procName, args, { stdio: 'pipe', timeout: 60000, ...(envVars != null ? { env: envVars } : {}) });
+  
+  if (stdin != null) proc.stdin.end(stdin);
+  
+  return new Promise((resolve, reject) => {
+    let outputBufs = [], errorBufs = [];
+    
+    proc.stdout.on('data', c => outputBufs.push(c));
+    proc.stderr.on('data', c => errorBufs.push(c));
+    proc.on('close', code => {
+      switch (code) {
+        case 0:
+          resolve(Buffer.concat(outputBufs).toString().trim());
+          break;
+        
+        default:
+          reject(new Error(Buffer.concat(errorBufs).toString().trim()));
+          break;
+      }
+    });
+  });
+}
+
+function _stringToUTCTimeString(string) {
+  let split = string.split('.');
+  return new Date(Number(split[0]) * 1000).toISOString().split('.')[0] + '.' + split[1] + 'Z';
+}
+
+async function _setFileTimes(fileTimesArr) {
+  if (process.platform == 'win32') {
+    let envVars = {};
+    
+    let commandString =
+      '$ErrorActionPreference = "Stop"\n' +
+      fileTimesArr.map((x, i) => {
+        let [ filePath, atime, mtime, birthtime ] = x;
+        
+        let atimeUTC = _stringToUTCTimeString(atime),
+          mtimeUTC = _stringToUTCTimeString(mtime),
+          birthtimeUTC = _stringToUTCTimeString(birthtime);
+        
+        envVars['C284_' + i + 'F'] = filePath;
+        envVars['C284_' + i + 'C'] = birthtimeUTC;
+        envVars['C284_' + i + 'M'] = mtimeUTC;
+        envVars['C284_' + i + 'A'] = atimeUTC;
+        
+        return `$file = Get-Item $Env:C284_${i}F\n` +
+          `$file.CreationTime = Get-Date $Env:C284_${i}C\n` +
+          `$file.LastWriteTime = Get-Date $Env:C284_${i}M\n` +
+          `$file.LastAccessTime = Get-Date $Env:C284_${i}A`;
+      }).join('\n');
+    
+    return await _procPromisify('powershell', ['-Command', '-'], envVars, commandString);
+  } else {
+    let commandString =
+      'set -e\n' +
+      fileTimesArr.map(x => {
+        let [ filePath, atime, mtime, birthtime ] = x;
+        
+        let atimeUTC = _stringToUTCTimeString(atime),
+          mtimeUTC = _stringToUTCTimeString(mtime);
+        
+        envVars['C284_' + i + 'F'] = filePath;
+        envVars['C284_' + i + 'M'] = mtimeUTC;
+        envVars['C284_' + i + 'A'] = atimeUTC;
+        
+        return `touch -m -d $C284_${i}M $C284_${i}F\n` +
+          `touch -a -d $C284_${i}A $C284_${i}F`;
+      }).join('\n');
+    
+    return await _procPromisify('bash', ['-'], envVars, commandString);
+  }
+}
+
 async function getBackupInfo(opts) {
   if (typeof opts != 'object') opts = {};
   
@@ -583,12 +656,15 @@ async function performRestore(opts) {
     }
   }
   
-  for (let entry of backupObj.entries) {
-    console.log(`Setting timestamps of "${entry.path}"`);
+  for (let i = 0, lasti; i < backupObj.entries.length; i += 1000) {
+    lasti = Math.min(i + 1000, backupObj.entries.length);
+    console.log(`Setting timestamps of files: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
     
-    let filePath = path.join(basePath, entry.path);
-    
-    await fs.promises.utimes(filePath, entry.atime, entry.mtime);
+    await _setFileTimes(
+      backupObj.entries
+        .slice(i, lasti)
+        .map(entry => [path.join(basePath, entry.path), entry.atime, entry.mtime, entry.birthtime])
+    );
   }
 }
 
@@ -826,7 +902,7 @@ async function runIfMain() {
         _checkPathIsDir(basePath);
         
         let basePathContents = await fs.promises.readdir(basePath);
-        console.log(basePath, basePathContents);
+        
         if (basePathContents.length != 0) {
           console.log(
             `Directory "${basePath}" is not empty, proceed anyway?\n` +
@@ -866,7 +942,7 @@ async function runIfMain() {
 
 module.exports = exports = {
   _getUserInput, _recursiveReaddir, _nsTimeToString, _stringToNsTime, _getAllEntriesInDir, _checkPathIsDir,
-  _getFileHashSlices, _getFilePathFromBackup, _getFileMetaPathFromBackup, _getFileFromBackup, _setFileToBackup,
+  _getFileHashSlices, _getFilePathFromBackup, _getFileMetaPathFromBackup, _getFileFromBackup, _setFileToBackup, _procPromisify, _stringToUTCTimeString, _setFileTimes,
   initBackupDir, deleteBackupDir,
   getBackupInfo, performBackup, performRestore,
   runIfMain,
