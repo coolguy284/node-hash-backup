@@ -107,7 +107,7 @@ async function initBackupDir(opts) {
   if (performChecks) {
     if (backupDir == null) throw new Error('Error: backup dir must be specified.');
     
-    _checkPathIsDir(backupDir);
+    await _checkPathIsDir(backupDir);
     
     if ((await fs.promises.readdir(backupDir)).length != 0)
       throw new Error(`Error: "${backupDir}" already has files in it.`);
@@ -165,7 +165,7 @@ async function deleteBackupDir(opts) {
   if (performChecks) {
     if (backupDir == null) throw new Error('Error: backup dir must be specified.');
     
-    _checkPathIsDir(backupDir);
+    await _checkPathIsDir(backupDir);
   }
   
   let backupDirContents = Array.isArray(opts._backupDirContents) ?
@@ -333,6 +333,91 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
   await fs.promises.rename(fileMetaPath + '_new', fileMetaPath);
 }
 
+async function getBackupInfo(opts) {
+  if (typeof opts != 'object') opts = {};
+  
+  let performChecks = typeof opts._performChecks == 'boolean' ? opts._performChecks : true;
+  let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : null;
+  let name = typeof opts.name == 'string' && opts.name != '' ? opts.name : null;
+  
+  if (performChecks) {
+    if (backupDir == null) throw new Error('Error: backup dir must be specified.');
+    
+    await _checkPathIsDir(backupDir);
+  }
+  
+  let backupDirInfo = JSON.parse(await fs.promises.readFile(path.join(backupDir, 'info.json')));
+  
+  if (backupDirInfo.folderType != 'coolguy284/node-hash-backup')
+    throw new Error('Error: backup dir is not a hash backup dir.');
+  
+  if (!Number.isSafeInteger(backupDirInfo.version))
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (not an integer).`);
+  
+  if (backupDirInfo.version < 1)
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (must be at least 1)`);
+  
+  if (backupDirInfo.version > 1)
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
+  
+  if (name == null) {
+    let backups = await fs.promises.readdir(path.join(backupDir, 'backups'));
+    
+    let backupsParsed = {};
+    
+    for (let backup of backups) {
+      let backupJSONPath = path.join(backupDir, 'backups', backup);
+      let backupObj = JSON.parse((await fs.promises.readFile(backupJSONPath)).toString());
+      
+      let files = 0, folders = 0, total = 0, size = 0, compressedSize = 0;
+      
+      for (let entry of backupObj.entries) {
+        if (entry.type == 'directory') {
+          folders++;
+        } else {
+          let fileMetaPath = path.join(backupDir, _getFileMetaPathFromBackup(backupDirInfo, entry.hash));
+          let fileMeta = JSON.parse((await fs.promises.readFile(fileMetaPath)).toString())[entry.hash];
+          files++;
+          size += fileMeta.size;
+          if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
+        }
+        total++;
+      }
+      
+      backupsParsed[backup.split('.').slice(0, -1).join('.')] = { files, folders, total, size, compressedSize };
+    }
+    
+    return backupsParsed;
+  } else {
+    let backupJSONPath = path.join(backupDir, 'backups', name + '.json');
+    
+    let backupObj;
+    try {
+      backupObj = JSON.parse((await fs.promises.readFile(backupJSONPath)).toString());
+    } catch (e) {
+      if (e.code != 'ENOENT') throw e;
+      throw new Error(`Error: backup "${name}" in "${backupDir}" does not exist.`);
+    }
+    
+    let files = 0, folders = 0, total = 0, size = 0, compressedSize = 0;
+    
+    for (let entry of backupObj.entries) {
+      if (entry.type == 'directory') {
+        folders++;
+      } else {
+        let fileMetaPath = path.join(backupDir, _getFileMetaPathFromBackup(backupDirInfo, entry.hash));
+        let fileMeta = JSON.parse((await fs.promises.readFile(fileMetaPath)).toString())[entry.hash];
+        files++;
+        size += fileMeta.size;
+        if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
+      }
+      total++;
+    }
+    
+    return { files, folders, total, size, compressedSize };
+  }
+}
+
 async function performBackup(opts) {
   if (typeof opts != 'object') opts = {};
   
@@ -346,8 +431,8 @@ async function performBackup(opts) {
     if (backupDir == null) throw new Error('Error: backup dir must be specified.');
     if (name == null) throw new Error('Error: name must be specified.');
     
-    _checkPathIsDir(basePath);
-    _checkPathIsDir(backupDir);
+    await _checkPathIsDir(basePath);
+    await _checkPathIsDir(backupDir);
   }
   
   let backupDirInfo = JSON.parse(await fs.promises.readFile(path.join(backupDir, 'info.json')));
@@ -424,6 +509,7 @@ async function performBackup(opts) {
   }
   
   console.log('Writing backup file.');
+  
   await fs.promises.writeFile(backupPath, JSON.stringify({
     createdAt: new Date().toISOString(),
     entries: entriesNew,
@@ -443,8 +529,8 @@ async function performRestore(opts) {
     if (basePath == null) throw new Error('Error: base path must be specified.');
     if (name == null) throw new Error('Error: name must be specified.');
     
-    _checkPathIsDir(backupDir);
-    _checkPathIsDir(basePath);
+    await _checkPathIsDir(backupDir);
+    await _checkPathIsDir(basePath);
     
     if ((await fs.promises.readdir(basePath)).length != 0)
       throw new Error(`Error: "${basePath}" already has files in it.`);
@@ -466,9 +552,9 @@ async function performRestore(opts) {
   
   let backupPath = path.join(backupDir, 'backups', name + '.json');
   
-  let backupJSON;
+  let backupObj;
   try {
-    backupJSON = JSON.parse((await fs.promises.readFile(backupPath)).toString());
+    backupObj = JSON.parse((await fs.promises.readFile(backupPath)).toString());
   } catch (e) {
     if (e.code != 'ENOENT') throw e;
     throw new Error(`Error: backup name "${name}" does not exist.`);
@@ -479,7 +565,7 @@ async function performRestore(opts) {
   if (backupDirRelBase == '')
     throw new Error('Error: backup and base dirs are the same');
   
-  for (let entry of backupJSON.entries) {
+  for (let entry of backupObj.entries) {
     console.log(`Restoring "${entry.path}".`);
     
     let filePath = path.join(basePath, entry.path);
@@ -497,7 +583,7 @@ async function performRestore(opts) {
     }
   }
   
-  for (let entry of backupJSON.entries) {
+  for (let entry of backupObj.entries) {
     console.log(`Setting timestamps of "${entry.path}"`);
     
     let filePath = path.join(basePath, entry.path);
@@ -531,6 +617,13 @@ async function runIfMain() {
       '  \n' +
       '  Options:\n' +
       '    --to <backupDir> (required): The hash backup dir to remove contents of.\n' +
+      '\n' +
+      'Command `list`:\n' +
+      '  Lists the backups in a given hash backup folder.\n' +
+      '  \n' +
+      '  Options:\n' +
+      '    --to <backupDir> (required): The hash backup folder to use.\n' +
+      '    --name <name> (optional): The name of the backup to show information about specifically.\n' +
       '\n' +
       'Command `backup`:\n' +
       '  Backs up a folder to the hash backup.\n' +
@@ -641,6 +734,49 @@ async function runIfMain() {
         break;
       }
       
+      case 'list': {
+        let backupDir = commandArgs.get('to');
+        
+        if (backupDir == null || backupDir == '') throw new Error('Error: to dir must be specified.');
+        
+        let name = commandArgs.get('name');
+        
+        _checkPathIsDir(backupDir);
+        
+        let info = await getBackupInfo({
+          backupDir,
+          name,
+          _performChecks: false,
+        });
+        
+        if (name == null) {
+          console.log(`Info for backups in "${backupDir}":`);
+          
+          let infoEntries = Object.entries(info);
+          
+          let nameStrLen = 0, filesStrLen = 0, foldersStrLen = 0, totalStrLen = 0, sizeStrLen = 0, compressedSizeStrLen = 0;
+          
+          infoEntries.forEach(x => {
+            nameStrLen = Math.max(nameStrLen, x[0].length);
+            filesStrLen = Math.max(filesStrLen, x[1].files.toLocaleString().length);
+            foldersStrLen = Math.max(foldersStrLen, x[1].folders.toLocaleString().length);
+            totalStrLen = Math.max(totalStrLen, x[1].total.toLocaleString().length);
+            sizeStrLen = Math.max(sizeStrLen, x[1].size.toLocaleString().length);
+            compressedSizeStrLen = Math.max(compressedSizeStrLen, x[1].compressedSize.toLocaleString().length);
+          });
+          
+          console.log(
+            infoEntries
+              .map(x => `${x[0].padEnd(nameStrLen)} : ${x[1].files.toLocaleString().padEnd(filesStrLen)} files, ${x[1].folders.toLocaleString().padEnd(foldersStrLen)} folders, ${x[1].total.toLocaleString().padEnd(totalStrLen)} items, ${x[1].size.toLocaleString().padEnd(sizeStrLen)} bytes (${x[1].compressedSize.toLocaleString().padEnd(compressedSizeStrLen)} bytes compressed)`)
+              .join('\n')
+          );
+        } else {
+          console.log(`Info for backup "${name}" in "${backupDir}":`);
+          console.log(`${info.files.toLocaleString()} files, ${info.folders.toLocaleString()} folders, ${info.total.toLocaleString()} items, ${info.size.toLocaleString()} bytes (${info.compressedSize.toLocaleString()} bytes compressed)`);
+        }
+        break;
+      }
+      
       case 'backup': {
         let basePath = commandArgs.get('from');
         
@@ -729,17 +865,16 @@ async function runIfMain() {
 }
 
 module.exports = exports = {
-  _getUserInput, _recursiveReaddir, _getAllEntriesInDir, _checkPathIsDir,
-  _nsTimeToString, _stringToNsTime,
+  _getUserInput, _recursiveReaddir, _nsTimeToString, _stringToNsTime, _getAllEntriesInDir, _checkPathIsDir,
+  _getFileHashSlices, _getFilePathFromBackup, _getFileMetaPathFromBackup, _getFileFromBackup, _setFileToBackup,
   initBackupDir, deleteBackupDir,
+  getBackupInfo, performBackup, performRestore,
   runIfMain,
 };
 
 if (require.main === module) {
   (async () => {
     await runIfMain();
-    //console.log(await _getAllEntriesInDir('.', ['.git']));
-    //console.log(await _getAllEntriesInDir('./lebackup'));
     process.exit();
   })();
 }

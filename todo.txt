@@ -13,3 +13,5 @@ add comments
 add remove command for removing backups
 add list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
 add prune command that removes files not referenced by any backup
+add auto purge option to remove command
+fix file timestamp precision loss

@@ -10,7 +10,7 @@ backup  .   .   .   .   . the backup directory
           object {
             path: string (relative path inside the backup folder),
             type: string (either "file" or "directory"),
-            hash: string (file hash, property only present on files),
+            hash?: string (file hash, property only present on files),
             atime: string (access time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             mtime: string (content modify time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             ctime: string (metadata change time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
@@ -25,7 +25,9 @@ backup  .   .   .   .   . the backup directory
     <segment1>/.../<segmentX>.json:
       object {
         <hash of file contents>: object {
-          compression: object? (can be null for no compression) {
+          size: integer (file size in bytes),
+          compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
+          compression?: object (property only exists if there is compression) {
             algorithm: string,
             ... (optional params necessary to decompress, depends on the compression algorithm)
           }
@@ -38,7 +40,7 @@ backup  .   .   .   .   . the backup directory
       hash: string (the hash algorithm used on the files),
       hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files),
       hashSlices: integer >= 0 (the number of segments of the folders in files),
-      compression: object? (can be null for no compression) {
+      compression?: object (property only exists if there is compression) {
         algorithm: string,
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is level)
       }

@@ -30,6 +30,13 @@ Command `delete`:
   Options:
     --to <backupDir> (required): The hash backup dir to remove contents of.
 
+Command `list`:
+  Lists the backups in a given hash backup folder.
+  
+  Options:
+    --to <backupDir> (required): The hash backup folder to use.
+    --name <name> (optional): The name of the backup to show information about specifically.
+
 Command `backup`:
   Backs up a folder to the hash backup.
   
@@ -49,4 +56,12 @@ Command `restore`:
     --to <basePath> (required): The directory to restore to.
     --name <name> (required): The name of the backup.
     --verify <value> (default true): If true, file checksums will be verified as they are copied out.
+
+Command `remove`:
+  Removes a backup from the hash backup.
+  
+  Options:
+    --to <backupDir> (required): The hash backup folder to use.
+    --name <name> (required): The name of the backup.
+    --auto-purge (default true): If true, automatically purge files no longer referenced by any backup. (false not implemented yet)
 ```
