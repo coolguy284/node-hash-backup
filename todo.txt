@@ -1,7 +1,7 @@
 make backup list command show total filesize of all backups and pseudo size ignoring deduplication with a percentage compression
 
 add check for valid hash or compression algorythm and valid compression level
-modify command that can modify backup dir parameters including upgrading or downgrading archive format
+modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
 implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
 handle duplicate hashes
 use equals to specify command line arguments in case parameter value starts with dashes
@@ -16,11 +16,11 @@ remove command for removing backups
 list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
 prune command that removes files not referenced by any backup
 rename backup command
-verify command for whole archive or optionally just one backup
+verify command for whole hash backup or optionally just one backup
 add auto purge option to remove command
 compress stored json files
 add checksums
 memoize fsmetajson gets and maybe make into function
 split single nodejs file into many files
-archive version 3 can have 2 modes, human readable json files and minified compressed json files
+hash backup version 3 can have 2 modes, human readable json files and minified compressed json files
 add alternate stream support on windows

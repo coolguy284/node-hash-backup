@@ -453,7 +453,10 @@ async function getBackupInfo(opts) {
   if (backupDirInfo.version < 1)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (must be at least 1)`);
   
-  if (backupDirInfo.version > 1)
+  if (backupDirInfo.version == 1)
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for an earlier version of this program.`);
+  
+  if (backupDirInfo.version > 2)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
   
   if (name == null) {
@@ -604,7 +607,10 @@ async function performBackup(opts) {
   if (backupDirInfo.version < 1)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (must be at least 1)`);
   
-  if (backupDirInfo.version > 1)
+  if (backupDirInfo.version == 1)
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for an earlier version of this program.`);
+  
+  if (backupDirInfo.version > 2)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
   
   let backupPath = path.join(backupDir, 'backups', name + '.json');
@@ -705,7 +711,10 @@ async function performRestore(opts) {
   if (backupDirInfo.version < 1)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (must be at least 1)`);
   
-  if (backupDirInfo.version > 1)
+  if (backupDirInfo.version == 1)
+    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for an earlier version of this program.`);
+  
+  if (backupDirInfo.version > 2)
     throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
   
   let backupPath = path.join(backupDir, 'backups', name + '.json');
