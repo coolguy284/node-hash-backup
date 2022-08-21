@@ -19,10 +19,10 @@ async function _getUserInput() {
   return choice == null ? choices.get('n') : choice;
 }
 
-async function _recursiveReaddir(basePath, excludeDirs) {
-  if (!Array.isArray(excludeDirs)) excludeDirs = [];
+async function _recursiveReaddir(basePath, excludedDirs, includeDirs) {
+  if (!Array.isArray(excludedDirs)) excludedDirs = [];
   
-  let currentExcludeDirs = excludeDirs.filter(x => !x.includes('/'));
+  let currentExcludeDirs = excludedDirs.filter(x => !x.includes('/'));
   
   let contents = (await fs.promises.readdir(basePath, { withFileTypes: true }))
     .filter(x => !currentExcludeDirs.includes(x.name));
@@ -31,20 +31,38 @@ async function _recursiveReaddir(basePath, excludeDirs) {
   
   contents.forEach(x => x.isDirectory() ? folders.push(x) : files.push(x));
   
-  return [
-    '.',
-    ...(await Promise.all(folders.map(async x =>
-      (await _recursiveReaddir(
-        basePath + '/' + x.name,
-        excludeDirs
-          .filter(x => x.startsWith(x))
-          .map(x => x.split('/').slice(1).join('/'))
-      ))
-      .map(y => (x.name + '/' + y).replace(/\/\.$/, ''))
-    )))
-    .reduce((a, c) => (a.push(...c), a), []),
-    ...files.map(x => x.name)
-  ];
+  if (includeDirs) {
+    return [
+      '.',
+      ...(await Promise.all(folders.map(async x =>
+        (await _recursiveReaddir(
+          basePath + '/' + x.name,
+          excludedDirs
+            .filter(x => x.startsWith(x))
+            .map(x => x.split('/').slice(1).join('/')),
+          includeDirs
+        ))
+        .map(y => (x.name + '/' + y).replace(/\/\.$/, ''))
+      )))
+      .reduce((a, c) => (a.push(...c), a), []),
+      ...files.map(x => x.name),
+    ];
+  } else {
+    return [
+      ...(await Promise.all(folders.map(async x =>
+        (await _recursiveReaddir(
+          basePath + '/' + x.name,
+          excludedDirs
+            .filter(x => x.startsWith(x))
+            .map(x => x.split('/').slice(1).join('/')),
+          includeDirs
+        ))
+        .map(y => (x.name + '/' + y))
+      )))
+      .reduce((a, c) => (a.push(...c), a), []),
+      ...files.map(x => x.name),
+    ];
+  }
 }
 
 function _nsTimeToString(nstime) {
@@ -58,9 +76,9 @@ function _stringToNsTime(string) {
   return BigInt(split[0]) * 1000000000n + BigInt(split[1].slice(0, 9).padEnd(9, '0'));
 }
 
-async function _getAllEntriesInDir(basePath, excludeDirs) {
+async function _getAllEntriesInDir(basePath, excludedDirs) {
   return await Promise.all(
-    (await _recursiveReaddir(basePath, excludeDirs))
+    (await _recursiveReaddir(basePath, excludedDirs, true))
       .map(async x => {
         let stat = await fs.promises.stat(path.join(basePath, x), { bigint: true });
         
@@ -441,13 +459,19 @@ async function getBackupInfo(opts) {
   if (name == null) {
     let backups = await fs.promises.readdir(path.join(backupDir, 'backups'));
     
-    let backupsParsed = {};
+    let backupsParsed = [];
+    
+    let filesTotal = 0, foldersTotal = 0, itemsTotal = 0, sizeTotal = 0, compressedSizeTotal = 0;
+    let fileHashes = new Set(),
+      filesReal = await _recursiveReaddir(path.join(backupDir, 'files'), [], false),
+      filesRefdSize = 0,
+      filesRefdCompressedSize = 0;
     
     for (let backup of backups) {
       let backupJSONPath = path.join(backupDir, 'backups', backup);
       let backupObj = JSON.parse((await fs.promises.readFile(backupJSONPath)).toString());
       
-      let files = 0, folders = 0, total = 0, size = 0, compressedSize = 0;
+      let files = 0, folders = 0, items = 0, size = 0, compressedSize = 0;
       
       for (let entry of backupObj.entries) {
         if (entry.type == 'directory') {
@@ -459,14 +483,68 @@ async function getBackupInfo(opts) {
           size += fileMeta.size;
           if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
           else compressedSize += fileMeta.size;
+          
+          if (!fileHashes.has(entry.hash)) {
+            fileHashes.add(entry.hash);
+            filesRefdSize += fileMeta.size;
+            if ('compressedSize' in fileMeta) filesRefdCompressedSize += fileMeta.compressedSize;
+            else filesRefdCompressedSize += fileMeta.size;
+          }
         }
-        total++;
+        
+        items++;
       }
       
-      backupsParsed[backup.split('.').slice(0, -1).join('.')] = { files, folders, total, size, compressedSize };
+      filesTotal += files;
+      foldersTotal += folders;
+      itemsTotal += items;
+      sizeTotal += size;
+      compressedSizeTotal += compressedSize;
+      
+      backupsParsed.push([backup.split('.').slice(0, -1).join('.'), { files, folders, items, size, compressedSize }]);
     }
     
-    return backupsParsed;
+    let filesOrphaned = filesReal.filter(x => !fileHashes.has(x.split('/').slice(-1)[0])),
+      filesOrphanedSize = 0,
+      filesOrphanedCompressedSize = 0;
+    
+    for (let orphanedFile of filesOrphaned) {
+      let fileHash = orphanedFile.split('/').slice(-1)[0];
+      let fileMetaPath = path.join(backupDir, _getFileMetaPathFromBackup(backupDirInfo, fileHash));
+      let fileMeta = JSON.parse((await fs.promises.readFile(fileMetaPath)).toString())[fileHash];
+      
+      filesOrphanedSize += fileMeta.size;
+      if ('compressedSize' in fileMeta) filesOrphanedCompressedSize += fileMeta.compressedSize;
+      else filesOrphanedCompressedSize += fileMeta.size;
+    }
+    
+    return {
+      backups: backupsParsed,
+      totalSum: {
+        files: filesTotal,
+        folders: foldersTotal,
+        items: itemsTotal,
+        size: sizeTotal,
+        compressedSize: compressedSizeTotal,
+      },
+      totalReal: [
+        ['refd', {
+          files: fileHashes.size,
+          size: filesRefdSize,
+          compressedSize: filesRefdCompressedSize
+        }],
+        ['orphaned', {
+          files: filesOrphaned.length,
+          size: filesOrphanedSize,
+          compressedSize: filesOrphanedCompressedSize
+        }],
+        ['total', {
+          files: filesReal.length,
+          size: filesRefdSize + filesOrphanedSize,
+          compressedSize: filesRefdCompressedSize + filesOrphanedCompressedSize
+        }],
+      ],
+    };
   } else {
     let backupJSONPath = path.join(backupDir, 'backups', name + '.json');
     
@@ -478,7 +556,7 @@ async function getBackupInfo(opts) {
       throw new Error(`Error: backup "${name}" in "${backupDir}" does not exist.`);
     }
     
-    let files = 0, folders = 0, total = 0, size = 0, compressedSize = 0;
+    let files = 0, folders = 0, items = 0, size = 0, compressedSize = 0;
     
     for (let entry of backupObj.entries) {
       if (entry.type == 'directory') {
@@ -491,10 +569,10 @@ async function getBackupInfo(opts) {
         if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
         else compressedSize += fileMeta.size;
       }
-      total++;
+      items++;
     }
     
-    return { files, folders, total, size, compressedSize };
+    return { files, folders, items, size, compressedSize };
   }
 }
 
@@ -835,27 +913,78 @@ async function runIfMain() {
         if (name == null) {
           console.log(`Info for backups in "${backupDir}":`);
           
-          let infoEntries = Object.entries(info);
+          let infoEntries = [
+            ['Name', { files: 'Files', folders: 'Folders', items: 'Items', size: 'Size (B)', compressedSize: 'Compressed Size (B)' }],
+            ...[
+              ...info.backups,
+              ['Artifical Sum', info.totalSum],
+            ]
+            .map(x => [
+              x[0],
+              Object.fromEntries(
+                Object.entries(x[1])
+                  .map(y => [y[0], y[1].toLocaleString()])
+              ),
+            ]),
+          ];
           
-          let nameStrLen = 0, filesStrLen = 0, foldersStrLen = 0, totalStrLen = 0, sizeStrLen = 0, compressedSizeStrLen = 0;
+          // by default set to length of table headers for each column
+          let nameStrLen = 4, filesStrLen = 5, foldersStrLen = 7, totalStrLen = 5, sizeStrLen = 8, compressedSizeStrLen = 19;
           
           infoEntries.forEach(x => {
             nameStrLen = Math.max(nameStrLen, x[0].length);
-            filesStrLen = Math.max(filesStrLen, x[1].files.toLocaleString().length);
-            foldersStrLen = Math.max(foldersStrLen, x[1].folders.toLocaleString().length);
-            totalStrLen = Math.max(totalStrLen, x[1].total.toLocaleString().length);
-            sizeStrLen = Math.max(sizeStrLen, x[1].size.toLocaleString().length);
-            compressedSizeStrLen = Math.max(compressedSizeStrLen, x[1].compressedSize.toLocaleString().length);
+            filesStrLen = Math.max(filesStrLen, x[1].files.length);
+            foldersStrLen = Math.max(foldersStrLen, x[1].folders.length);
+            totalStrLen = Math.max(totalStrLen, x[1].items.length);
+            sizeStrLen = Math.max(sizeStrLen, x[1].size.length);
+            compressedSizeStrLen = Math.max(compressedSizeStrLen, x[1].compressedSize.length);
           });
           
           console.log(
             infoEntries
-              .map(x => `${x[0].padEnd(nameStrLen)} : ${x[1].files.toLocaleString().padEnd(filesStrLen)} files, ${x[1].folders.toLocaleString().padEnd(foldersStrLen)} folders, ${x[1].total.toLocaleString().padEnd(totalStrLen)} items, ${x[1].size.toLocaleString().padEnd(sizeStrLen)} bytes (${x[1].compressedSize.toLocaleString().padEnd(compressedSizeStrLen)} bytes compressed)`)
+              .map(x => `${x[0].padEnd(nameStrLen)}  ${x[1].files.padEnd(filesStrLen)}  ${x[1].folders.padEnd(foldersStrLen)}  ${x[1].items.padEnd(totalStrLen)}  ${x[1].size.padEnd(sizeStrLen)}  ${x[1].compressedSize.padEnd(compressedSizeStrLen)}`)
               .join('\n')
+          );
+          
+          let totalMap = new Map([
+            ['status', 'Status'],
+            ['refd', 'Referenced'],
+            ['orphaned', 'Orphaned'],
+            ['total', 'Total'],
+          ]);
+          
+          let infoTotalEntries = [
+            ['status', { files: 'Files', size: 'Size (B)', compressedSize: 'Compressed Size (B)' }],
+            ...info.totalReal
+            .map(x => [
+              x[0],
+              Object.fromEntries(
+                Object.entries(x[1])
+                  .map(y => [y[0], y[1].toLocaleString()])
+              ),
+            ]),
+          ];
+          
+          // by default set to length of table headers for each column
+          let totalNameStrLen = 0, totalFilesStrLen = 0, totalSizeStrLen = 0, totalCompressedSizeStrLen = 0;
+          
+          infoTotalEntries.forEach(x => {
+            totalNameStrLen = Math.max(totalNameStrLen, totalMap.get(x[0]).length);
+            totalFilesStrLen = Math.max(totalFilesStrLen, x[1].files.length);
+            totalSizeStrLen = Math.max(totalSizeStrLen, x[1].size.length);
+            totalCompressedSizeStrLen = Math.max(totalCompressedSizeStrLen, x[1].compressedSize.length);
+          });
+          
+          console.log(
+            '\n' +
+            `Totals:\n` +
+            infoTotalEntries.map(x =>
+                `${totalMap.get(x[0]).padEnd(totalNameStrLen)}  ${x[1].files.padEnd(totalFilesStrLen)}  ${x[1].size.padEnd(totalSizeStrLen)}  ${x[1].compressedSize.padEnd(totalCompressedSizeStrLen)}`
+              ).join('\n')
           );
         } else {
           console.log(`Info for backup "${name}" in "${backupDir}":`);
-          console.log(`${info.files.toLocaleString()} files, ${info.folders.toLocaleString()} folders, ${info.total.toLocaleString()} items, ${info.size.toLocaleString()} bytes (${info.compressedSize.toLocaleString()} bytes compressed)`);
+          console.log(`${info.files.toLocaleString()} files, ${info.folders.toLocaleString()} folders, ${info.items.toLocaleString()} items, ${info.size.toLocaleString()} bytes (${info.compressedSize.toLocaleString()} bytes compressed)`);
         }
         break;
       }
