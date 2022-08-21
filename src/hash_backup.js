@@ -458,6 +458,7 @@ async function getBackupInfo(opts) {
           files++;
           size += fileMeta.size;
           if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
+          else compressedSize += fileMeta.size;
         }
         total++;
       }
@@ -488,6 +489,7 @@ async function getBackupInfo(opts) {
         files++;
         size += fileMeta.size;
         if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
+        else compressedSize += fileMeta.size;
       }
       total++;
     }
