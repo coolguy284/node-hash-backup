@@ -341,6 +341,7 @@ function _procPromisify(procName, args, envVars, stdin) {
     
     proc.stdout.on('data', c => outputBufs.push(c));
     proc.stderr.on('data', c => errorBufs.push(c));
+    
     proc.on('close', code => {
       switch (code) {
         case 0:
