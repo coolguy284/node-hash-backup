@@ -21,3 +21,4 @@ add auto purge option to remove command
 compress stored json files
 add checksums
 memoize fsmetajson gets and maybe make into function
+split single nodejs file into many files
