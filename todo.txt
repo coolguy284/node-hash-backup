@@ -12,9 +12,12 @@ prevent hash slices * hash slice length from going over the length of hash itsel
 improve readme
 use custom error type when throwing, and print custom errors differently (without the traceback)
 add comments
-add remove command for removing backups
-add list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
-add prune command that removes files not referenced by any backup
+remove command for removing backups
+list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
+prune command that removes files not referenced by any backup
+rename backup command
+verify command for whole archive or optionally just one backup
 add auto purge option to remove command
 compress stored json files
 add checksums
+memoize fsmetajson gets and maybe make into function
