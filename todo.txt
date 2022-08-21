@@ -1,3 +1,5 @@
+make backup list command show total filesize of all backups and pseudo size ignoring deduplication with a percentage compression
+
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading format
 implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false

@@ -147,10 +147,12 @@ async function initBackupDir(opts) {
     hash,
     hashSliceLength,
     hashSlices,
-    compression: compressAlgo ? {
-      algorithm: compressAlgo,
-      level: compressLevel,
-    } : null,
+    ...(compressAlgo ? {
+      compression: {
+        algorithm: compressAlgo,
+        level: compressLevel,
+      },
+    } : {}),
   }, null, 2));
 }
 
@@ -316,8 +318,10 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
     fileHash,
     {
       size: fileBytes.length,
-      ...(resultAlgo ? { compressedSize: storeBytes.length } : {}),
-      compression: resultAlgo,
+      ...(resultAlgo ? {
+        compressedSize: storeBytes.length,
+        compression: resultAlgo,
+      } : {}),
     }
   ]);
   
