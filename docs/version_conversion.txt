@@ -2,6 +2,8 @@ updating from 6094d40 to be4c39f:
 
 cd to backup/files_meta
 
+Following commands only work with hashSlices set to 2 (the default).
+
 Verify command, run before and after:
 fs.readdirSync('.').map(x=>fs.readdirSync(x).map(y=>x+'/'+y)).flat().map(x=>JSON.parse(fs.readFileSync(x)))
 

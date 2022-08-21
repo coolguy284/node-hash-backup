@@ -460,7 +460,7 @@ async function getBackupInfo(opts) {
     throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
   
   if (name == null) {
-    let backups = await fs.promises.readdir(path.join(backupDir, 'backups'));
+    let backups = await fs.promises.readdir(path.join(backupDir, 'backups')), backupsSize = 0;
     
     let backupsParsed = [];
     
@@ -472,7 +472,11 @@ async function getBackupInfo(opts) {
     
     for (let backup of backups) {
       let backupJSONPath = path.join(backupDir, 'backups', backup);
-      let backupObj = JSON.parse((await fs.promises.readFile(backupJSONPath)).toString());
+      
+      let backupFile = await fs.promises.readFile(backupJSONPath);
+      backupsSize += backupFile.length;
+      
+      let backupObj = JSON.parse(backupFile.toString());
       
       let files = 0, folders = 0, items = 0, size = 0, compressedSize = 0;
       
@@ -521,6 +525,12 @@ async function getBackupInfo(opts) {
       else filesOrphanedCompressedSize += fileMeta.size;
     }
     
+    let fileMeta = await _recursiveReaddir(path.join(backupDir, 'files_meta'), [], false);
+    let fileMetaSize = (await Promise.all(
+        fileMeta.map(async x => (await fs.promises.stat(path.join(backupDir, 'files_meta', x))).size)
+      ))
+      .reduce((a, c) => a + c, 0);
+    
     return {
       backups: backupsParsed,
       totalSum: {
@@ -534,17 +544,37 @@ async function getBackupInfo(opts) {
         ['refd', {
           files: fileHashes.size,
           size: filesRefdSize,
-          compressedSize: filesRefdCompressedSize
+          compressedSize: filesRefdCompressedSize,
         }],
         ['orphaned', {
           files: filesOrphaned.length,
           size: filesOrphanedSize,
-          compressedSize: filesOrphanedCompressedSize
+          compressedSize: filesOrphanedCompressedSize,
         }],
         ['total', {
           files: filesReal.length,
           size: filesRefdSize + filesOrphanedSize,
-          compressedSize: filesRefdCompressedSize + filesOrphanedCompressedSize
+          compressedSize: filesRefdCompressedSize + filesOrphanedCompressedSize,
+        }],
+        ['filemeta', {
+          files: fileMeta.length,
+          size: fileMetaSize,
+          compressedSize: fileMetaSize,
+        }],
+        ['backupsmeta', {
+          files: backups.length,
+          size: backupsSize,
+          compressedSize: backupsSize,
+        }],
+        ['totalmeta', {
+          files: fileMeta.length + backups.length,
+          size: fileMetaSize + backupsSize,
+          compressedSize: fileMetaSize + backupsSize,
+        }],
+        ['grandtotal', {
+          files: filesReal.length + fileMeta.length + backups.length,
+          size: filesRefdSize + filesOrphanedSize + fileMetaSize + backupsSize,
+          compressedSize: filesRefdCompressedSize + filesOrphanedCompressedSize + fileMetaSize + backupsSize,
         }],
       ],
     };
@@ -960,6 +990,10 @@ async function runIfMain() {
             ['refd', 'Referenced'],
             ['orphaned', 'Orphaned'],
             ['total', 'Total'],
+            ['filemeta', 'File Meta'],
+            ['backupsmeta', 'Backup Meta'],
+            ['totalmeta', 'Total Meta'],
+            ['grandtotal', 'Grand Total'],
           ]);
           
           let infoTotalEntries = [

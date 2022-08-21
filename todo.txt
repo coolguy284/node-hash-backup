@@ -24,3 +24,4 @@ memoize fsmetajson gets and maybe make into function
 split single nodejs file into many files
 hash backup version 3 can have 2 modes, human readable json files and minified compressed json files
 add alternate stream support on windows
+allow subfolders in backups folder
