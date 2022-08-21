@@ -1018,12 +1018,18 @@ async function runIfMain() {
             totalCompressedSizeStrLen = Math.max(totalCompressedSizeStrLen, x[1].compressedSize.length);
           });
           
+          let infoTotalStrArr = infoTotalEntries.map(x =>
+              `${totalMap.get(x[0]).padEnd(totalNameStrLen)}  ${x[1].files.padEnd(totalFilesStrLen)}  ${x[1].size.padEnd(totalSizeStrLen)}  ${x[1].compressedSize.padEnd(totalCompressedSizeStrLen)}`
+            );
+          
+          // adding gaps in totals for clarity
+          infoTotalStrArr.splice(4, 0, '');
+          infoTotalStrArr.splice(8, 0, '');
+          
           console.log(
             '\n' +
             `Totals:\n` +
-            infoTotalEntries.map(x =>
-                `${totalMap.get(x[0]).padEnd(totalNameStrLen)}  ${x[1].files.padEnd(totalFilesStrLen)}  ${x[1].size.padEnd(totalSizeStrLen)}  ${x[1].compressedSize.padEnd(totalCompressedSizeStrLen)}`
-              ).join('\n')
+            infoTotalStrArr.join('\n')
           );
         } else {
           console.log(`Info for backup "${name}" in "${backupDir}":`);

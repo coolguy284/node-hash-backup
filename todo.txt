@@ -1,5 +1,3 @@
-make backup list command show total filesize of all backups and pseudo size ignoring deduplication with a percentage compression
-
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
 implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
@@ -25,3 +23,4 @@ split single nodejs file into many files
 hash backup version 3 can have 2 modes, human readable json files and minified compressed json files
 add alternate stream support on windows
 allow subfolders in backups folder
+add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
