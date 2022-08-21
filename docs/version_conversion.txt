@@ -1,0 +1,9 @@
+updating from 6094d40 to be4c39f:
+
+cd to backup/files_meta
+
+Verify command, run before and after:
+fs.readdirSync('.').map(x=>fs.readdirSync(x).map(y=>x+'/'+y)).flat().map(x=>JSON.parse(fs.readFileSync(x)))
+
+Modification command, run to update hash backup folder:
+fs.readdirSync('.').map(x=>fs.readdirSync(x).map(y=>x+'/'+y)).flat().map(x=>[x,Object.fromEntries(Object.entries(JSON.parse(fs.readFileSync(x))).map(y=>[y[0],Object.fromEntries(Object.entries(y[1]).filter(z=>z[1]!=null||z[0]!='compression'))]))]).forEach(x=>fs.writeFileSync(x[0],JSON.stringify(x[1])))

@@ -161,7 +161,7 @@ async function initBackupDir(opts) {
   
   await fs.promises.writeFile(path.join(backupDir, 'info.json'), JSON.stringify({
     folderType: 'coolguy284/node-hash-backup',
-    version: 1,
+    version: 2,
     hash,
     hashSliceLength,
     hashSlices,

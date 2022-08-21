@@ -27,7 +27,7 @@ backup  .   .   .   .   . the backup directory
         <hash of file contents>: object {
           size: integer (file size in bytes),
           compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
-          compression?: object (property only exists if there is compression) {
+          compression: object? (property null if no compression) {
             algorithm: string,
             ... (optional params necessary to decompress, depends on the compression algorithm)
           }
@@ -36,11 +36,11 @@ backup  .   .   .   .   . the backup directory
   info.json .   .   .   . main hash backup info file
     object {
       folderType: string ("coolguy284/node-hash-backup"),
-      version: integer > 0 (2),
+      version: integer > 0 (1),
       hash: string (the hash algorithm used on the files),
       hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files),
       hashSlices: integer >= 0 (the number of segments of the folders in files),
-      compression?: object (property only exists if there is compression) {
+      compression: object? (property null if no compression) {
         algorithm: string,
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is level)
       }
