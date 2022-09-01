@@ -24,3 +24,5 @@ hash backup version 3 can have 2 modes, human readable json files and minified c
 add alternate stream support on windows
 allow subfolders in backups folder
 add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
+add lzma support to node-hash-backup as an optional dependency
+add ultimate compression mode that tests every algo with max settings and uses the one with the smallest filesize
