@@ -319,8 +319,8 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
         throw new Error(`Error: invalid compression algorithm ${backupDirInfo.compression.algorithm}`);
     }
     
-    if (storeBytes.length > fileBytes.length) {
-      console.debug(`Not compressed with ${backupDirInfo.compression.algorithm} as file increases in size from ${fileBytes.length} to ${storeBytes.length} bytes`);
+    if (storeBytes.length >= fileBytes.length) {
+      console.debug(`Not compressed with ${backupDirInfo.compression.algorithm} as file increases or stays the same size from ${fileBytes.length} to ${storeBytes.length} bytes`);
       storeBytes = fileBytes;
       resultAlgo = null;
     } else {
