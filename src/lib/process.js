@@ -1,3 +1,5 @@
+let cp = require('child_process');
+
 module.exports = function _procPromisify(procName, args, envVars, stdin) {
   let proc = cp.spawn(procName, args, { stdio: 'pipe', timeout: 60000, ...(envVars != null ? { env: envVars } : {}) });
   

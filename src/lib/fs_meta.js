@@ -100,7 +100,10 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
         storeBytes = await new Promise((r, j) => {
           zlib.deflate(
             fileBytes,
-            { level: backupDirInfo.compression.level },
+            {
+              level: backupDirInfo.compression.level,
+              memLevel: 9,
+            },
             (err, res) => { if (err) j(err); else r(res); }
           );
         });
@@ -109,7 +112,10 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
         storeBytes = await new Promise((r, j) => {
           zlib.gzip(
             fileBytes,
-            { level: backupDirInfo.compression.level },
+            {
+              level: backupDirInfo.compression.level,
+              memLevel: 9,
+            },
             (err, res) => { if (err) j(err); else r(res); }
           );
         });
@@ -118,7 +124,12 @@ async function _setFileToBackup(backupDir, backupDirInfo, fileHash, fileBytes) {
         storeBytes = await new Promise((r, j) => {
           zlib.brotliCompress(
             fileBytes,
-            { level: backupDirInfo.compression.level },
+            {
+              params: {
+                [zlib.constants.BROTLI_PARAM_QUALITY]: backupDirInfo.compression.level,
+                [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileBytes.length,
+              },
+            },
             (err, res) => { if (err) j(err); else r(res); }
           );
         });

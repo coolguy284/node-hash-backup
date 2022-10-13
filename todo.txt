@@ -1,3 +1,6 @@
+remove commented code in tests/tests.js
+make tests more fully deterministic by creating random folders sequentially in order
+
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
 implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
@@ -27,7 +30,9 @@ add lzma support to node-hash-backup as an optional dependency
 add ultimate compression mode that tests every algo with max settings and uses the one with the smallest filesize
 change in-memory to in-memory-cutoff, filesize in bytes above which it will not be in memory; add max-compress-cutoff above which no max compression; add compress-cutoff above or maybe below which no compression at all
 add archive wide toggle for write protection on the archive files
-extensive test suite, first part tests each facet of each feature, second part generates many random file setups and tests backup and restore of them, checking for exact metadata accuracy; can do both types of tests in temp folders through node.js fs get temp folder
+create test that tests each facet of each feature
 check to make sure stopping program halfway does not cause broken data state anywhere
 make sure all async subfunctions / function calls in every async function are awaited
 add reverse search by hash for what backups and filenames in the backup have the file
+fix inconsistent periods at the end of console logged messages
+make gzip and deflate memlevel configurable option

@@ -2,9 +2,9 @@ let crypto = require('crypto');
 let fs = require('fs');
 let path = require('path');
 
-let { _checkPathIsDir } = require('../lib/fs');
-let { _getFileFromBackup,
-      _setFileTimes } = require('../lib/fs_meta');
+let { _checkPathIsDir,
+      _setFileTimes } = require('../lib/fs');
+let { _getFileFromBackup } = require('../lib/fs_meta');
 
 module.exports = async function performRestore(opts) {
   if (typeof opts != 'object') opts = {};
@@ -78,7 +78,7 @@ module.exports = async function performRestore(opts) {
   
   for (let i = 0, lasti; i < backupObj.entries.length; i += 1000) {
     lasti = Math.min(i + 1000, backupObj.entries.length);
-    console.log(`Setting timestamps of files: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
+    console.log(`Setting timestamps of entries: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
     
     await _setFileTimes(
       backupObj.entries

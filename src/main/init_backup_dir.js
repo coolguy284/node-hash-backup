@@ -1,4 +1,5 @@
 let fs = require('fs');
+let path = require('path');
 
 let { _checkPathIsDir } = require('../lib/fs');
 
@@ -19,12 +20,12 @@ module.exports = async function initBackupDir(opts) {
   
   let hash = typeof opts.hash == 'string' ? opts.hash : 'sha384';
   
-  let hashSliceLength = typeof opts.hashSliceLength == 'string' ? Number(opts.hashSliceLength) : 2;
+  let hashSliceLength = typeof opts.hashSliceLength == 'number' || typeof opts.hashSliceLength == 'bigint' ? opts.hashSliceLength : typeof opts.hashSliceLength == 'string' ? Number(opts.hashSliceLength) : 2;
   
   if (!Number.isSafeInteger(hashSliceLength) || hashSliceLength <= 0)
     throw new Error(`Error: hash slice length ${hashSliceLength} invalid (must be greater than zero and a safe integer).`);
   
-  let hashSlices = typeof opts.hashSlices == 'string' ? Number(opts.hashSlices) : 2;
+  let hashSlices = typeof opts.hashSlices == 'number' || typeof opts.hashSlices == 'bigint' ? opts.hashSlices : typeof opts.hashSlices == 'string' ? Number(opts.hashSlices) : 2;
   
   if (!Number.isSafeInteger(hashSlices) || hashSlices < 0)
     throw new Error(`Error: hash slices ${hashSlices} invalid (must be nonnegative and a safe integer).`);
@@ -35,7 +36,7 @@ module.exports = async function initBackupDir(opts) {
   if (compressAlgo == null) {
     compressLevel = null;
   } else {
-    compressLevel = typeof opts.compressLevel == 'string' ? Number(opts.compressLevel) : 6;
+    compressLevel = typeof opts.compressLevel == 'number' || typeof opts.compressLevel == 'bigint' ? opts.compressLevel : typeof opts.compressLevel == 'string' ? Number(opts.compressLevel) : 6;
     
     if (!Number.isSafeInteger(compressLevel) || compressLevel < 0)
       throw new Error(`Error: compression level ${compressLevel} invalid (must be nonnegative and a safe integer).`);
