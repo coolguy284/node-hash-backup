@@ -1,8 +1,14 @@
 remove commented code in tests/tests.js
 make tests more fully deterministic by creating random folders sequentially in order
+store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
+add exclude dirs option to backup and restore command
+optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
+  first step modifies hash slice length, hash slices count, and hash type (if set)
+    first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename
+  second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level
 implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
 handle duplicate hashes
 use equals to specify command line arguments in case parameter value starts with dashes
@@ -18,7 +24,7 @@ list command for listing backups (also lists basic stats like number of files, f
 prune command that removes files not referenced by any backup
 rename backup command
 verify command for whole hash backup or optionally just one backup
-add auto purge option to remove command
+add auto purge option to remove command, defaults to true
 compress stored json files
 add checksums
 memoize fsmetajson gets and maybe make into function
@@ -36,3 +42,7 @@ make sure all async subfunctions / function calls in every async function are aw
 add reverse search by hash for what backups and filenames in the backup have the file
 fix inconsistent periods at the end of console logged messages
 make gzip and deflate memlevel configurable option
+make sure program and modtime setting and getting works on linux
+transfer command that restores from one backup folder and backups to another, transferring all files in backup, but done more efficiently than actually restoring and backing up, by just copying the files in the backup folder
+delete command should only delete files and dirs with backup content in them
+restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)

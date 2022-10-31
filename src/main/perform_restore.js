@@ -13,6 +13,7 @@ module.exports = async function performRestore(opts) {
   let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : null;
   let basePath = typeof opts.basePath == 'string' && opts.basePath != '' ? opts.basePath : null;
   let name = typeof opts.name == 'string' && opts.name != '' ? opts.name : null;
+  let setFileTimes = typeof opts.setFileTimes == 'boolean' ? opts.setFileTimes : true;
   
   if (performChecks) {
     if (backupDir == null) throw new Error('Error: backup dir must be specified.');
@@ -76,14 +77,17 @@ module.exports = async function performRestore(opts) {
     }
   }
   
-  for (let i = 0, lasti; i < backupObj.entries.length; i += 1000) {
-    lasti = Math.min(i + 1000, backupObj.entries.length);
-    console.log(`Setting timestamps of entries: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
-    
-    await _setFileTimes(
-      backupObj.entries
-        .slice(i, lasti)
-        .map(entry => [path.join(basePath, entry.path), entry.atime, entry.mtime, entry.birthtime])
-    );
+  if (setFileTimes) {
+    for (let i = 0, lasti; i < backupObj.entries.length; i += 1000) {
+      lasti = Math.min(i + 1000, backupObj.entries.length);
+      console.log(`Setting timestamps of entries: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
+      
+      await _setFileTimes(
+        backupObj.entries
+          .slice(i, lasti)
+          .map(entry => [path.join(basePath, entry.path), entry.atime, entry.mtime, entry.birthtime])
+          .reverse()
+      );
+    }
   }
 };
