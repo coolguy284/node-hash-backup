@@ -1,4 +1,3 @@
-remove commented code in tests/tests.js
 make tests more fully deterministic by creating random folders sequentially in order
 store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
 add exclude dirs option to backup and restore command

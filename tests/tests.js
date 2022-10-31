@@ -317,10 +317,6 @@ let dirFuncs = {
         await timestampLog('error in validation logic, restore is not valid');
         await timestampLog('data ' + JSON.stringify(dataObjString));
         await timestampLog('restore ' + JSON.stringify(restoreObjString));
-        /*if (!global.replstarted) {
-          require('repl').start({ eval: function (v) { eval(v) } });
-          replstarted=true;
-        }*/
       } else {
         await timestampLog('final stringify check passed');
         if (VERBOSE_FINAL_VALID_LOG) {
