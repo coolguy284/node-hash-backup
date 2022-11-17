@@ -1,7 +1,8 @@
+add exclude dirs option to backup and restore command
 make tests more fully deterministic by creating random folders sequentially in order
 store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
-add exclude dirs option to backup and restore command
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
+add docs for node api
 
 add check for valid hash or compression algorythm and valid compression level
 modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
@@ -23,6 +24,8 @@ list command for listing backups (also lists basic stats like number of files, f
 prune command that removes files not referenced by any backup
 rename backup command
 verify command for whole hash backup or optionally just one backup
+  alternate mode that is functionally equivalent to restoring and checksumming but does so without restoring
+    add variant that will calculate hash and hash with names of slice of it to exactly match restoring it and calculating hash
 add auto purge option to remove command, defaults to true
 compress stored json files
 add checksums
@@ -45,3 +48,11 @@ make sure program and modtime setting and getting works on linux
 transfer command that restores from one backup folder and backups to another, transferring all files in backup, but done more efficiently than actually restoring and backing up, by just copying the files in the backup folder
 delete command should only delete files and dirs with backup content in them
 restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)
+hashslices in info.json maybe should be array like [[0,2],[2,4]] with each entry referring to a folder name slice from the hash of the file
+add creationtime to file_meta json files
+  potentially version change to version 3 of format
+add option to truncate hash potentially even as small as sha224 truncated to 64bit
+pendingoperations in info.json or pending_ops.json that stores current operation like modify so it can continue if stopped, new complete_operation command solely to resume this pending operation, other backup commands dont work until operation finished
+additional option for restore command that restores one folder tree or file from a backup
+backup files can link to previous backup file and only list changed attributes, new files, and deleted files; this makes new backup files smaller if not much changed
+view command to view file hierarchy of backup
