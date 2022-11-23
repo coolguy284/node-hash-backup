@@ -9,7 +9,7 @@ modify command that can modify backup dir parameters including upgrading or down
   first step modifies hash slice length, hash slices count, and hash type (if set)
     first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename
   second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level
-implement backup command ignore-symlinks arg set to true, in-memory arg set to false, check-duplicate-hash set to false
+implement backup command in-memory arg set to false, check-duplicate-hash set to false
 handle duplicate hashes
 use equals to specify command line arguments in case parameter value starts with dashes
 add support for command line args with no value
@@ -56,3 +56,26 @@ pendingoperations in info.json or pending_ops.json that stores current operation
 additional option for restore command that restores one folder tree or file from a backup
 backup files can link to previous backup file and only list changed attributes, new files, and deleted files; this makes new backup files smaller if not much changed
 view command to view file hierarchy of backup
+should be able to have at least 1 archive file (like zip, tar, wim, gz (yes single file ones count, particularly for tgz)) in folder paths like basepath for backup and restore, backupdir, excludedir, restoresubpath; path for view backup files subpath and other commands
+  do 7zip style for paths of targz, ex. file.tgz/file.tar/insidefolder
+should be able to backup single file and if specify folder on restore then put orig name in folder else if specify folder and nonexistent file then restore to that path
+file compression reverse engineering
+  attempt to reverse engineer compression of already compressed files and then decompress and recompress with better algorythm
+  do for gzip bzip2 lzma png jpg
+  use jxl for images lzma for files, recompress low power lzma with high power
+  recompress only if compress params of orig file can be determined to get exact file back
+  for jpg, jxl should be able to always reversibly recompress
+  backup param acceptalteredrecompresspaths where those paths if files or subpaths of those paths if folders will accept an invalid bytes reconstruction as long as the compression algorthym is right
+  if reconstruction is really close store bytes diff, or even if not really close but storing byte diff would still be a net savings
+  attempt to compress files inside zips and other archives directly if archive can be perfectly reconstructed or near perfectly with byte diffs still being a net savings
+  file meta for zips should have an array of all file hashes inside zip to ensure that those file hashes in the archive are not accidentally counted as orphaned files (this is only if zip was unpacked in first place)
+  whether zip was unpacked should be flag on the file meta of the zip so it is known without having to exhaustively inventory every file in backup
+  file meta compression should be array of "steps" to make orig file, ex. first take the file in the archive and brotlidecompress then compress with gz then apply byte diffs
+  backup command have param for limit of nested zips to try and unpack, from 0 to inf default idk; also argument for limit of zips in filepath of things
+  backup command have bytes limit on decompressing files output length (in attempt to decompress and reverse engineer), to prevent using up harddisk or memory decompressing a 10kb input 1tb output gzip file and then recompressing it; the param should go from -1 to not even try reverse engineering anything (this will supersede nested zips setting and always prevent unpacking) to infinity
+  for targz try unpacking tar and if not try only reverse engineering gz
+  same for tarbz2 tarxz etc
+lockfile for editing backupdir, it is created when backup dir is being edited, so if 2 edit commands try to access backup dir at same time the one that access dir later will just wait until file is gone, using watchfile (can use arg to error instead of auto defering, or maybe make defering the non default option); maybe instead of creating lockfile it will open an append file handle on info.json, although this would prevent views from working which is probably a good idea anyway as it is similar to oses preventing the read of a file while it is being written
+  if lockfile ends up being used, view command should print warning that results may be inaccurate if lockfile detected at any point in the view getting operation (use watchfolder or smth)
+store relative symbolic links properly and absolute ones too
+  backup command has symlink-mode arg that is enum that is either IGNORE (symlinks will not appear in backup dir), TREAT_AS_REGULAR (where it will be copied like it is normal file), FULL (store symlink path points to); default is FULL
