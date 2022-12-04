@@ -48,6 +48,8 @@ make sure program and modtime setting and getting works on linux
 transfer command that restores from one backup folder and backups to another, transferring all files in backup, but done more efficiently than actually restoring and backing up, by just copying the files in the backup folder
 delete command should only delete files and dirs with backup content in them
 restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)
+  option to always create copy of file in cached folder, therefore deleting the cache folder (when mode set to hardlink) will "seperate" the restored files from any new restores done (otherwise 2 files with same contents in the different restores will be linked)
+  warning with hardlink and symlink modes that any alteration of the files might alter files in the backup (and thus corrupt it), if option to always create copy not set; if option to always create copy set or copy made anyway due to compression, still possibility of modifying one file causing files in the cache, in other restores, and in the same restore with the same content to be modified as well
 hashslices in info.json maybe should be array like [[0,2],[2,4]] with each entry referring to a folder name slice from the hash of the file
 add creationtime to file_meta json files
   potentially version change to version 3 of format
@@ -65,7 +67,9 @@ file compression reverse engineering
   use jxl for images lzma for files, recompress low power lzma with high power
   recompress only if compress params of orig file can be determined to get exact file back
   for jpg, jxl should be able to always reversibly recompress
-  backup param acceptalteredrecompresspaths where those paths if files or subpaths of those paths if folders will accept an invalid bytes reconstruction as long as the compression algorthym is right
+    bmp would probably also be a guaranteed compress and decompress byte perfect
+  backup param acceptaltereddecompresspaths where those paths if files or subpaths of those paths if folders will accept a byte imperfect decompress as long as original data (like pixels for the image or files inside and metadata for the archive) is still preserved
+    whitelist and blacklist of file extensions or filetypes maybe instead to even bother compressing (compresstypes), or for acceptaltereddecompress but for types instead
   if reconstruction is really close store bytes diff, or even if not really close but storing byte diff would still be a net savings
   attempt to compress files inside zips and other archives directly if archive can be perfectly reconstructed or near perfectly with byte diffs still being a net savings
   file meta for zips should have an array of all file hashes inside zip to ensure that those file hashes in the archive are not accidentally counted as orphaned files (this is only if zip was unpacked in first place)
