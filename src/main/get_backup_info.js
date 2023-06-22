@@ -89,16 +89,27 @@ module.exports = async function getBackupInfo(opts) {
     
     let filesOrphaned = filesReal.filter(x => !fileHashes.has(x.split('/').slice(-1)[0])),
       filesOrphanedSize = 0,
-      filesOrphanedCompressedSize = 0;
+      filesOrphanedCompressedSize = 0,
+      filesUndatadNum = 0,
+      filesUndatadSize = 0,
+      filesUndatadCompressedSize = 0;
     
     for (let orphanedFile of filesOrphaned) {
       let fileHash = orphanedFile.split('/').slice(-1)[0];
       let fileMetaPath = path.join(backupDir, _getFileMetaPathFromBackup(backupDirInfo, fileHash));
       let fileMeta = JSON.parse((await fs.promises.readFile(fileMetaPath)).toString())[fileHash];
       
-      filesOrphanedSize += fileMeta.size;
-      if ('compressedSize' in fileMeta) filesOrphanedCompressedSize += fileMeta.compressedSize;
-      else filesOrphanedCompressedSize += fileMeta.size;
+      if (fileMeta == null) {
+        // level 2 orphaned file that doesnt have metadata entry even; called "undata'd file"
+        let fileSize = (await fs.promises.stat(path.join(backupDir, 'files', orphanedFile))).size;
+        filesUndatadSize += fileSize;
+        filesUndatadCompressedSize += fileSize;
+        filesUndatadNum++;
+      } else {
+        filesOrphanedSize += fileMeta.size;
+        if ('compressedSize' in fileMeta) filesOrphanedCompressedSize += fileMeta.compressedSize;
+        else filesOrphanedCompressedSize += fileMeta.size;
+      }
     }
     
     let fileMeta = await _recursiveReaddir(path.join(backupDir, 'files_meta'), [], false);
@@ -123,9 +134,14 @@ module.exports = async function getBackupInfo(opts) {
           compressedSize: filesRefdCompressedSize,
         }],
         ['orphaned', {
-          files: filesOrphaned.length,
+          files: filesOrphaned.length - filesUndatadNum,
           size: filesOrphanedSize,
           compressedSize: filesOrphanedCompressedSize,
+        }],
+        ['undatad', {
+          files: filesUndatadNum,
+          size: filesUndatadSize,
+          compressedSize: filesUndatadCompressedSize,
         }],
         ['total', {
           files: filesReal.length,

@@ -78,8 +78,8 @@ module.exports = async function performRestore(opts) {
   }
   
   if (setFileTimes) {
-    for (let i = 0, lasti; i < backupObj.entries.length; i += 1000) {
-      lasti = Math.min(i + 1000, backupObj.entries.length);
+    for (let i = 0, lasti; i < backupObj.entries.length; i += 50) {
+      lasti = Math.min(i + 50, backupObj.entries.length);
       console.log(`Setting timestamps of entries: ${lasti}/${backupObj.entries.length} (${(lasti / backupObj.entries.length * 100).toFixed(2)}%)`);
       
       await _setFileTimes(

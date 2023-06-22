@@ -206,6 +206,7 @@ async function runIfMain() {
             ['status', 'Status'],
             ['refd', 'Referenced'],
             ['orphaned', 'Orphaned'],
+            ['undatad', 'UnData\'d'],
             ['total', 'Total'],
             ['filemeta', 'File Meta'],
             ['backupsmeta', 'Backup Meta'],
@@ -331,7 +332,8 @@ async function runIfMain() {
           backupDir,
           basePath,
           name,
-          verify: commandArgs.get('verify'),
+          verify: commandArgs.get('verify') ? commandArgs.get('verify') == 'true' : null,
+          setFileTimes: commandArgs.get('set_file_times') ? commandArgs.get('set_file_times') == 'true' : null,
           _performChecks: false,
         });
         
