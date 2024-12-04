@@ -49,9 +49,9 @@ async function runIfMain() {
       '    --from <basePath> (required): The directory to backup.\n' +
       '    --to <backupDir> (required): The hash backup folder to use.\n' +
       '    --name <name> (required): The name of the backup.\n' +
-      '    --ignore-symlinks <value> (default false): If true, symlinks will be ignored (not implemented yet). If false, symlinks will be copied over as regular files (and the modtime of the destination file will be used).\n' +
-      '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory (not implemented yet).\n' +
-      '    --check-duplicate-hashes (default true): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
+      '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks will be ignored. If \'passthrough\', symlinks will be copied over as regular files (and the modtime of the destination file will be used). If \'true\', symlinks will be added to the backup as-is, storing their path.\n' +
+      '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.\n' +
+      //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
       '\n' +
       'Command `restore`:\n' +
       '  Restores a folder from the hash backup.\n' +
@@ -60,6 +60,7 @@ async function runIfMain() {
       '    --from <backupDir> (required): The hash backup folder to use.\n' +
       '    --to <basePath> (required): The directory to restore to.\n' +
       '    --name <name> (required): The name of the backup.\n' +
+      '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks in backup will not be copied. If \'passthrough\', symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If \'true\', symlinks will be added to the backup as-is, including their path.\n' +
       '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.'
     );
   } else {
