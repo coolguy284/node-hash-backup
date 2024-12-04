@@ -51,7 +51,6 @@ async function runIfMain() {
       '    --name <name> (required): The name of the backup.\n' +
       '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks will be ignored. If \'passthrough\', symlinks will be copied over as regular files (and the modtime of the destination file will be used). If \'true\', symlinks will be added to the backup as-is, storing their path.\n' +
       '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.\n' +
-      //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
       '\n' +
       'Command `restore`:\n' +
       '  Restores a folder from the hash backup.\n' +

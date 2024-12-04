@@ -12,6 +12,7 @@ modify command that can modify backup dir parameters including upgrading or down
   second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level
 implement backup command in-memory arg set to false, check-duplicate-hash set to false
 handle duplicate hashes
+  //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
 use equals to specify command line arguments in case parameter value starts with dashes
 add support for command line args with no value
 verify backup directory before performing backup

@@ -2,7 +2,7 @@
   "name": "hash-backup",
   "version": "1.2.3",
   "description": "A hash based incremental file backupper.",
-  "main": "src/hash_backup.js",
+  "main": "src/main.js",
   "scripts": {
     "test": "node tests/tests.js"
   },
