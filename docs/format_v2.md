@@ -9,8 +9,9 @@ backup  .   .   .   .   . the backup directory
         entries: array [
           object {
             path: string (relative path inside the backup folder),
-            type: string (either "file" or "directory"),
+            type: string (either "file", "directory", or "symbolic link"),
             hash?: string (file hash, property only present on files),
+            symlinkType?: string (either "file", "directory", or "junction"; not present if unknown or on linux),
             atime: string (access time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             mtime: string (content modify time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             ctime: string (metadata change time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
@@ -22,17 +23,12 @@ backup  .   .   .   .   . the backup directory
   files .   .   .   .   . folder with the actual files
     <segment1>/<segment2>/.../<hash of file contents>: the location that each file is stored in
   files_meta    .   .   . folder with file metadata
-    <segment1>/.../<segmentX>.json:
-      object {
-        <hash of file contents>: object {
-          size: integer (file size in bytes),
-          compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
-          compression?: object (property only exists if there is compression) {
-            algorithm: string,
-            ... (optional params necessary to decompress, depends on the compression algorithm)
-          }
-        }
-      }
+    if number of slices is 0:
+      meta.json:
+        FILE_META_CONTENT
+    else:
+      <segment1>/.../<segmentX>.json:
+        FILE_META_CONTENT
   info.json .   .   .   . main hash backup info file
     object {
       folderType: string ("coolguy284/node-hash-backup"),
@@ -45,4 +41,16 @@ backup  .   .   .   .   . the backup directory
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is level)
       }
     }
+
+FILE_META_CONTENT:
+  object {
+    <hash of file contents>: object {
+      size: integer (file size in bytes),
+      compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
+      compression?: object (property only exists if there is compression) {
+        algorithm: string,
+        ... (optional params necessary to decompress, depends on the compression algorithm)
+      }
+    }
+  }
 ```
