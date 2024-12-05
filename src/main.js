@@ -60,6 +60,7 @@ async function runIfMain() {
       '    --to <basePath> (required): The directory to restore to.\n' +
       '    --name <name> (required): The name of the backup.\n' +
       '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks in backup will not be copied. If \'passthrough\', symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If \'true\', symlinks will be added to the backup as-is, including their path.\n' +
+      '    --setFileTimes <boolean> (default true): If true, file access, modification, and create times will be set at end of restore.\n'+
       '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.'
     );
   } else {

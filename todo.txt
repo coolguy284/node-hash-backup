@@ -1,3 +1,5 @@
+verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
+
 update readme help output, particularly add 'remove' command '--setFileTimes' option
 add exclude dirs option to backup and restore command
 make tests more fully deterministic by creating random folders sequentially in order

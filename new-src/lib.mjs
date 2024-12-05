@@ -1,15 +1,33 @@
-import { readFile } from 'fs/promises';
+import {
+  readFile,
+  stat,
+} from 'fs/promises';
+import { join } from 'path';
 
 export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;
+export const FULL_INFO_FILE_NAME = 'info.json';
+export const META_FILE_EXTENSION = '.json';
+export const SINGULAR_META_FILE_NAME = `file.${META_FILE_EXTENSION}`;
+export const TEMP_NEW_FILE_SUFFIX = '_new';
 
-export async function getBackupDirInfo(path) {
+export async function errorIfPathNotDir(path) {
+  let stats = await stat(path);
+  
+  if (!stats.isDirectory()) {
+    throw new Error(`${path} not a directory`);
+  }
+}
+
+export async function getBackupDirInfo(backupDirPath) {
+  const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
+  
   let data;
   try {
-    data = await readFile(path);
+    data = await readFile(infoFilePath);
   } catch (err) {
     if (err.code == 'ENOENT') {
-      throw new Error(`path is not a backup dir (no info.json): ${path}`);
+      throw new Error(`path is not a backup dir (no info.json): ${backupDirPath}`);
     } else {
       throw err;
     }
@@ -18,12 +36,23 @@ export async function getBackupDirInfo(path) {
   try {
     data = JSON.parse(data);
   } catch {
-    throw new Error(`path is not a backup dir (info.json invalid json): ${path}`);
+    throw new Error(`path is not a backup dir (info.json invalid json): ${backupDirPath}`);
   }
   
   if (data.folderType != 'coolguy284/node-hash-backup') {
-    throw new Error(`path is not a backup dir (info.json type not hash backup): ${path}`);
+    throw new Error(`path is not a backup dir (info.json type not hash backup): ${backupDirPath}`);
   }
   
   return data;
+}
+
+export async function isValidBackupDir(backupDirPath) {
+  await errorIfPathNotDir(backupDirPath);
+  
+  try {
+    await getBackupDirInfo(backupDirPath);
+    return true;
+  } catch {
+    return false;
+  }
 }

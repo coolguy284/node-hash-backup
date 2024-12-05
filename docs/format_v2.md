@@ -33,13 +33,13 @@ backup  .   .   .   .   . the backup directory
     object {
       folderType: string ("coolguy284/node-hash-backup"),
       version: integer > 0 (2),
-      hash: string (the hash algorithm used on the files),
-      hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files),
-      hashSlices: integer >= 0 (the number of segments of the folders in files),
+      hash: string (the hash algorithm used on the files; default "sha256"),
+      hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files; default 2),
+      hashSlices: integer >= 0 (the number of segments of the folders in files; default 1),
       compression?: object (property only exists if there is compression) {
         algorithm: string,
-        ... (optional params necessary to compress, depends on the compression algorithm, most likely property is level)
-      }
+        ... (optional params necessary to compress, depends on the compression algorithm, most likely property is "level")
+      }; default { algorithm: "brotli", level: 6 }
     }
 
 FILE_META_CONTENT:
