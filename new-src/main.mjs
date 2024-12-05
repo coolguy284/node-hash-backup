@@ -10,9 +10,13 @@ export {
 export {
   errorIfPathNotDir,
   FULL_INFO_FILE_NAME,
+  fullInfoFileStringify,
+  META_DIRECTORY,
   META_FILE_EXTENSION,
+  metaFileStringify,
   SINGULAR_META_FILE_NAME,
   TEMP_NEW_FILE_SUFFIX,
+  writeFileReplaceWhenDone,
 } from './lib.mjs';
 export { upgradeDirToCurrent } from './upgrader.mjs';
 */

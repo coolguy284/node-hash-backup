@@ -1,17 +1,19 @@
 import {
   readdir,
   readFile,
-  rename,
-  writeFile,
 } from 'fs/promises';
 import { join } from 'path';
 
 import {
+  FULL_INFO_FILE_NAME,
+  fullInfoFileStringify,
   getBackupDirInfo,
+  META_DIRECTORY,
   META_FILE_EXTENSION,
+  metaFileStringify,
   MIN_BACKUP_VERSION,
   SINGULAR_META_FILE_NAME,
-  TEMP_NEW_FILE_SUFFIX,
+  writeFileReplaceWhenDone,
 } from './lib.mjs';
 
 function isLowerCaseHex(string) {
@@ -33,13 +35,10 @@ async function upgradeDir1To2_processOneMetaFile(metaFilePath) {
     ])
   );
   
-  const tempNewMetaFilePath = metaFilePath + TEMP_NEW_FILE_SUFFIX;
-  
-  await writeFile(
-    tempNewMetaFilePath,
-    JSON.stringify(newContents, null, 2)
+  await writeFileReplaceWhenDone(
+    metaFilePath,
+    metaFileStringify(newContents)
   );
-  await rename(tempNewMetaFilePath, metaFilePath);
 }
 
 async function upgradeDir1To2_processMetaFolder({
@@ -77,8 +76,8 @@ async function upgradeDir1To2_processMetaFolder({
   }
 }
 
-async function upgradeDir1To2({ path, info }) {
-  const filesMetaPath = join(path, 'files_meta');
+async function upgradeDir1To2({ backupDirPath, info }) {
+  const filesMetaPath = join(backupDirPath, META_DIRECTORY);
   
   if (info.hashSlices == 0) {
     await upgradeDir1To2_processOneMetaFile(join(filesMetaPath, SINGULAR_META_FILE_NAME));
@@ -89,10 +88,19 @@ async function upgradeDir1To2({ path, info }) {
       hashSliceLength: info.hashSliceLength,
     });
   }
+  
+  info.version++;
+  
+  const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
+  
+  await writeFileReplaceWhenDone(
+    infoFilePath,
+    fullInfoFileStringify(info)
+  );
 }
 
-export async function upgradeDirToCurrent(path) {
-  const info = await getBackupDirInfo(path);
+export async function upgradeDirToCurrent(backupDirPath) {
+  let info = await getBackupDirInfo(backupDirPath);
   
   if (info.version < MIN_BACKUP_VERSION) {
     throw new Error(`backup version invalid: version (${info.version}) < min version (${MIN_BACKUP_VERSION})`);
@@ -100,6 +108,6 @@ export async function upgradeDirToCurrent(path) {
   
   switch (info.version) {
     case 1:
-      upgradeDir1To2({ path, info });
+      upgradeDir1To2({ backupDirPath, info });
   }
 }

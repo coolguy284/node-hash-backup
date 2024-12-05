@@ -1,6 +1,8 @@
 import {
   readFile,
+  rename,
   stat,
+  writeFile,
 } from 'fs/promises';
 import { join } from 'path';
 
@@ -8,6 +10,7 @@ export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;
 export const FULL_INFO_FILE_NAME = 'info.json';
 export const META_FILE_EXTENSION = '.json';
+export const META_DIRECTORY = 'files_meta';
 export const SINGULAR_META_FILE_NAME = `file.${META_FILE_EXTENSION}`;
 export const TEMP_NEW_FILE_SUFFIX = '_new';
 
@@ -17,6 +20,21 @@ export async function errorIfPathNotDir(path) {
   if (!stats.isDirectory()) {
     throw new Error(`${path} not a directory`);
   }
+}
+
+export async function writeFileReplaceWhenDone(filename, contents) {
+  const tempNewFilename = filename + TEMP_NEW_FILE_SUFFIX;
+  
+  await writeFile(tempNewFilename, contents);
+  await rename(tempNewFilename, filename);
+}
+
+export async function fullInfoFileStringify(contents) {
+  return JSON.stringify(contents, null, 2);
+}
+
+export async function metaFileStringify(contents) {
+  return JSON.stringify(contents, null, 2);
 }
 
 export async function getBackupDirInfo(backupDirPath) {
