@@ -1,4 +1,5 @@
 verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
+hash backup isolate var access of updater file
 
 update readme help output, particularly add 'remove' command '--setFileTimes' option
 add exclude dirs option to backup and restore command

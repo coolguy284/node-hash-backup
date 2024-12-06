@@ -14,6 +14,12 @@ export const META_DIRECTORY = 'files_meta';
 export const SINGULAR_META_FILE_NAME = `file.${META_FILE_EXTENSION}`;
 export const TEMP_NEW_FILE_SUFFIX = '_new';
 
+// This function does not validate its input
+export async function callBothLoggers({ logger, globalLogger }, data) {
+  if (logger != null) logger(data);
+  if (globalLogger != null) globalLogger(data);
+}
+
 export async function errorIfPathNotDir(path) {
   let stats = await stat(path);
   

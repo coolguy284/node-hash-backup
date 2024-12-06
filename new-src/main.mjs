@@ -8,6 +8,7 @@ export {
 
 /*
 export {
+  callBothLoggers,
   errorIfPathNotDir,
   FULL_INFO_FILE_NAME,
   fullInfoFileStringify,

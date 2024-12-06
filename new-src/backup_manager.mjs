@@ -6,18 +6,18 @@ import {
 import { upgradeDirToCurrent } from './upgrader.mjs';
 
 class BackupManager {
-  #path;
+  #backupDirPath;
   #globalLogger;
   #allowFullBackupDirDestroy = false;
   
   async #initManager({
-    path,
+    backupDirPath,
     autoUpgradeDir,
     globalLogger,
     logger,
   }) {
-    if (typeof path != 'string') {
-      throw new Error(`path not string: ${typeof path}`);
+    if (typeof backupDirPath != 'string') {
+      throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
     }
     
     if (typeof autoUpgradeDir != 'boolean' && autoUpgradeDir != null) {
@@ -34,9 +34,9 @@ class BackupManager {
       throw new Error(`logger must be a function or null, but was: ${typeof logger}`);
     }
     
-    await errorIfPathNotDir(path);
+    await errorIfPathNotDir(backupDirPath);
     
-    let info = await getBackupDirInfo(path);
+    let info = await getBackupDirInfo(backupDirPath);
     
     if (info.version > CURRENT_BACKUP_VERSION) {
       throw new Error(`backup dir version is for more recent version of program: ${info.version} > ${CURRENT_BACKUP_VERSION}`);
@@ -44,9 +44,13 @@ class BackupManager {
     
     if (info.version < CURRENT_BACKUP_VERSION) {
       if (autoUpgradeDir) {
-        await upgradeDirToCurrent(path);
+        await upgradeDirToCurrent({
+          backupDirPath,
+          logger,
+          globalLogger,
+        });
         
-        info = await getBackupDirInfo(path);
+        info = await getBackupDirInfo(backupDirPath);
       } else {
         throw new Error(
           `cannot open backup dir, dir version (${info.version}) < supported version (${CURRENT_BACKUP_VERSION})\n` +
@@ -61,12 +65,12 @@ class BackupManager {
   }
   
   // This function is async as it calls an async helper and returns the corresponding promise
-  constructor(path, {
+  constructor(backupDirPath, {
     autoUpgradeDir,
     globalLogger,
   }) {
     return this.#initManager({
-      path,
+      backupDirPath,
       autoUpgradeDir,
       globalLogger,
     });
@@ -102,8 +106,8 @@ class BackupManager {
   }
 }
 
-export async function createBackupManager(path) {
+export async function createBackupManager(backupDirPath) {
   // the 'await' call does have an effect, as constructor returns a promise that gets
   // fulfilled with the newly constructed BackupManager object
-  return await new BackupManager(path);
+  return await new BackupManager(backupDirPath);
 }
