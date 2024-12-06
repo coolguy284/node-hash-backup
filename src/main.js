@@ -34,6 +34,7 @@ async function runIfMain() {
       '  \n' +
       '  Options:\n' +
       '    --to <backupDir> (required): The hash backup dir to remove contents of.\n' +
+      //'    --confirm yes (required): Must be set to allow deletion.\n' +
       '\n' +
       'Command `list`:\n' +
       '  Lists the backups in a given hash backup folder.\n' +

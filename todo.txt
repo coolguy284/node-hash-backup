@@ -1,6 +1,8 @@
-verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
-hash backup isolate var access of updater file
+delete backup and delete backup dir must have confirm=yes
+create command line access for each command in backup manager class within reason
+clear TODO from codebase
 
+old:
 update readme help output, particularly add 'remove' command '--setFileTimes' option
 add exclude dirs option to backup and restore command
 make tests more fully deterministic by creating random folders sequentially in order
@@ -88,3 +90,7 @@ lockfile for editing backupdir, it is created when backup dir is being edited, s
   if lockfile ends up being used, view command should print warning that results may be inaccurate if lockfile detected at any point in the view getting operation (use watchfolder or smth)
 store relative symbolic links properly and absolute ones too
   backup command has symlink-mode arg that is enum that is either IGNORE (symlinks will not appear in backup dir), TREAT_AS_REGULAR (where it will be copied like it is normal file), FULL (store symlink path points to); default is FULL
+
+low prio:
+verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
+copy over imports of upgrader.mjs into the file itself to isolate the imports and protect against accidental update of the functions
