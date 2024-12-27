@@ -1,9 +1,9 @@
-let crypto = require('crypto');
 let fs = require('fs');
 let path = require('path');
 
 let { _checkPathIsDir,
-      _setFileTimes } = require('../lib/fs');
+      _setFileTimes,
+      hashSync } = require('../lib/fs');
 let { _getFileFromBackup } = require('../lib/fs_meta');
 
 module.exports = async function performRestore(opts) {
@@ -68,7 +68,7 @@ module.exports = async function performRestore(opts) {
       if (entry.path != '.') await fs.promises.mkdir(filePath);
     } else {
       let fileBytes = await _getFileFromBackup(backupDir, backupDirInfo, entry.hash);
-      let fileHash = crypto.createHash(backupDirInfo.hash).update(fileBytes).digest('hex');
+      let fileHash = hashSync(fileBytes, backupDirInfo.hash);
       
       if (fileHash != entry.hash)
         throw new Error(`Error: stored file has hash ${fileHash} but should have ${entry.hash}`);
