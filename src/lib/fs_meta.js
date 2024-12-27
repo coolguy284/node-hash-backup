@@ -2,6 +2,8 @@ let fs = require('fs');
 let path = require('path');
 let zlib = require('zlib');
 
+let { readLargeFile } = require('./fs');
+
 function _getFileHashSlices(fileHash, hashSlices, hashSliceLength) {
   let slices = [];
   
@@ -42,7 +44,7 @@ async function _getFileFromBackup(backupDir, backupDirInfo, fileHash) {
   
   if (fileMeta == null) return null;
   
-  let processedFileBytes = await fs.promises.readFile(filePath);
+  let processedFileBytes = await readLargeFile(filePath);
   
   if (fileMeta.compression) {
     let fileBytes;
