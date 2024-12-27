@@ -1,4 +1,5 @@
 let fs = require('fs');
+let crypto = require('crypto');
 let path = require('path');
 
 let { _nsTimeToString,
@@ -135,9 +136,41 @@ async function _setFileTimes(fileTimesArr) {
   }
 }
 
+async function readLargeFile(filePath) {
+  return await new Promise((r, j) => {
+    const stream = fs.createReadStream(filePath);
+    
+    let chunks = [];
+    
+    stream.on('data', c => {
+      chunks.push(c);
+    });
+    
+    stream.on('end', () => {
+      r(Buffer.concat(chunks));
+    });
+    
+    stream.on('error', err => {
+      j(err);
+    });
+  });
+}
+
+function hashSync(fileBytes, hash) {
+  const hashObj = crypto.createHash(hash);
+  const CHUNK_SIZE = 20e6;
+  for (let i = 0; i < fileBytes.length; i += CHUNK_SIZE) {
+    const fileChunk = fileBytes.subarray(i, i + CHUNK_SIZE);
+    hashObj.update(fileChunk);
+  }
+  return hashObj.digest('hex');
+}
+
 module.exports = {
   _checkPathIsDir,
   _recursiveReaddir,
   _getAllEntriesInDir,
   _setFileTimes,
+  readLargeFile,
+  hashSync,
 };

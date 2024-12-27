@@ -3,7 +3,9 @@ let fs = require('fs');
 let path = require('path');
 
 let { _checkPathIsDir,
-      _getAllEntriesInDir } = require('../lib/fs');
+      _getAllEntriesInDir,
+      readLargeFile,
+      hashSync } = require('../lib/fs');
 let { _getFileFromBackup,
       _getFilePathFromBackup,
       _setFileToBackup } = require('../lib/fs_meta');
@@ -68,9 +70,9 @@ module.exports = async function performBackup(opts) {
     
     let fileHash;
     if (!isDir) {
-      let fileBytes = await fs.promises.readFile(filePath);
+      let fileBytes = await readLargeFile(filePath);
       
-      fileHash = crypto.createHash(backupDirInfo.hash).update(fileBytes).digest('hex');
+      fileHash = hashSync(fileBytes, backupDirInfo.hash);
       console.log(`File hash: ${fileHash}`);
       
       let fileFromBackup = await _getFileFromBackup(backupDir, backupDirInfo, fileHash);
