@@ -1,16 +1,116 @@
 import {
+  createHash,
+  getHashes,
+} from 'crypto';
+import {
   open,
   readdir,
   unlink,
 } from 'fs/promises';
 import { join } from 'path';
+import {
+  createBrotliCompress,
+  createDeflate,
+  createDeflateRaw,
+  createGzip,
+} from 'zlib';
 
 import { errorIfPathNotDir } from './lib/fs.mjs';
+import { callBothLoggers } from './lib/logger.mjs';
+import { ReadOnlyMap } from './lib/read_only_map.mjs';
+import { ReadOnlySet } from './lib/read_only_set.mjs';
 import {
   CURRENT_BACKUP_VERSION,
   getBackupDirInfo,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
+
+export const BITS_PER_BYTE = 8;
+export const HEX_CHAR_LENGTH_BITS = 4;
+
+export const HASH_SIZES = new ReadOnlyMap(
+  getHashes()
+    .map(hashName => [
+      hashName,
+      (
+        createHash(hashName)
+          .update(Buffer.alloc())
+          .digest()
+          .length
+      ) * BITS_PER_BYTE,
+    ])
+);
+
+const INSECURE_HASH_PARTS = new Set(['md5', 'sha1']);
+
+export const INSECURE_HASHES = new ReadOnlySet(
+  Array.from(HASH_SIZES.keys())
+    .filter(
+      hashAlgo =>
+        hashAlgo
+          .toLowerCase()
+          .split('-')
+          .some(hashAlgoPart => INSECURE_HASH_PARTS.has(hashAlgoPart))
+    )
+);
+
+console.log(INSECURE_HASHES);
+
+export const COMPRESSION_ALGOS = new ReadOnlySet([
+  'deflate-raw',
+  'deflate',
+  'gzip',
+  'brotli',
+]);
+
+// unused for now:
+// const VARIABLE_LENGTH_HAHSHES = new Set([
+//   'shake128',
+//   'shake256',
+// ]);
+
+function createCompressor(compressionAlgo, compressionParams) {
+  if (typeof compressionAlgo != 'string') {
+    throw new Error(`compressionAlgo not string: ${typeof compressionAlgo}`);
+  }
+  
+  switch (compressionAlgo) {
+    case 'deflate-raw':
+      return createDeflateRaw(compressionParams);
+    
+    case 'deflate':
+      return createDeflate(compressionParams);
+    
+    case 'gzip':
+      return createGzip(compressionParams);
+    
+    case 'brotli':
+      return createBrotliCompress(compressionParams);
+    
+    default:
+      throw new Error(`unknown compression algorithm: ${compressionAlgo}`);
+  }
+}
+
+async function compressBytes(bytes, compressionAlgo, compressionParams) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new Error(`bytes not Uint8Array: ${bytes}`);
+  }
+  
+  let compressor = createCompressor(compressionAlgo, compressionParams);
+  
+  return await new Promise((r, j) => {
+    let outputChunks = [];
+    
+    compressor.on('error', err => j(err));
+    
+    compressor.on('data', chunk => outputChunks.push(chunk));
+    
+    compressor.on('end', () => r(Buffer.concat(outputChunks)));
+    
+    compressor.write(bytes);
+  });
+}
 
 class BackupManager {
   // class vars
@@ -132,8 +232,8 @@ class BackupManager {
   
   async initBackupDir({
     hashAlgo = 'sha256',
-    hashSliceLength = 2,
     hashSlices = 1,
+    hashSliceLength = null,
     compressionAlgo = 'brotli',
     compressionParams = { level: 6 },
     logger,
@@ -142,7 +242,92 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo != null) {
+      throw new Error('backup dir already created');
+    }
+    
+    if (typeof hashAlgo != 'string') {
+      throw new Error(`hashAlgo not string: ${typeof hashAlgo}`);
+    }
+    
+    if (!HASH_SIZES.has(hashAlgo)) {
+      throw new Error(`hashAlgo unrecognized: ${hashAlgo}`);
+    }
+    
+    if (!Number.isSafeInteger(hashSlices) || hashSlices < 0) {
+      throw new Error(`hashSlices not nonnegative integer: ${hashSlices}`);
+    }
+    
+    if (hashSlices == 0) {
+      if (hashSliceLength != null) {
+        throw new Error(`hashSliceLength not null despite no hashSlices: ${hashSliceLength}`);
+      }
+    } else {
+      hashSliceLength = hashSliceLength ?? 2;
+      
+      if (!Number.isSafeInteger(hashSliceLength) || hashSliceLength < 0) {
+        throw new Error(`hashSliceLength not nonnegative integer: ${hashSliceLength}`);
+      }
+    }
+    
+    if (hashSlices != 0) {
+      const hashLengthBits = HASH_SIZES.has(hashAlgo);
+      const totalHashSliceLengthBits = hashSlices * hashSliceLength * HEX_CHAR_LENGTH_BITS;
+      if (totalHashSliceLengthBits > hashLengthBits) {
+        throw new Error(
+          `hashSlices (${hashSlices}) * hashSliceLength (${hashSliceLength}) * ${HEX_CHAR_LENGTH_BITS} = ${totalHashSliceLengthBits} > hash size in bits (${hashLengthBits})`
+        );
+      }
+    }
+    
+    if (typeof compressionAlgo != 'string' && compressionAlgo != null) {
+      throw new Error(`compressionAlgo not string: ${compressionAlgo}`);
+    }
+    
+    if (compressionAlgo != null) {
+      if (!COMPRESSION_ALGOS.has(compressionAlgo)) {
+        throw new Error(`compressionAlgo unknown: ${compressionAlgo}`);
+      }
+      
+      if (typeof compressionParams != 'object' && compressionParams != null) {
+        throw new Error(`compressionParams not object or null: ${compressionParams}`);
+      }
+      
+      if (compressionParams != null) {
+        if ('algorithm' in compressionParams) {
+          throw new Error(`compressionParams contains disallowed key "algorithm": ${JSON.stringify(compressionParams)}`);
+        }
+      }
+      
+      try {
+        await compressBytes(Buffer.from('test'), compressionAlgo, compressionParams);
+      } catch {
+        throw new Error(`compressionParams invalid: ${JSON.stringify(compressionParams)}`);
+      }
+    } else {
+      if (compressionParams != null) {
+        throw new Error(`compressionAlgo null but compressionParams not null: ${compressionParams}`);
+      }
+    }
+    
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger not function or null: ${typeof logger}`);
+    }
+    
+    if (INSECURE_HASHES.has(hashAlgo)) {
+      callBothLoggers(
+        { logger, globalLogger: this.#globalLogger },
+        `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`
+      );
+    }
+    
     // TODO
+    
+    this.#hashAlgo = hashAlgo;
+    this.#hashSliceLength = hashSliceLength;
+    this.#hashSlices = hashSlices;
+    this.#compressionAlgo = compressionAlgo;
+    this.#compressionParams = compressionParams;
   }
   
   getAllowFullBackupDirDestroyStatus() {

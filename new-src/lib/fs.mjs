@@ -31,8 +31,9 @@ export async function readLargeFile(filename) {
   const fd = await open(filename);
   
   try {
-    let bytesRead;
     let chunks = [];
+    
+    let bytesRead;
     
     do {
       let buffer;

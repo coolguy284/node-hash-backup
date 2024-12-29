@@ -4,6 +4,12 @@ clear TODO from codebase
 implement proper locking in backup manager class
 implement tests
 extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
+support sliced hash algos and xof hash funcs with optional extra slicing
+  add hashParams obj to info that has slice param and original length param (for variable length hashes only)
+support inheritance from another backup entry, specifying only created, updated (incl. modtimes), or deleted files/folders
+  support linking a backup to another or unlinking it, after backup is created
+set readonly for each file in backup and files folders
+add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 
 old:
 update readme help output, particularly add 'remove' command '--setFileTimes' option
