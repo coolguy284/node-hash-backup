@@ -1,4 +1,9 @@
-import { readdir } from 'fs/promises';
+import {
+  open,
+  readdir,
+  unlink,
+} from 'fs/promises';
+import { join } from 'path';
 
 import {
   CURRENT_BACKUP_VERSION,
@@ -10,6 +15,8 @@ import { upgradeDirToCurrent } from './upgrader.mjs';
 class BackupManager {
   // class vars
   
+  #disposed = false;
+  #lockFile = null;
   #backupDirPath = null;
   #hashAlgo = null;
   #hashSliceLength = null;
@@ -48,7 +55,14 @@ class BackupManager {
     
     await errorIfPathNotDir(backupDirPath);
     
-    const currentDirContents = await readdir(backupDirPath);
+    // create lock file
+    this.#lockFile = await open(join(backupDirPath, 'edit.lock'), 'w');
+    
+    this.#backupDirPath = backupDirPath;
+    
+    const currentDirContents =
+      (await readdir(backupDirPath))
+        .filter(x => x != 'edit.lock');
     
     if (currentDirContents.length != 0) {
       // dir contains hash backup contents
@@ -78,7 +92,6 @@ class BackupManager {
       
       // info.version == CURRENT_BACKUP_VERSION here
       
-      this.#backupDirPath = backupDirPath;
       this.#hashAlgo = info.hash;
       this.#hashSliceLength = info.hashSliceLength;
       this.#hashSlices = info.hashSlices;
@@ -125,6 +138,10 @@ class BackupManager {
     compressionParams = { level: 6 },
     logger,
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
@@ -133,6 +150,10 @@ class BackupManager {
   }
   
   updateAllowFullBackupDirDestroyStatus_Danger(newAllowFullBackupDirDestroy) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     if (typeof newAllowFullBackupDirDestroy != 'boolean') {
       throw new Error(`newAllowFullBackupDirDestroy not boolean: ${typeof newAllowFullBackupDirDestroy}`);
     }
@@ -141,6 +162,10 @@ class BackupManager {
   }
   
   async destroyBackupDir() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     if (!this.#allowFullBackupDirDestroy) {
       throw new Error(
         'full backup dir deletion attempted, but backup dir destroy flag is false\n' +
@@ -159,16 +184,28 @@ class BackupManager {
   }
   
   async listBackups() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async hasBackup(backupName) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async createBackup({
     
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
@@ -178,6 +215,10 @@ class BackupManager {
     outputPath,
     logger,
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     await this.restoreFileOrFolderFromBackup({
       backupName,
       backupFileOrFolderPath: '.',
@@ -202,6 +243,10 @@ class BackupManager {
     backupName,
     logger,
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
@@ -210,23 +255,43 @@ class BackupManager {
     newBackupName,
     logger,
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
     // TODO: must check and error if destination name exists
   }
   
   async getFileOrFolderInfoFromBackup({ backupName, backupFileOrFolderPath }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async getAllFilesOrFoldersInfoFromBackup(backupName) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async getFileFromBackup({ backupName, backupFilePath }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async getFolderFilenamesFromBackup({ backupName, backupFolderPath }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
@@ -237,16 +302,44 @@ class BackupManager {
     outputFileOrFolderPath,
     logger,
   }) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   async pruneUnreferencedFiles() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
   }
   
   // Layout of object returned by this function may change over time, beware
   async fullBackupInfoDump() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     // TODO
+  }
+  
+  isDisposed() {
+    return this.#disposed;
+  }
+  
+  async [Symbol.asyncDispose]() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
+    this.#disposed = true;
+    
+    // delete lock file
+    await this.#lockFile[Symbol.asyncDispose]();
+    await unlink(join(this.#backupDirPath, 'edit.lock'));
   }
 }
 

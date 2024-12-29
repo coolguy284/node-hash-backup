@@ -1,6 +1,9 @@
 delete backup and delete backup dir must have confirm=yes
 create command line access for each command in backup manager class within reason
 clear TODO from codebase
+implement proper locking in backup manager class
+implement tests
+extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
 
 old:
 update readme help output, particularly add 'remove' command '--setFileTimes' option
