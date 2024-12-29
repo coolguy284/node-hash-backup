@@ -337,9 +337,22 @@ class BackupManager {
     
     this.#disposed = true;
     
-    // delete lock file
-    await this.#lockFile[Symbol.asyncDispose]();
-    await unlink(join(this.#backupDirPath, 'edit.lock'));
+    try {
+      // delete lock file
+      await this.#lockFile[Symbol.asyncDispose]();
+      await unlink(join(this.#backupDirPath, 'edit.lock'));
+    } finally {
+      this.#lockFile = null;
+      this.#backupDirPath = null;
+      this.#hashAlgo = null;
+      this.#hashSliceLength = null;
+      this.#hashSlices = null;
+      this.#compressionAlgo = null;
+      this.#compressionParams = null;
+      this.#globalLogger = null;
+      this.#allowFullBackupDirDestroy = null;
+      this.#allowSingleBackupDestroy = null;
+    }
   }
 }
 
