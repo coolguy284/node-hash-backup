@@ -33,8 +33,8 @@ backup  .   .   .   .   . the backup directory
       folderType: string ("coolguy284/node-hash-backup"),
       version: integer > 0 (1),
       hash: string (the hash algorithm used on the files),
-      hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files),
       hashSlices: integer >= 0 (the number of segments of the folders in files),
+      hashSliceLength: integer > 0 (the length of the hash slice to form segements of the folders in files),
       compression: object? (property null if no compression) {
         algorithm: string,
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is level)

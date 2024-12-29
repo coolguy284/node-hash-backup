@@ -1,3 +1,5 @@
+verify init and destroybackupdir perform same checks and do same things as old src
+
 delete backup and delete backup dir must have confirm=yes
 create command line access for each command in backup manager class within reason
 clear TODO from codebase

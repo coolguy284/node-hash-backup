@@ -7,6 +7,19 @@ export async function callBothLoggers({ logger, globalLogger }, data) {
     throw new Error(`globalLogger not function or null: ${typeof globalLogger}`);
   }
   
-  if (logger != null) logger(data);
-  if (globalLogger != null) globalLogger(data);
+  if (logger != null) {
+    try {
+      logger(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  
+  if (globalLogger != null) {
+    try {
+      globalLogger(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 }

@@ -6,6 +6,7 @@ import {
   mkdir,
   open,
   readdir,
+  rm,
   unlink,
   writeFile,
 } from 'fs/promises';
@@ -121,8 +122,8 @@ class BackupManager {
   #lockFile = null;
   #backupDirPath = null;
   #hashAlgo = null;
-  #hashSliceLength = null;
   #hashSlices = null;
+  #hashSliceLength = null;
   #compressionAlgo = null;
   #compressionParams = null;
   #globalLogger;
@@ -195,8 +196,8 @@ class BackupManager {
       // info.version == CURRENT_BACKUP_VERSION here
       
       this.#hashAlgo = info.hash;
-      this.#hashSliceLength = info.hashSliceLength;
       this.#hashSlices = info.hashSlices;
+      this.#hashSliceLength = info.hashSliceLength ?? null;
       if (info.compression != null) {
         this.#compressionAlgo = info.compression.algorithm;
         this.#compressionParams = Object.fromEntries(
@@ -232,6 +233,14 @@ class BackupManager {
     });
   }
   
+  isDisposed() {
+    return this.#disposed;
+  }
+  
+  isInitialized() {
+    return this.#hashAlgo != null;
+  }
+  
   async initBackupDir({
     hashAlgo = 'sha256',
     hashSlices = 1,
@@ -242,10 +251,6 @@ class BackupManager {
   }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo != null) {
-      throw new Error('backup dir already created');
     }
     
     if (typeof hashAlgo != 'string') {
@@ -316,12 +321,21 @@ class BackupManager {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
     
+    if (this.#hashAlgo != null) {
+      throw new Error('backup dir already initialized');
+    }
+    
     if (INSECURE_HASHES.has(hashAlgo)) {
       callBothLoggers(
         { logger, globalLogger: this.#globalLogger },
         `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`
       );
     }
+    
+    callBothLoggers(
+      { logger, globalLogger: this.#globalLogger },
+      `Initializing backup dir at ${JSON.stringify(this.#backupDirPath)}`
+    );
     
     await mkdir(join(this.#backupDirPath, 'backups'));
     await mkdir(join(this.#backupDirPath, 'files'));
@@ -347,9 +361,14 @@ class BackupManager {
       })
     );
     
+    callBothLoggers(
+      { logger, globalLogger: this.#globalLogger },
+      `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`
+    );
+    
     this.#hashAlgo = hashAlgo;
-    this.#hashSliceLength = hashSliceLength;
     this.#hashSlices = hashSlices;
+    this.#hashSliceLength = hashSliceLength;
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
   }
@@ -382,12 +401,28 @@ class BackupManager {
       );
     }
     
-    // TODO
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir already destroyed');
+    }
     
-    this.#backupDirPath = null;
+    callBothLoggers(
+      { logger, globalLogger: this.#globalLogger },
+      `Destroying backup dir at ${JSON.stringify(this.#backupDirPath)}`
+    );
+    
+    await rm(join(this.#backupDirPath, 'backups'), { recursive: true });
+    await rm(join(this.#backupDirPath, 'files'), { recursive: true });
+    await rm(join(this.#backupDirPath, 'files_meta'), { recursive: true });
+    await rm(join(this.#backupDirPath, 'info.json'));
+    
+    callBothLoggers(
+      { logger, globalLogger: this.#globalLogger },
+      `Backup dir successfully destroyed at ${JSON.stringify(this.#backupDirPath)}`
+    );
+    
     this.#hashAlgo = null;
-    this.#hashSliceLength = null;
     this.#hashSlices = null;
+    this.#hashSliceLength = null;
     this.#compressionAlgo = null;
     this.#compressionParams = null;
   }
@@ -395,6 +430,10 @@ class BackupManager {
   async listBackups() {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     // TODO
@@ -405,12 +444,20 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
   }
   
   async createBackup({ logger }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     // TODO
@@ -424,6 +471,10 @@ class BackupManager {
   }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     await this.restoreFileOrFolderFromBackup({
@@ -454,6 +505,10 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     if (!this.#allowSingleBackupDestroy) {
       throw new Error(
         'backup deletion attempted, but backup dir destroy flag is false\n' +
@@ -473,6 +528,10 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
     // TODO: must check and error if destination name exists
   }
@@ -485,12 +544,20 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
   }
   
   async getAllFilesOrFoldersInfoFromBackup(backupName) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     // TODO
@@ -504,6 +571,10 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
   }
   
@@ -513,6 +584,10 @@ class BackupManager {
   }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     // TODO
@@ -529,12 +604,20 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
   }
   
   async pruneUnreferencedFiles({ logger }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
     }
     
     // TODO
@@ -546,11 +629,12 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
+    
     // TODO
-  }
-  
-  isDisposed() {
-    return this.#disposed;
+    // TODO: only call public functions in backupmanager to create the info dump
   }
   
   async [Symbol.asyncDispose]() {

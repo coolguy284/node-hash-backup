@@ -118,6 +118,14 @@ async function upgradeDir1To2({ backupDirPath, info, logger, globalLogger }) {
   
   info.version++;
   
+  if (info.hashSlices == 0) {
+    delete info.hashSliceLength;
+  }
+  
+  if (info.compression == null) {
+    delete info.compression;
+  }
+  
   const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
   
   await writeFileReplaceWhenDone(
