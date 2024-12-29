@@ -1,9 +1,4 @@
-import {
-  readFile,
-  rename,
-  stat,
-  writeFile,
-} from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 export const MIN_BACKUP_VERSION = 1;
@@ -12,28 +7,6 @@ export const FULL_INFO_FILE_NAME = 'info.json';
 export const META_FILE_EXTENSION = '.json';
 export const META_DIRECTORY = 'files_meta';
 export const SINGULAR_META_FILE_NAME = `file.${META_FILE_EXTENSION}`;
-export const TEMP_NEW_FILE_SUFFIX = '_new';
-
-// This function does not validate its input
-export async function callBothLoggers({ logger, globalLogger }, data) {
-  if (logger != null) logger(data);
-  if (globalLogger != null) globalLogger(data);
-}
-
-export async function errorIfPathNotDir(path) {
-  let stats = await stat(path);
-  
-  if (!stats.isDirectory()) {
-    throw new Error(`${path} not a directory`);
-  }
-}
-
-export async function writeFileReplaceWhenDone(filename, contents) {
-  const tempNewFilename = filename + TEMP_NEW_FILE_SUFFIX;
-  
-  await writeFile(tempNewFilename, contents);
-  await rename(tempNewFilename, filename);
-}
 
 export async function fullInfoFileStringify(contents) {
   return JSON.stringify(contents, null, 2);

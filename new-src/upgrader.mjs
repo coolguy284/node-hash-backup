@@ -4,6 +4,8 @@ import {
 } from 'fs/promises';
 import { join } from 'path';
 
+import { writeFileReplaceWhenDone } from './lib/fs.mjs';
+import { callBothLoggers } from './lib/logger.mjs';
 import {
   callBothLoggers,
   CURRENT_BACKUP_VERSION,
@@ -15,7 +17,6 @@ import {
   metaFileStringify,
   MIN_BACKUP_VERSION,
   SINGULAR_META_FILE_NAME,
-  writeFileReplaceWhenDone,
 } from './lib.mjs';
 
 function isLowerCaseHex(string) {

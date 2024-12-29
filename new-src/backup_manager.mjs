@@ -5,9 +5,9 @@ import {
 } from 'fs/promises';
 import { join } from 'path';
 
+import { errorIfPathNotDir } from './lib/fs.mjs';
 import {
   CURRENT_BACKUP_VERSION,
-  errorIfPathNotDir,
   getBackupDirInfo,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
@@ -161,7 +161,7 @@ class BackupManager {
     this.#allowFullBackupDirDestroy = newAllowFullBackupDirDestroy;
   }
   
-  async destroyBackupDir() {
+  async destroyBackupDir({ logger }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -199,9 +199,7 @@ class BackupManager {
     // TODO
   }
   
-  async createBackup({
-    
-  }) {
+  async createBackup({ logger }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -247,6 +245,13 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
+    if (!this.#allowSingleBackupDestroy) {
+      throw new Error(
+        'backup deletion attempted, but backup dir destroy flag is false\n' +
+        'call "this.updateAllowSingleBackupDestroyStatus_Danger(true);" to enable backup deletion'
+      );
+    }
+    
     // TODO
   }
   
@@ -263,7 +268,10 @@ class BackupManager {
     // TODO: must check and error if destination name exists
   }
   
-  async getFileOrFolderInfoFromBackup({ backupName, backupFileOrFolderPath }) {
+  async getFileOrFolderInfoFromBackup({
+    backupName,
+    backupFileOrFolderPath,
+  }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -279,7 +287,10 @@ class BackupManager {
     // TODO
   }
   
-  async getFileFromBackup({ backupName, backupFilePath }) {
+  async getFileFromBackup({
+    backupName,
+    backupFilePath,
+  }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -287,7 +298,10 @@ class BackupManager {
     // TODO
   }
   
-  async getFolderFilenamesFromBackup({ backupName, backupFolderPath }) {
+  async getFolderFilenamesFromBackup({
+    backupName,
+    backupFolderPath,
+  }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -309,7 +323,7 @@ class BackupManager {
     // TODO
   }
   
-  async pruneUnreferencedFiles() {
+  async pruneUnreferencedFiles({ logger }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
