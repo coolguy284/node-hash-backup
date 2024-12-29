@@ -35,7 +35,7 @@ backup  .   .   .   .   . the backup directory
       version: integer > 0 (2),
       hash: string (the hash algorithm used on the files; default "sha256"),
       hashSlices: integer >= 0 (the number of segments of the folders in files; default 1),
-      hashSliceLength: integer > 0 | null (if and only if hashSlices == 0; required) (the length of the hash slice to form segements of the folders in files; default 2),
+      hashSliceLength?: integer > 0 | null (if and only if hashSlices == 0; required) (the length of the hash slice to form segements of the folders in files; default 2),
       compression?: object (property only exists if there is compression) {
         algorithm: string,
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is "level")

@@ -3,9 +3,11 @@ import {
   getHashes,
 } from 'crypto';
 import {
+  mkdir,
   open,
   readdir,
   unlink,
+  writeFile,
 } from 'fs/promises';
 import { join } from 'path';
 import {
@@ -321,7 +323,29 @@ class BackupManager {
       );
     }
     
-    // TODO
+    await mkdir(join(this.#backupDirPath, 'backups'));
+    await mkdir(join(this.#backupDirPath, 'files'));
+    await mkdir(join(this.#backupDirPath, 'files_meta'));
+    await writeFile(
+      join(this.#backupDirPath, 'info.json'),
+      JSON.stringify({
+        folderType: 'coolguy284/node-hash-backup',
+        version: 2,
+        hash: hashAlgo,
+        hashSlices: hashSlices,
+        ...(hashSliceLength != null ? { hashSliceLength } : {}),
+        ...(
+          compressionAlgo != null ?
+            {
+              compression: {
+                algorithm: compressionAlgo,
+                ...compressionParams,
+              }
+            } :
+            {}
+        ),
+      })
+    );
     
     this.#hashAlgo = hashAlgo;
     this.#hashSliceLength = hashSliceLength;
