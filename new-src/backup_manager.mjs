@@ -294,13 +294,29 @@ class BackupManager {
   async #addFileBytesToStore(fileBytes, logger) {
     const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo));
     
+    this.#log(logger, `Hash: ${fileHashHex}`);
+    
     if (await this.#fileIsInStore(fileExists)) {
-      const storeFileBytes = this.#getFileBytesFromStore(fileHashHex);
+      const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
       
       if (!fileBytes.equals(storeFileBytes)) {
         throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes have same ${this.#hashAlgo} hash: ${fileHashHex}`);
       }
     } else {
+      let compressionUsed = false;
+      let compressedBytes;
+      
+      if (this.#compressionAlgo != null) {
+        compressedBytes = await compressBytes(fileBytes, this.#compressionAlgo, this.#compressionParams);
+        
+        if (compressedBytes.length < fileBytes.length) {
+          this.#log(logger, `Compressed with ${this.#compressionAlgo} (${JSON.stringify(this.#compressionParams)}) from ${fileBytes.length} bytes to ${compressedBytes.length} bytes`);
+          compressionUsed = true;
+        } else {
+          this.#log(logger, `Not compressed with ${this.#compressionAlgo} (${JSON.stringify(this.#compressionParams)}) as file size increases from ${fileBytes.length} bytes to ${compressedBytes.length} bytes`);
+        }
+      }
+      
       const newFilePath = this.#getPathOfFile(fileHashHex);
       const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
       
@@ -315,10 +331,21 @@ class BackupManager {
       
       metaJson[fileHashHex] = {
         size: fileBytes.length,
+        ...(
+          compressionUsed ?
+            {
+              compressedSize: compressedBytes.length,
+              compression: {
+                algorithm: this.#compressionAlgo,
+                ...this.#compressionParams,
+              },
+            } :
+            {}
+        ),
       };
       
       await mkdir(dirname(newFilePath), { recursive: true });
-      await writeFileReplaceWhenDone(newFilePath, fileBytes);
+      await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes);
       await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
     }
     
