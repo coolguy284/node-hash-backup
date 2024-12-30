@@ -12,6 +12,7 @@ support inheritance from another backup entry, specifying only created, updated 
 set readonly for each file in backup and files folders
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 support for file attrs like readonly, appendonly, immutable, etc.
+support for directory junction / file and directory symlinks
 
 old:
 update readme help output, particularly add 'remove' command '--setFileTimes' option

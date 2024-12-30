@@ -12,6 +12,7 @@ backup  .   .   .   .   . the backup directory
             type: string (either "file", "directory", or "symbolic link"),
             hash?: string (file hash, property only present on files),
             symlinkType?: string (either "file", "directory", or "junction"; not present if unknown or on linux),
+            symlinkPath?: string (base64 encoded; only present on symbolic links),
             atime: string (access time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             mtime: string (content modify time since unix epoch in seconds as a decimal, with 9 digits decimal precision),
             ctime: string (metadata change time since unix epoch in seconds as a decimal, with 9 digits decimal precision),

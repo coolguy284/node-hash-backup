@@ -13,6 +13,8 @@ import {
 } from 'path';
 
 import { Enum } from './enum.mjs';
+import { callProcess } from './process.mjs';
+import { unixNSIntToUTCTimeString } from './time.mjs';
 
 const TEMP_NEW_FILE_SUFFIX = '_new';
 const LARGE_FILE_CHUNK_SIZE = 4 * 2 ** 20;
@@ -80,10 +82,18 @@ export async function fileExists(filename) {
   }
 }
 
+export function splitPath(pathToSplit) {
+  if (sep == '\\') {
+    return pathToSplit.split(/\/|\\/);
+  } else {
+    return pathToSplit.split(sep);
+  }
+}
+
 async function recursiveReaddirInternal(
   fileOrDirPath,
   {
-    excludedFilesOrDirs,
+    excludedFilesOrFolders,
     symlinkMode,
   }
 ) {
@@ -91,7 +101,7 @@ async function recursiveReaddirInternal(
   
   switch (symlinkMode) {
     case SymlinkModes.IGNORE: {
-      const stats = await lstat(fileOrDirPath);
+      const stats = await lstat(fileOrDirPath, { bigint: true });
       
       if (stats.isSymbolicLink()) {
         return null;
@@ -102,11 +112,11 @@ async function recursiveReaddirInternal(
     }
     
     case SymlinkModes.PASSTHROUGH:
-      selfStats = await stat(fileOrDirPath);
+      selfStats = await stat(fileOrDirPath, { bigint: true });
       break;
     
     case SymlinkModes.PRESERVE:
-      selfStats = await lstat(fileOrDirPath);
+      selfStats = await lstat(fileOrDirPath, { bigint: true });
       break;
     
     default:
@@ -115,7 +125,7 @@ async function recursiveReaddirInternal(
   
   let result = [
     {
-      path: fileOrDirPath,
+      filePath: fileOrDirPath,
       stats: selfStats,
     }
   ];
@@ -127,8 +137,8 @@ async function recursiveReaddirInternal(
           .map(name => {
             return {
               name,
-              subExcludedFilesOrDirs:
-                excludedFilesOrDirs
+              subExcludedFilesOrFolders:
+                excludedFilesOrFolders
                   .filter(excludePath => {
                     const [ first, ..._ ] = excludePath;
                     return first == name;
@@ -136,14 +146,14 @@ async function recursiveReaddirInternal(
                   .map(excludePath => excludePath.slice(1))
             };
           })
-          .filter(({ subExcludedFilesOrDirs }) =>
-            !subExcludedFilesOrDirs.some(excludePath => excludePath.length == 0)
+          .filter(({ subExcludedFilesOrFolders }) =>
+            !subExcludedFilesOrFolders.some(excludePath => excludePath.length == 0)
           )
-          .map(async ({ name, subExcludedFilesOrDirs }) => {
+          .map(async ({ name, subExcludedFilesOrFolders }) => {
             await recursiveReaddirInternal(
               join(fileOrDirPath, name),
               {
-                excludedFilesOrDirs: subExcludedFilesOrDirs,
+                excludedFilesOrFolders: subExcludedFilesOrFolders,
                 symlinkMode,
               }
             );
@@ -161,7 +171,7 @@ async function recursiveReaddirInternal(
 export async function recursiveReaddir(
   dirPath,
   {
-    excludedFilesOrDirs = [],
+    excludedFilesOrFolders = [],
     includeDirs = true,
     entries = true,
     symlinkMode = SymlinkModes.PRESERVE,
@@ -171,25 +181,19 @@ export async function recursiveReaddir(
     throw new Error(`dirPath not string: ${typeof dirPath}`);
   }
   
-  if (!Array.isArray(excludedFilesOrDirs)) {
-    throw new Error(`excludedFilesOrDirs not array: ${excludedFilesOrDirs}`);
+  if (!Array.isArray(excludedFilesOrFolders)) {
+    throw new Error(`excludedFilesOrFolders not array: ${excludedFilesOrFolders}`);
   }
   
-  for (let i = 0; i < excludedFilesOrDirs.length; i++) {
-    if (typeof excludedFilesOrDirs[i] != 'string') {
-      throw new Error(`excludedFilesOrDirs[${i}] not string: ${typeof excludedFilesOrDirs[i]}`);
+  for (let i = 0; i < excludedFilesOrFolders.length; i++) {
+    if (typeof excludedFilesOrFolders[i] != 'string') {
+      throw new Error(`excludedFilesOrFolders[${i}] not string: ${typeof excludedFilesOrFolders[i]}`);
     }
   }
   
-  if (sep == '\\') {
-    excludedFilesOrDirs =
-      excludedFilesOrDirs
-        .map(excludeEntry => excludeEntry.split(/\/|\\/));
-  } else {
-    excludedFilesOrDirs =
-      excludedFilesOrDirs
-        .map(excludeEntry => excludeEntry.split(sep));
-  }
+  excludedFilesOrFolders =
+    excludedFilesOrFolders
+      .map(excludeEntry => splitPath(excludeEntry));
   
   if (typeof includeDirs != 'boolean') {
     throw new Error(`includeDirs not boolean: ${typeof includeDirs}`);
@@ -210,22 +214,86 @@ export async function recursiveReaddir(
   const internalResult = await recursiveReaddirInternal(
     dirPath,
     {
-      excludedFilesOrDirs,
+      excludedFilesOrFolders,
       symlinkMode,
     }
   );
   
   return internalResult
-    .map(({ path, stats }) => {
+    .map(({ filePath, stats }) => {
       if (!includeDirs && stats.isDirectory()) {
         return null;
       }
       
       if (!entries) {
-        return path;
+        return filePath;
       } else {
-        return { path, stats };
+        return { filePath, stats };
       }
     })
     .filter(entry => entry != null);
+}
+
+export async function setFileTimes(fileTimeEntries) {
+  if (fileTimeEntries.length == 0) {
+    return;
+  }
+  
+  if (process.platform == 'win32') {
+    let environmentVars = {};
+    
+    const commandString =
+      '$ErrorActionPreference = "Stop"\n' +
+      fileTimeEntries
+        .map(({
+          filePath,
+          accessTime,
+          modifyTime,
+          createTime,
+        }, i) => {
+          environmentVars[`C284_${i}_F`] = filePath;
+          environmentVars[`C284_${i}_C`] = unixNSIntToUTCTimeString(createTime);
+          environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTime);
+          environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTime);
+          
+          return `$file = Get-Item $Env:C284_${i}_F\n` +
+            `$file.CreationTime = Get-Date $Env:C284_${i}_C\n` +
+            `$file.LastWriteTime = Get-Date $Env:C284_${i}_M\n` +
+            `$file.LastAccessTime = Get-Date $Env:C284_${i}_A\n`;
+        })
+        .join('\n');
+      
+      return await callProcess({
+        processName: 'powershell',
+        processArguments: ['-Command', '-'],
+        environmentVars,
+        stdin: commandString,
+      });
+  } else {
+    let environmentVars = {};
+    
+    const commandString =
+      'set -e\n' +
+      fileTimeEntries
+        .map(({
+          filePath,
+          accessTime,
+          modifyTime,
+        }, i) => {
+          environmentVars[`C284_${i}_F`] = filePath;
+          environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTime);
+          environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTime);
+          
+          return `touch -m -d $C284_${i}_M $C284_${i}_F\n` +
+            `touch -a -d $C284_${i}_A $C284_${i}_F`;
+        })
+        .join('\n');
+      
+      return await callProcess({
+        processName: 'bash',
+        processArguments: ['-'],
+        environmentVars,
+        stdin: commandString,
+      });
+  }
 }

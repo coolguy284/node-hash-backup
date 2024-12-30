@@ -6,11 +6,16 @@ import {
   mkdir,
   open,
   readdir,
+  readFile,
+  readlink,
   rm,
   unlink,
-  writeFile,
 } from 'fs/promises';
-import { join } from 'path';
+import {
+  dirname,
+  join,
+  relative,
+} from 'path';
 import {
   createBrotliCompress,
   createDeflate,
@@ -21,13 +26,21 @@ import {
 import {
   errorIfPathNotDir,
   fileExists,
+  readLargeFile,
+  recursiveReaddir,
+  splitPath,
+  SymlinkModes,
+  writeFileReplaceWhenDone,
 } from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
 import { ReadOnlyMap } from './lib/read_only_map.mjs';
 import { ReadOnlySet } from './lib/read_only_set.mjs';
+import { unixNSIntToUnixSecString } from './lib/time.mjs';
 import {
   CURRENT_BACKUP_VERSION,
+  fullInfoFileStringify,
   getBackupDirInfo,
+  metaFileStringify,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
 
@@ -115,6 +128,30 @@ async function compressBytes(bytes, compressionAlgo, compressionParams) {
     compressor.on('end', () => r(Buffer.concat(outputChunks)));
     
     compressor.write(bytes);
+  });
+}
+
+function createHasher(hashAlgo) {
+  return createHash(hashAlgo);
+}
+
+async function hashBytes(bytes, hashAlgo) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new Error(`bytes not Uint8Array: ${bytes}`);
+  }
+  
+  let hasher = createHasher(hashAlgo);
+  
+  return await new Promise((r, j) => {
+    let outputChunks = [];
+    
+    hasher.on('error', err => j(err));
+    
+    hasher.on('data', chunk => outputChunks.push(chunk));
+    
+    hasher.on('end', () => r(Buffer.concat(outputChunks)));
+    
+    hasher.write(bytes);
   });
 }
 
@@ -224,12 +261,148 @@ class BackupManager {
     return this;
   }
   
-  async #addFileToStore() {
+  #getPathOfFile(fileHashHex) {
+    let hashSliceParts = [];
+    
+    for (let i = 0; i < this.#hashSlices; i++) {
+      hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
+    }
+    
+    return join(this.#backupDirPath, ...hashSliceParts, fileHashHex);
+  }
+  
+  #getMetaPathOfFile(fileHashHex) {
+    if (this.#hashSlices == 0) {
+      return join(this.#backupDirPath, 'meta.json');
+    } else {
+      let hashSliceParts = [];
+      
+      for (let i = 0; i < this.#hashSlices; i++) {
+        hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
+      }
+      
+      return join(this.#backupDirPath, ...hashSliceParts.slice(0, -1), `${hashSliceParts.at(-1)}.json`);
+    }
+  }
+  
+  async #fileIsInStore(fileHashHex) {
+    const filePath = this.#getPathOfFile(fileHashHex);
+    
+    return await fileExists(filePath);
+  }
+  
+  async #addFileBytesToStore(fileBytes, logger) {
+    const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo));
+    
+    if (await this.#fileIsInStore(fileExists)) {
+      const storeFileBytes = this.#getFileBytesFromStore(fileHashHex);
+      
+      if (!fileBytes.equals(storeFileBytes)) {
+        throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+      }
+    } else {
+      const newFilePath = this.#getPathOfFile(fileHashHex);
+      const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
+      
+      let metaJson;
+      
+      if (fileExists(metaFilePath)) {
+        metaJson = JSON.parse((await readFile(metaFilePath)).toString());
+      } else {
+        await mkdir(dirname(metaFilePath), { recursive: true });
+        metaJson = {};
+      }
+      
+      metaJson[fileHashHex] = {
+        size: fileBytes.length,
+      };
+      
+      await mkdir(dirname(newFilePath), { recursive: true });
+      await writeFileReplaceWhenDone(newFilePath, fileBytes);
+      await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+    }
+    
+    return fileHashHex;
+  }
+  
+  async #addFilePathStreamToStore(filePath, logger) {
     // TODO
+  }
+  
+  async #getFileBytesFromStore(fileHashHex) {
+    
+  }
+  
+  #getFileStreamFromStore(fileHashHex) {
+    
   }
   
   async #removeFileFromStore() {
     // TODO
+  }
+  
+  async #addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger) {
+    const relativeFilePath = relative(fileOrFolderPath, filePath) || '.';
+    
+    const atime = unixNSIntToUnixSecString(stats.atimeNs);
+    const mtime = unixNSIntToUnixSecString(stats.mtimeNs);
+    const ctime = unixNSIntToUnixSecString(stats.ctimeNs);
+    const birthtime = unixNSIntToUnixSecString(stats.birthtimeNs);
+    
+    if (stats.isDirectory()) {
+      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [directory]`);
+      
+      return {
+        path: relativeFilePath,
+        type: 'directory',
+        atime,
+        mtime,
+        ctime,
+        birthtime,
+      };
+    } else if (stats.isSymbolicLink()) {
+      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [symbolic link]`);
+      
+      const linkPathBuf = await readlink(filePath, { encoding: 'buffer' });
+      const linkPathBase64 =
+        linkPathBuf
+        .toString('base64');
+      
+      this.#log(logger, `Points to: ${JSON.stringify(linkPathBuf.toString())}`);
+      
+      return {
+        path: relativeFilePath,
+        type: 'symbolic link',
+        symlinkPath: linkPathBase64,
+        atime,
+        mtime,
+        ctime,
+        birthtime,
+      };
+    } else {
+      // file, or something else that will be attempted to be read as a file
+      
+      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [file]`);
+      
+      let hash;
+      
+      if (stats.size <= inMemoryCutoffSize) {
+        const fileBytes = await readLargeFile(filePath);
+        hash = await this.#addFileBytesToStore(fileBytes, logger);
+      } else {
+        hash = await this.#addFilePathStreamToStore(filePath, logger);
+      }
+      
+      return {
+        path: relativeFilePath,
+        type: 'file',
+        hash,
+        atime,
+        mtime,
+        ctime,
+        birthtime,
+      };
+    }
   }
   
   // public funcs
@@ -252,6 +425,10 @@ class BackupManager {
   
   isInitialized() {
     return this.#hashAlgo != null;
+  }
+  
+  getBackupDirPath() {
+    return this.#backupDirPath;
   }
   
   async initBackupDir({
@@ -347,9 +524,9 @@ class BackupManager {
     await mkdir(join(this.#backupDirPath, 'backups'));
     await mkdir(join(this.#backupDirPath, 'files'));
     await mkdir(join(this.#backupDirPath, 'files_meta'));
-    await writeFile(
+    await writeFileReplaceWhenDone(
       join(this.#backupDirPath, 'info.json'),
-      JSON.stringify({
+      fullInfoFileStringify({
         folderType: 'coolguy284/node-hash-backup',
         version: 2,
         hash: hashAlgo,
@@ -458,6 +635,10 @@ class BackupManager {
   async createBackup({
     backupName,
     fileOrFolderPath,
+    excludedFilesOrFolders = [],
+    symlinkMode = SymlinkModes.PRESERVE,
+    ignoreErrors = false,
+    inMemoryCutoffSize = 4 * 2 ** 20,
     logger,
   }) {
     if (this.#disposed) {
@@ -476,12 +657,84 @@ class BackupManager {
       throw new Error(`fileOrFolderPath not string: ${typeof fileOrFolderPath}`);
     }
     
-    // TODO: check to ensure path is not subpath of backup dir
-    // TODO: if backup dir is subpath of base path, exclude backup dir
+    if (!Array.isArray(excludedFilesOrFolders)) {
+      throw new Error(`excludedFilesOrFolders not array: ${excludedFilesOrFolders}`);
+    }
+    
+    for (let i = 0; i < excludedFilesOrFolders.length; i++) {
+      if (typeof excludedFilesOrFolders[i] != 'string') {
+        throw new Error(`excludedFilesOrFolders[${i}] not string: ${typeof excludedFilesOrFolders[i]}`);
+      }
+    }
+    
+    if (typeof symlinkMode != 'string') {
+      throw new Error(`symlinkMode not string: ${typeof symlinkMode}`);
+    }
+    
+    if (!(symlinkMode in SymlinkModes)) {
+      throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
+    }
+    
+    if (typeof ignoreErrors != 'boolean') {
+      throw new Error(`ignoreErrors not boolean: ${typeof ignoreErrors}`);
+    }
+    
+    if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
+      throw new Error(`inMemoryCutoffSize not string: ${typeof inMemoryCutoffSize}`);
+    }
+    
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger not function or null: ${typeof logger}`);
+    }
+    
+    const pathToBackupDir = relative(fileOrFolderPath, this.#backupDirPath);
+    
+    if (pathToBackupDir == '') {
+      // this.#backupDirPath is same as fileOrFolderPath
+      throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is same as backupDirPath ${this.#backupDirPath}`);
+    }
+    
+    if (splitPath(pathToBackupDir).every(pathSegment => pathSegment == '..')) {
+      // fileOrFolderPath is subfolder of this.#backupDirPath
+      throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is a subfolder of backupDirPath ${this.#backupDirPath}`);
+    }
+    
+    const pathToFileOrFolder = relative(this.#backupDirPath, fileOrFolderPath);
+    
+    if (splitPath(pathToFileOrFolder).every(pathSegment => pathSegment == '..')) {
+      // this.#backupDirPath is subfolder of fileOrFolderPath
+      excludedFilesOrFolders = [
+        ...excludedFilesOrFolders,
+        pathToBackupDir,
+      ];
+    }
     
     this.#log(logger, `Starting backup of ${JSON.stringify(fileOrFolderPath)} with name ${JSON.stringify(backupName)}`);
     
-    // TODO
+    const dirContents = await recursiveReaddir(fileOrFolderPath, {
+      excludedFilesOrFolders,
+      includeDirs: true,
+      entries: true,
+      symlinkMode,
+    });
+    
+    let newEntries = [];
+    
+    for (const { filePath, stats } of dirContents) {
+      if (ignoreErrors) {
+        try {
+          newEntries.push(
+            await this.#addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger)
+          );
+        } catch (err) {
+          this.#log(logger, `ERROR: msg:${err.toString()} code:${err.code} stack:\n${err.stack}`);
+        }
+      } else {
+        newEntries.push(
+          await this.#addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger)
+        );
+      }
+    }
   }
   
   // Output can not exist, or can be an empty folder
@@ -614,7 +867,7 @@ class BackupManager {
     // TODO
   }
   
-  // If restoring a folder, output can not exist, or can be an empty folder
+  // If restoring a folder, output can not exist, or can be an empty folder; if restoring file, output must not exist
   async restoreFileOrFolderFromBackup({
     backupName,
     backupFileOrFolderPath,
@@ -663,24 +916,23 @@ class BackupManager {
       throw new Error('BackupManager already disposed');
     }
     
-    this.#disposed = true;
+    const lockFile = this.#lockFile;
     
-    try {
-      // delete lock file
-      await this.#lockFile[Symbol.asyncDispose]();
-      await unlink(join(this.#backupDirPath, 'edit.lock'));
-    } finally {
-      this.#lockFile = null;
-      this.#backupDirPath = null;
-      this.#hashAlgo = null;
-      this.#hashSliceLength = null;
-      this.#hashSlices = null;
-      this.#compressionAlgo = null;
-      this.#compressionParams = null;
-      this.#globalLogger = null;
-      this.#allowFullBackupDirDestroy = null;
-      this.#allowSingleBackupDestroy = null;
-    }
+    this.#disposed = true;
+    this.#lockFile = null;
+    this.#backupDirPath = null;
+    this.#hashAlgo = null;
+    this.#hashSliceLength = null;
+    this.#hashSlices = null;
+    this.#compressionAlgo = null;
+    this.#compressionParams = null;
+    this.#globalLogger = null;
+    this.#allowFullBackupDirDestroy = null;
+    this.#allowSingleBackupDestroy = null;
+    
+    // delete lock file
+    await lockFile[Symbol.asyncDispose]();
+    await unlink(join(this.#backupDirPath, 'edit.lock'));
   }
 }
 
