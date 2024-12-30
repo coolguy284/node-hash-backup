@@ -23,7 +23,11 @@ function isLowerCaseHex(string) {
   return /^[0-9a-f]+$/.test(string);
 }
 
-async function upgradeDir1To2_processOneMetaFile({ metaFilePath, logger, globalLogger }) {
+async function upgradeDir1To2_processOneMetaFile({
+  metaFilePath,
+  logger,
+  globalLogger,
+}) {
   callBothLoggers({ logger, globalLogger }, `Upgrading meta file ${metaFilePath}...`);
   
   const origContents = JSON.parse(await readFile(metaFilePath));
@@ -53,7 +57,6 @@ async function upgradeDir1To2_processMetaFolder({
   logger,
   globalLogger,
 }) {
-  
   if (nestingLevelsRemaining <= 0) {
     callBothLoggers({ logger, globalLogger }, `Upgrading meta folder ${metaFolderPath}...`);
     
@@ -94,7 +97,12 @@ async function upgradeDir1To2_processMetaFolder({
   }
 }
 
-async function upgradeDir1To2({ backupDirPath, info, logger, globalLogger }) {
+async function upgradeDir1To2({
+  backupDirPath,
+  info,
+  logger,
+  globalLogger,
+}) {
   callBothLoggers({ logger, globalLogger }, 'Upgrading hash backup store from version 1 to 2...');
   
   const filesMetaPath = join(backupDirPath, META_DIRECTORY);
@@ -136,7 +144,11 @@ async function upgradeDir1To2({ backupDirPath, info, logger, globalLogger }) {
   callBothLoggers({ logger, globalLogger }, 'Finished upgrading hash backup store from version 1 to 2.');
 }
 
-export async function upgradeDirToCurrent({ backupDirPath, logger, globalLogger }) {
+export async function upgradeDirToCurrent({
+  backupDirPath,
+  logger,
+  globalLogger,
+}) {
   if (typeof backupDirPath != 'string') {
     throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
   }

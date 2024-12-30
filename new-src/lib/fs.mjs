@@ -1,4 +1,5 @@
 import {
+  access,
   open,
   rename,
   stat,
@@ -54,5 +55,14 @@ export async function readLargeFile(filename) {
     return Buffer.concat(chunks);
   } finally {
     await fd[Symbol.asyncDispose]();
+  }
+}
+
+export async function fileExists(filename) {
+  try {
+    await access(filename);
+    return true;
+  } catch {
+    return false;
   }
 }

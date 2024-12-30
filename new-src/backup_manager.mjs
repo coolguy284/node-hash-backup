@@ -18,7 +18,10 @@ import {
   createGzip,
 } from 'zlib';
 
-import { errorIfPathNotDir } from './lib/fs.mjs';
+import {
+  errorIfPathNotDir,
+  fileExists,
+} from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
 import { ReadOnlyMap } from './lib/read_only_map.mjs';
 import { ReadOnlySet } from './lib/read_only_set.mjs';
@@ -131,6 +134,16 @@ class BackupManager {
   #allowSingleBackupDestroy = false;
   
   // helper funcs
+  
+  #log(logger, data) {
+    callBothLoggers(
+      {
+        logger,
+        globalLogger: this.#globalLogger,
+      },
+      data
+    );
+  }
   
   async #initManager({
     backupDirPath,
@@ -326,16 +339,10 @@ class BackupManager {
     }
     
     if (INSECURE_HASHES.has(hashAlgo)) {
-      callBothLoggers(
-        { logger, globalLogger: this.#globalLogger },
-        `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`
-      );
+      this.#log(logger, `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`);
     }
     
-    callBothLoggers(
-      { logger, globalLogger: this.#globalLogger },
-      `Initializing backup dir at ${JSON.stringify(this.#backupDirPath)}`
-    );
+    this.#log(logger, `Initializing backup dir at ${JSON.stringify(this.#backupDirPath)}`);
     
     await mkdir(join(this.#backupDirPath, 'backups'));
     await mkdir(join(this.#backupDirPath, 'files'));
@@ -361,10 +368,7 @@ class BackupManager {
       })
     );
     
-    callBothLoggers(
-      { logger, globalLogger: this.#globalLogger },
-      `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`
-    );
+    this.#log(logger, `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`);
     
     this.#hashAlgo = hashAlgo;
     this.#hashSlices = hashSlices;
@@ -405,20 +409,14 @@ class BackupManager {
       throw new Error('backup dir already destroyed');
     }
     
-    callBothLoggers(
-      { logger, globalLogger: this.#globalLogger },
-      `Destroying backup dir at ${JSON.stringify(this.#backupDirPath)}`
-    );
+    this.#log(logger, `Destroying backup dir at ${JSON.stringify(this.#backupDirPath)}`);
     
     await rm(join(this.#backupDirPath, 'backups'), { recursive: true });
     await rm(join(this.#backupDirPath, 'files'), { recursive: true });
     await rm(join(this.#backupDirPath, 'files_meta'), { recursive: true });
     await rm(join(this.#backupDirPath, 'info.json'));
     
-    callBothLoggers(
-      { logger, globalLogger: this.#globalLogger },
-      `Backup dir successfully destroyed at ${JSON.stringify(this.#backupDirPath)}`
-    );
+    this.#log(logger, `Backup dir successfully destroyed at ${JSON.stringify(this.#backupDirPath)}`);
     
     this.#hashAlgo = null;
     this.#hashSlices = null;
@@ -436,7 +434,9 @@ class BackupManager {
       throw new Error('backup dir not initialized');
     }
     
-    // TODO
+    return (await readdir(join(this.#backupDirPath, 'backups')))
+      .filter(x => x.endsWith('.json'))
+      .map(x => x.slice(0, -('.json'.length)));
   }
   
   async hasBackup(backupName) {
@@ -448,10 +448,18 @@ class BackupManager {
       throw new Error('backup dir not initialized');
     }
     
-    // TODO
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    return await fileExists(join(this.#backupDirPath, 'backups', backupName + '.json'));
   }
   
-  async createBackup({ logger }) {
+  async createBackup({
+    backupName,
+    fileOrFolderPath,
+    logger,
+  }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -459,6 +467,19 @@ class BackupManager {
     if (this.#hashAlgo == null) {
       throw new Error('backup dir not initialized');
     }
+    
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    if (typeof fileOrFolderPath != 'string') {
+      throw new Error(`fileOrFolderPath not string: ${typeof fileOrFolderPath}`);
+    }
+    
+    // TODO: check to ensure path is not subpath of backup dir
+    // TODO: if backup dir is subpath of base path, exclude backup dir
+    
+    this.#log(logger, `Starting backup of ${JSON.stringify(fileOrFolderPath)} with name ${JSON.stringify(backupName)}`);
     
     // TODO
   }
