@@ -3,24 +3,33 @@ import {
   getHashes,
 } from 'crypto';
 import {
+  createReadStream,
+  createWriteStream,
+} from 'fs';
+import {
   mkdir,
   open,
   readdir,
-  readFile,
   readlink,
   rm,
+  rmdir,
   unlink,
 } from 'fs/promises';
 import {
   dirname,
   join,
   relative,
+  resolve,
 } from 'path';
 import {
   createBrotliCompress,
+  createBrotliDecompress,
   createDeflate,
   createDeflateRaw,
+  createGunzip,
   createGzip,
+  createInflate,
+  createInflateRaw,
 } from 'zlib';
 
 import {
@@ -131,6 +140,49 @@ async function compressBytes(bytes, compressionAlgo, compressionParams) {
   });
 }
 
+function createDecompressor(compressionAlgo, compressionParams) {
+  if (typeof compressionAlgo != 'string') {
+    throw new Error(`compressionAlgo not string: ${typeof compressionAlgo}`);
+  }
+  
+  switch (compressionAlgo) {
+    case 'deflate-raw':
+      return createInflateRaw(compressionParams);
+    
+    case 'deflate':
+      return createInflate(compressionParams);
+    
+    case 'gzip':
+      return createGunzip(compressionParams);
+    
+    case 'brotli':
+      return createBrotliDecompress(compressionParams);
+    
+    default:
+      throw new Error(`unknown compression algorithm: ${compressionAlgo}`);
+  }
+}
+
+async function decompressBytes(compressedBytes, compressionAlgo, compressionParams) {
+  if (!(compressedBytes instanceof Uint8Array)) {
+    throw new Error(`bytes not Uint8Array: ${compressedBytes}`);
+  }
+  
+  let decompressor = createDecompressor(compressionAlgo, compressionParams);
+  
+  return await new Promise((r, j) => {
+    let outputChunks = [];
+    
+    decompressor.on('error', err => j(err));
+    
+    decompressor.on('data', chunk => outputChunks.push(chunk));
+    
+    decompressor.on('end', () => r(Buffer.concat(outputChunks)));
+    
+    decompressor.write(compressedBytes);
+  });
+}
+
 function createHasher(hashAlgo) {
   return createHash(hashAlgo);
 }
@@ -153,6 +205,13 @@ async function hashBytes(bytes, hashAlgo) {
     
     hasher.write(bytes);
   });
+}
+
+function stripAlgorithmFromCompressObject(compression) {
+  return Object.fromEntries(
+    Object.entries()
+      .filter(([key, _]) => key != 'algorithm')
+  );
 }
 
 class BackupManager {
@@ -323,7 +382,7 @@ class BackupManager {
       let metaJson;
       
       if (fileExists(metaFilePath)) {
-        metaJson = JSON.parse((await readFile(metaFilePath)).toString());
+        metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
       } else {
         await mkdir(dirname(metaFilePath), { recursive: true });
         metaJson = {};
@@ -356,16 +415,121 @@ class BackupManager {
     // TODO
   }
   
-  async #getFileBytesFromStore(fileHashHex) {
+  async #getMetaOfFile(fileHashHex) {
+    const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
     
+    const metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
+    
+    if (!(fileHashHex in metaJson)) {
+      throw new Error(`fileHash (${fileHashHex}) not found in meta files`);
+    }
+    
+    return metaJson[fileHashHex];
+  }
+  
+  async #getFileBytesFromStore(fileHashHex) {
+    const filePath = this.#getPathOfFile(fileHashHex);
+    const fileMeta = this.#getMetaOfFile(fileHashHex);
+    
+    const rawFileBytes = await readLargeFile(filePath);
+    
+    if (fileMeta.compression != null) {
+      return await decompressBytes(
+        rawFileBytes,
+        fileMeta.compression.algorithm,
+        stripAlgorithmFromCompressObject(fileMeta.compression)
+      );
+    } else {
+      return rawFileBytes;
+    }
   }
   
   #getFileStreamFromStore(fileHashHex) {
+    const filePath = this.#getPathOfFile(fileHashHex);
+    const fileMeta = this.#getMetaOfFile(fileHashHex);
     
+    let fileStream = createReadStream(filePath);
+    
+    if (fileMeta.compression != null) {
+      let decompressor = createDecompressor(
+        fileMeta.compression.algorithm,
+        stripAlgorithmFromCompressObject(fileMeta.compression)
+      );
+      
+      fileStream.pipe(decompressor);
+      
+      return decompressor;
+    } else {
+      return fileStream;
+    }
   }
   
-  async #removeFileFromStore() {
-    // TODO
+  async #removeFileFromStore(fileHashHex, logger) {
+    this.#log(logger, `Removing file with hash: ${fileHashHex}`);
+    
+    const filePath = this.#getPathOfFile(fileHashHex);
+    const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
+    
+    let metaDeletionErrorOccurred = false;
+    let metaDeletionError;
+    
+    try {
+      let metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
+      
+      delete metaJson[fileHashHex];
+      
+      if (Object.keys(metaJson).length == 0) {
+        // begin delete chain for meta file
+        
+        await unlink(metaFilePath);
+        
+        if (this.#hashSlices > 0) {
+          let currentDirName = dirname(metaFilePath);
+          
+          for (let sliceIndex = this.#hashSlices - 1; sliceIndex > 0; sliceIndex--) {
+            const metaDirContents = await readdir(currentDirName);
+            
+            if (metaDirContents.length == 0) {
+              await rmdir(currentDirName);
+            } else {
+              break;
+            }
+            
+            currentDirName = resolve(currentDirName, '..');
+          }
+        }
+      } else {
+        await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+      }
+    } catch (err) {
+      this.#log(logger, `ERROR deleting metadata: msg:${err.toString()} code:${err.code} stack:\n${err.stack}`);
+      metaDeletionErrorOccurred = true;
+      metaDeletionError = err;
+    }
+    
+    await unlink(filePath);
+    
+    // begin delete chain for regular file
+    
+    if (this.#hashSlices > 0) {
+      let currentDirName = dirname(filePath);
+      
+      for (let sliceIndex = this.#hashSlices; sliceIndex > 0; sliceIndex--) {
+        const fileDirContents = await readdir(currentDirName);
+        
+        if (fileDirContents.length == 0) {
+          await rmdir(currentDirName);
+        } else {
+          break;
+        }
+        
+        currentDirName = resolve(currentDirName, '..');
+      }
+    }
+    
+    if (metaDeletionErrorOccurred) {
+      throw metaDeletionError;
+    }
   }
   
   async #addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger) {
