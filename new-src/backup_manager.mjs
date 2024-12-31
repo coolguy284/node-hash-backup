@@ -7,10 +7,12 @@ import {
   createWriteStream,
 } from 'fs';
 import {
+  copyFile,
   mkdir,
   open,
   readdir,
   readlink,
+  rename,
   rm,
   rmdir,
   unlink,
@@ -21,6 +23,7 @@ import {
   relative,
   resolve,
 } from 'path';
+import { pipeline } from 'stream/promises';
 import {
   createBrotliCompress,
   createBrotliDecompress,
@@ -44,6 +47,7 @@ import {
 import { callBothLoggers } from './lib/logger.mjs';
 import { ReadOnlyMap } from './lib/read_only_map.mjs';
 import { ReadOnlySet } from './lib/read_only_set.mjs';
+import { streamsEqual } from './lib/stream_equality.mjs';
 import { unixNSIntToUnixSecString } from './lib/time.mjs';
 import {
   CURRENT_BACKUP_VERSION,
@@ -187,6 +191,18 @@ function createHasher(hashAlgo) {
   return createHash(hashAlgo);
 }
 
+async function getHasherOutput(hasher) {
+  return await new Promise((r, j) => {
+    let outputChunks = [];
+    
+    hasher.on('error', err => j(err));
+    
+    hasher.on('data', chunk => outputChunks.push(chunk));
+    
+    hasher.on('end', () => r(Buffer.concat(outputChunks)));
+  });
+}
+
 async function hashBytes(bytes, hashAlgo) {
   if (!(bytes instanceof Uint8Array)) {
     throw new Error(`bytes not Uint8Array: ${bytes}`);
@@ -209,7 +225,7 @@ async function hashBytes(bytes, hashAlgo) {
 
 function stripAlgorithmFromCompressObject(compression) {
   return Object.fromEntries(
-    Object.entries()
+    Object.entries(compression)
       .filter(([key, _]) => key != 'algorithm')
   );
 }
@@ -351,11 +367,11 @@ class BackupManager {
   }
   
   async #addFileBytesToStore(fileBytes, logger) {
-    const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo));
+    const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo)).toString('hex');
     
     this.#log(logger, `Hash: ${fileHashHex}`);
     
-    if (await this.#fileIsInStore(fileExists)) {
+    if (await this.#fileIsInStore(fileHashHex)) {
       const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
       
       if (!fileBytes.equals(storeFileBytes)) {
@@ -412,7 +428,112 @@ class BackupManager {
   }
   
   async #addFilePathStreamToStore(filePath, logger) {
-    // TODO
+    const fileHandle = await open(filePath);
+    
+    try {
+      const fileStream = fileHandle.createReadStream();
+      const hasher = createHasher(this.#hashAlgo);
+      const hasherResult = getHasherOutput(hasher);
+      
+      await pipeline(
+        fileStream,
+        hasher
+      );
+      
+      const fileHashHex = (await hasherResult).toString('hex');
+      
+      this.#log(logger, `Hash: ${fileHashHex}`);
+      
+      if (await this.#fileIsInStore(fileHashHex)) {
+        const storeFileStream = this.#getFileStreamFromStore(fileHashHex);
+        
+        if (!(await streamsEqual([fileStream, storeFileStream]))) {
+          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+        }
+      } else {
+        let compressionUsed = false;
+        
+        if (this.#compressionAlgo != null) {
+          const tmpDirPath = join(this.#backupDirPath, 'temp');
+          await mkdir(tmpDirPath, { recursive: true });
+          
+          try {
+            const compressedFilePath = join(tmpDirPath, fileHashHex);
+            const fileStream2 = fileHandle.createReadStream();
+            const compressor = createCompressor(this.#compressionAlgo, this.#compressionParams);
+            const compressedFile = createWriteStream(compressedFilePath);
+            
+            await pipeline(
+              fileStream2,
+              compressor,
+              compressedFile
+            );
+            
+            let compressedSize;
+            if (compressedFile.closed) {
+              compressedSize = compressedFile.bytesWritten;
+            } else {
+              await new Promise(r => {
+                compressedFile.once('close', () => {
+                  r(compressedSize);
+                });
+              });
+            }
+            
+            if (compressedSize < fileStream.bytesRead) {
+              this.#log(logger, `Compressed with ${this.#compressionAlgo} (${JSON.stringify(this.#compressionParams)}) from ${fileStream.bytesRead} bytes to ${compressedSize} bytes`);
+              compressionUsed = true;
+            } else {
+              this.#log(logger, `Not compressed with ${this.#compressionAlgo} (${JSON.stringify(this.#compressionParams)}) as file size increases from ${fileStream.bytesRead} bytes to ${compressedSize} bytes`);
+              await unlink(compressedFilePath);
+            }
+            
+            const newFilePath = this.#getPathOfFile(fileHashHex);
+            const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
+            
+            let metaJson;
+            
+            if (fileExists(metaFilePath)) {
+              metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
+            } else {
+              await mkdir(dirname(metaFilePath), { recursive: true });
+              metaJson = {};
+            }
+            
+            metaJson[fileHashHex] = {
+              size: fileBytes.length,
+              ...(
+                compressionUsed ?
+                  {
+                    compressedSize,
+                    compression: {
+                      algorithm: this.#compressionAlgo,
+                      ...this.#compressionParams,
+                    },
+                  } :
+                  {}
+              ),
+            };
+            
+            await mkdir(dirname(newFilePath), { recursive: true });
+            if (compressionUsed) {
+              await rename(compressedFilePath, newFilePath);
+            } else {
+              await copyFile(filePath, newFilePath);
+            }
+            await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+          } finally {
+            if ((await readdir(tmpDirPath)).length == 0) {
+              await rmdir(tmpDirPath);
+            }
+          }
+        }
+      }
+      
+      return fileHashHex;
+    } finally {
+      await fileHandle[Symbol.asyncDispose]();
+    }
   }
   
   async #getMetaOfFile(fileHashHex) {
@@ -448,10 +569,10 @@ class BackupManager {
     const filePath = this.#getPathOfFile(fileHashHex);
     const fileMeta = this.#getMetaOfFile(fileHashHex);
     
-    let fileStream = createReadStream(filePath);
+    const fileStream = createReadStream(filePath);
     
     if (fileMeta.compression != null) {
-      let decompressor = createDecompressor(
+      const decompressor = createDecompressor(
         fileMeta.compression.algorithm,
         stripAlgorithmFromCompressObject(fileMeta.compression)
       );
