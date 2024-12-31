@@ -40,8 +40,10 @@ import {
   fileExists,
   readLargeFile,
   recursiveReaddir,
+  setReadOnly,
   splitPath,
   SymlinkModes,
+  testCreateFile,
   writeFileReplaceWhenDone,
 } from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
@@ -50,6 +52,7 @@ import { ReadOnlySet } from './lib/read_only_set.mjs';
 import { streamsEqual } from './lib/stream_equality.mjs';
 import { unixNSIntToUnixSecString } from './lib/time.mjs';
 import {
+  backupFileStringify,
   CURRENT_BACKUP_VERSION,
   fullInfoFileStringify,
   getBackupDirInfo,
@@ -422,6 +425,8 @@ class BackupManager {
       await mkdir(dirname(newFilePath), { recursive: true });
       await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes);
       await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+      
+      await setReadOnly(newFilePath);
     }
     
     return fileHashHex;
@@ -522,6 +527,8 @@ class BackupManager {
               await copyFile(filePath, newFilePath);
             }
             await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+      
+            await setReadOnly(newFilePath);
           } finally {
             if ((await readdir(tmpDirPath)).length == 0) {
               await rmdir(tmpDirPath);
@@ -836,8 +843,9 @@ class BackupManager {
     await mkdir(join(this.#backupDirPath, 'backups'));
     await mkdir(join(this.#backupDirPath, 'files'));
     await mkdir(join(this.#backupDirPath, 'files_meta'));
+    const infoFilePath = join(this.#backupDirPath, 'info.json')
     await writeFileReplaceWhenDone(
-      join(this.#backupDirPath, 'info.json'),
+      infoFilePath,
       fullInfoFileStringify({
         folderType: 'coolguy284/node-hash-backup',
         version: 2,
@@ -856,6 +864,8 @@ class BackupManager {
         ),
       })
     );
+      
+    await setReadOnly(infoFilePath);
     
     this.#log(logger, `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`);
     
@@ -1021,6 +1031,14 @@ class BackupManager {
       ];
     }
     
+    const backupFilePath = path(this.#backupDirPath, 'backups', `${backupName}.json`);
+    
+    try {
+      await testCreateFile(backupFilePath);
+    } catch {
+      throw new Error(`backup name (${JSON.stringify(backupName)}) invalid name or backup file unable to be created`);
+    }
+    
     this.#log(logger, `Starting backup of ${JSON.stringify(fileOrFolderPath)} with name ${JSON.stringify(backupName)}`);
     
     const dirContents = await recursiveReaddir(fileOrFolderPath, {
@@ -1047,28 +1065,16 @@ class BackupManager {
         );
       }
     }
-  }
-  
-  // Output can not exist, or can be an empty folder
-  async restoreFromBackup({
-    backupName,
-    outputPath,
-    logger,
-  }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
     
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    await writeFileReplaceWhenDone(
+      backupFilePath,
+      backupFileStringify({
+        createdAt: new Date().toISOString(),
+        entries: newEntries,
+      })
+    );
     
-    await this.restoreFileOrFolderFromBackup({
-      backupName,
-      backupFileOrFolderPath: '.',
-      outputPath,
-      logger,
-    });
+    await setReadOnly(backupFilePath);
   }
   
   getAllowSingleBackupDestroyStatus() {
@@ -1085,6 +1091,7 @@ class BackupManager {
   
   async destroyBackup({
     backupName,
+    pruneUnreferencedFilesAfter = true,
     logger,
   }) {
     if (this.#disposed) {
@@ -1245,6 +1252,22 @@ class BackupManager {
     // delete lock file
     await lockFile[Symbol.asyncDispose]();
     await unlink(join(this.#backupDirPath, 'edit.lock'));
+  }
+  
+  // public helper funcs
+  
+  // Output can not exist, or can be an empty folder; if restoring file, output must not exist
+  async restoreFromBackup({
+    backupName,
+    outputPath,
+    logger,
+  }) {
+    await this.restoreFileOrFolderFromBackup({
+      backupName,
+      backupFileOrFolderPath: '.',
+      outputPath,
+      logger,
+    });
   }
 }
 

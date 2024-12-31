@@ -8,11 +8,15 @@ export const META_FILE_EXTENSION = '.json';
 export const META_DIRECTORY = 'files_meta';
 export const SINGULAR_META_FILE_NAME = `file.${META_FILE_EXTENSION}`;
 
-export async function fullInfoFileStringify(contents) {
+export function fullInfoFileStringify(contents) {
   return JSON.stringify(contents, null, 2);
 }
 
-export async function metaFileStringify(contents) {
+export function metaFileStringify(contents) {
+  return JSON.stringify(contents, null, 2);
+}
+
+export function backupFileStringify(contents) {
   return JSON.stringify(contents, null, 2);
 }
 

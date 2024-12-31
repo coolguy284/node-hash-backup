@@ -1,10 +1,12 @@
 import {
   access,
+  chmod,
   lstat,
   open,
   readdir,
   rename,
   stat,
+  unlink,
   writeFile,
 } from 'fs/promises';
 import {
@@ -34,6 +36,13 @@ export async function errorIfPathNotDir(validationPath) {
   if (!stats.isDirectory()) {
     throw new Error(`${validationPath} not a directory`);
   }
+}
+
+export async function testCreateFile(filename) {
+  const tempFilename = filename + TEMP_NEW_FILE_SUFFIX;
+  
+  await writeFile(tempFilename, Buffer.alloc(0));
+  await unlink(tempFilename);
 }
 
 export async function writeFileReplaceWhenDone(filename, contents) {
@@ -296,4 +305,41 @@ export async function setFileTimes(fileTimeEntries) {
         stdin: commandString,
       });
   }
+}
+
+export async function setReadOnly(filePath) {
+  const currentPerms = (await lstat(filePath)).mode & 0o777;
+  const newPerms = currentPerms & 0o555;
+  
+  if (currentPerms != newPerms) {
+    await chmod(filePath, newPerms);
+  }
+}
+
+export async function unsetReadOnly(filePath) {
+  const currentPerms = (await lstat(filePath)).mode & 0o777;
+  let newPerms = currentPerms;
+  
+  if (currentPerms & 0o400) {
+    newPerms |= 0o200;
+  }
+  
+  if (currentPerms & 0o040) {
+    newPerms |= 0o020;
+  }
+  
+  if (currentPerms & 0o004) {
+    newPerms |= 0o002;
+  }
+  
+  if (currentPerms != newPerms) {
+    await chmod(filePath, newPerms);
+  }
+}
+
+export async function isReadOnly(filePath) {
+  const currentPerms = (await lstat(filePath)).mode & 0o777;
+  const readOnlyPerms = currentPerms & 0o555;
+  
+  return currentPerms == readOnlyPerms;
 }
