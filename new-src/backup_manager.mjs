@@ -40,6 +40,7 @@ import {
   fileExists,
   readLargeFile,
   recursiveReaddir,
+  safeRename,
   setReadOnly,
   splitPath,
   SymlinkModes,
@@ -1125,8 +1126,30 @@ class BackupManager {
       throw new Error('backup dir not initialized');
     }
     
-    // TODO
-    // TODO: must check and error if destination name exists
+    if (typeof oldBackupName != 'string') {
+      throw new Error(`oldBackupName not string: ${typeof oldBackupName}`);
+    }
+    
+    if (typeof newBackupName != 'string') {
+      throw new Error(`newBackupName not string: ${typeof newBackupName}`);
+    }
+    
+    if (!this.hasBackup(oldBackupName)) {
+      throw new Error(`backup oldBackupName (${JSON.stringify(oldBackupName)}) does not exist`);
+    }
+    
+    if (this.hasBackup(newBackupName)) {
+      throw new Error(`backup newBackupName (${JSON.stringify(newBackupName)}) already exists`);
+    }
+    
+    this.#log(logger, `Renaming backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
+    
+    await safeRename(
+      join(this.#backupDirPath, 'backups', oldBackupName),
+      join(this.#backupDirPath, 'backups', newBackupName)
+    );
+    
+    this.#log(logger, `Successfully renamed backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
   }
   
   async getFileOrFolderInfoFromBackup({

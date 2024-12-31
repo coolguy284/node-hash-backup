@@ -3,7 +3,7 @@
 ```
 backup  .   .   .   .   . the backup directory
   backups   .   .   .   . folder with each "incremental" backup
-    <backup_name>.json:
+    <backup_name>.json [read only (optional)]:
       object {
         createdAt: string (ISO date of backup creation),
         entries: array [
@@ -22,7 +22,7 @@ backup  .   .   .   .   . the backup directory
         ],
       }
   files .   .   .   .   . folder with the actual files
-    <segment1>/<segment2>/.../<hash of file contents>: the location that each file is stored in
+    <segment1>/<segment2>/.../<hash of file contents> [read only (optional)]: the location that each file is stored in
   files_meta    .   .   . folder with file metadata
     if number of slices is 0:
       meta.json:
@@ -30,7 +30,7 @@ backup  .   .   .   .   . the backup directory
     else:
       <segment1>/.../<segmentX>.json:
         FILE_META_CONTENT
-  info.json .   .   .   . main hash backup info file
+  info.json .   .   .   . main hash backup info file [read only (optional)]
     object {
       folderType: string ("coolguy284/node-hash-backup"),
       version: integer > 0 (2),

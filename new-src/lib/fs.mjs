@@ -343,3 +343,11 @@ export async function isReadOnly(filePath) {
   
   return currentPerms == readOnlyPerms;
 }
+
+export async function safeRename(oldFilePath, newFilePath) {
+  if (await fileExists(newFilePath)) {
+    throw new Error(`newFilePath (${newFilePath}) of rename exists`);
+  }
+  
+  await rename(oldFilePath, newFilePath);
+}
