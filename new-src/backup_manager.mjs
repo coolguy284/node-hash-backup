@@ -952,7 +952,9 @@ class BackupManager {
       throw new Error(`backupName not string: ${typeof backupName}`);
     }
     
-    return await fileExists(join(this.#backupDirPath, 'backups', backupName + '.json'));
+    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    
+    return await fileExists(backupFilePath);
   }
   
   async createBackup({
@@ -1110,7 +1112,21 @@ class BackupManager {
       );
     }
     
-    // TODO
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backup ${JSON.stringify(backupName)} does not exist, cannot delete`);
+    }
+    
+    this.#log(logger, `Deleting backup ${JSON.stringify(backupName)}`);
+    
+    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    
+    await unlink(backupFilePath);
+    
+    if (pruneUnreferencedFilesAfter) {
+      await this.pruneUnreferencedFiles({ logger });
+    }
+    
+    this.#log(logger, `Successfully deleted backup ${JSON.stringify(backupName)}`);
   }
   
   async renameBackup({
@@ -1134,19 +1150,19 @@ class BackupManager {
       throw new Error(`newBackupName not string: ${typeof newBackupName}`);
     }
     
-    if (!this.hasBackup(oldBackupName)) {
+    if (!(await this.hasBackup(oldBackupName))) {
       throw new Error(`backup oldBackupName (${JSON.stringify(oldBackupName)}) does not exist`);
     }
     
-    if (this.hasBackup(newBackupName)) {
+    if (await this.hasBackup(newBackupName)) {
       throw new Error(`backup newBackupName (${JSON.stringify(newBackupName)}) already exists`);
     }
     
     this.#log(logger, `Renaming backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
     
     await safeRename(
-      join(this.#backupDirPath, 'backups', oldBackupName),
-      join(this.#backupDirPath, 'backups', newBackupName)
+      join(this.#backupDirPath, 'backups', `${oldBackupName}.json`),
+      join(this.#backupDirPath, 'backups', `${newBackupName}.json`)
     );
     
     this.#log(logger, `Successfully renamed backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
