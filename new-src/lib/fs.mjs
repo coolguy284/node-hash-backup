@@ -184,6 +184,7 @@ export async function recursiveReaddir(
     includeDirs = true,
     entries = true,
     symlinkMode = SymlinkModes.PRESERVE,
+    sorted = false,
   }
 ) {
   if (typeof dirPath != 'string') {
@@ -220,13 +221,28 @@ export async function recursiveReaddir(
     throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
   }
   
-  const internalResult = await recursiveReaddirInternal(
+  let internalResult = await recursiveReaddirInternal(
     dirPath,
     {
       excludedFilesOrFolders,
       symlinkMode,
     }
   );
+  
+  if (sorted) {
+    internalResult
+      .sort(
+        ({ filePath: filePathA }, { filePath: filePathB }) => {
+          if (filePathA < filePathB) {
+            return 1;
+          } else if (filePathA > filePathB) {
+            return -1;
+          } else {
+            return 0;
+          }
+        }
+      );
+  }
   
   return internalResult
     .map(({ filePath, stats }) => {

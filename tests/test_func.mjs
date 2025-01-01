@@ -13,6 +13,10 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { formatWithOptions as utilFormatWithOptions } from 'util';
 
+import { } from './lib/fs.js'; 
+
+// TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
+
 export async function performTest({
   // "test" random name and content functions by printing to console their results 10x
   testRandomName = false,

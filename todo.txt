@@ -1,9 +1,11 @@
 esmify test script
+make tests more fully deterministic by creating random folders sequentially in order
+
 finish backupmanager class
 add above-compress-cutoff above which no compression at all, and below cutoff for no compression below a certain size (although rarely needed)
 add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes
-command to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
+function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
   with in memory cutoff like usual, only if the cutoff is even needed
 add option to backup for checkForDuplicateHashes, default true
 add option to restore for verifyExportedFileHashes, default true
@@ -33,6 +35,7 @@ subcommands and command line options for all facets of the backup dir functions 
   view command to view file hierarchy of backup
   list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
     add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
+  backup command should autocomplete new backup name with optional discriminatior (like first_backup_type); only enable this behavior if flag set to true
 configurable lockfile behavior, either error out or just wait until lockfile is deleted using watchfile
 cache meta datas accessed
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
@@ -109,4 +112,3 @@ check to make sure stopping program halfway does not cause broken data state any
 
 not doing:
 wipe backup dir command should only delete files and dirs with backup content in them
-make tests more fully deterministic by creating random folders sequentially in order

@@ -15,9 +15,13 @@ import {
   createInflateRaw,
 } from 'zlib';
 
-import { errorIfPathNotDir } from './lib/fs.mjs';
+import {
+  errorIfPathNotDir,
+  readLargeFile,
+} from './lib/fs.mjs';
 import { ReadOnlyMap } from './lib/read_only_map.mjs';
 import { ReadOnlySet } from './lib/read_only_set.mjs';
+import { unixNSIntToUnixSecString } from './lib/time.mjs';
 
 export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;
@@ -251,4 +255,84 @@ export function splitCompressObjectAlgoAndParams(compression) {
         .filter(([key, _]) => key != 'algorithm')
     )
   };
+}
+
+export async function getBackupEntry({
+  baseFileOrFolderPath,
+  subFileOrFolderPath,
+  stats,
+  addingLogger = null,
+  // if null, hash will not be included
+  addFileToStoreFunc = null,
+  includeBytes = false,
+}) {
+  const backupInternalNativePath = relative(baseFileOrFolderPath, subFileOrFolderPath);
+  const relativeFilePath =
+    backupInternalNativePath == '' ?
+      '.' :
+      splitPath().join(BACKUP_PATH_SEP);
+  
+  const atime = unixNSIntToUnixSecString(stats.atimeNs);
+  const mtime = unixNSIntToUnixSecString(stats.mtimeNs);
+  const ctime = unixNSIntToUnixSecString(stats.ctimeNs);
+  const birthtime = unixNSIntToUnixSecString(stats.birthtimeNs);
+  
+  if (stats.isDirectory()) {
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [directory]`);
+    
+    return {
+      path: relativeFilePath,
+      type: 'directory',
+      atime,
+      mtime,
+      ctime,
+      birthtime,
+    };
+  } else if (stats.isSymbolicLink()) {
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [symbolic link]`);
+    
+    const linkPathBuf = await readlink(filePath, { encoding: 'buffer' });
+    const linkPathBase64 =
+      linkPathBuf
+      .toString('base64');
+    
+    if (addingLogger != null) addingLogger(`Points to: ${JSON.stringify(linkPathBuf.toString())}`);
+    
+    return {
+      path: relativeFilePath,
+      type: 'symbolic link',
+      symlinkPath: linkPathBase64,
+      atime,
+      mtime,
+      ctime,
+      birthtime,
+    };
+  } else {
+    // file, or something else that will be attempted to be read as a file
+    
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [file]`);
+    
+    return {
+      path: relativeFilePath,
+      type: 'file',
+      ...(
+        addFileToStoreFunc != null ?
+          {
+            hash: await addFileToStoreFunc(),
+          } :
+          {}
+      ),
+      atime,
+      mtime,
+      ctime,
+      birthtime,
+      ...(
+        includeBytes ?
+          {
+            bytes: await readLargeFile(subFileOrFolderPath),
+          } :
+          {}
+      ),
+    };
+  }
 }

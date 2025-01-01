@@ -36,9 +36,7 @@ import {
 } from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
 import { streamsEqual } from './lib/stream_equality.mjs';
-import { unixNSIntToUnixSecString } from './lib/time.mjs';
 import {
-  BACKUP_PATH_SEP,
   backupFileStringify,
   createCompressor,
   createDecompressor,
@@ -49,6 +47,7 @@ import {
   decompressBytes,
   fullInfoFileStringify,
   getBackupDirInfo,
+  getBackupEntry,
   getHasherOutput,
   HASH_SIZES,
   hashBytes,
@@ -537,72 +536,24 @@ class BackupManager {
     }
   }
   
-  async #addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger) {
-    const backupInternalNativePath = relative(fileOrFolderPath, filePath);
-    const relativeFilePath =
-      backupInternalNativePath == '' ?
-        '.' :
-        splitPath().join(BACKUP_PATH_SEP);
+  async #addAndGetBackupEntry(baseFileOrFolderPath, subFileOrFolderPath, stats, inMemoryCutoffSize, logger) {
+    const backupEntry = await getBackupEntry({
+      baseFileOrFolderPath,
+      subFileOrFolderPath,
+      stats,
+      addingLogger: data => this.#log(logger, data),
+      addFileToStoreFunc: async () => {
+        // only called if file or something else that will be attempted to be read as a file
+        if (stats.size <= inMemoryCutoffSize) {
+          const fileBytes = await readLargeFile(subFileOrFolderPath);
+          return await this.#addFileBytesToStore(fileBytes, logger);
+        } else {
+          return await this.#addFilePathStreamToStore(subFileOrFolderPath, logger);
+        }
+      },
+    });
     
-    const atime = unixNSIntToUnixSecString(stats.atimeNs);
-    const mtime = unixNSIntToUnixSecString(stats.mtimeNs);
-    const ctime = unixNSIntToUnixSecString(stats.ctimeNs);
-    const birthtime = unixNSIntToUnixSecString(stats.birthtimeNs);
-    
-    if (stats.isDirectory()) {
-      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [directory]`);
-      
-      return {
-        path: relativeFilePath,
-        type: 'directory',
-        atime,
-        mtime,
-        ctime,
-        birthtime,
-      };
-    } else if (stats.isSymbolicLink()) {
-      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [symbolic link]`);
-      
-      const linkPathBuf = await readlink(filePath, { encoding: 'buffer' });
-      const linkPathBase64 =
-        linkPathBuf
-        .toString('base64');
-      
-      this.#log(logger, `Points to: ${JSON.stringify(linkPathBuf.toString())}`);
-      
-      return {
-        path: relativeFilePath,
-        type: 'symbolic link',
-        symlinkPath: linkPathBase64,
-        atime,
-        mtime,
-        ctime,
-        birthtime,
-      };
-    } else {
-      // file, or something else that will be attempted to be read as a file
-      
-      this.#log(logger, `Adding ${JSON.stringify(fileOrFolderPath)} [file]`);
-      
-      let hash;
-      
-      if (stats.size <= inMemoryCutoffSize) {
-        const fileBytes = await readLargeFile(filePath);
-        hash = await this.#addFileBytesToStore(fileBytes, logger);
-      } else {
-        hash = await this.#addFilePathStreamToStore(filePath, logger);
-      }
-      
-      return {
-        path: relativeFilePath,
-        type: 'file',
-        hash,
-        atime,
-        mtime,
-        ctime,
-        birthtime,
-      };
-    }
+    return backupEntry;
   }
   
   static #processBackupData({ createdAt, entries }) {

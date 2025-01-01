@@ -1,17 +1,22 @@
-let fs = require('fs');
-let path = require('path');
+import { recursiveReaddir } from '../../new-src/lib/fs.mjs';
+import { getBackupEntry } from '../../new-src/lib.mjs';
 
-let { _getAllEntriesInDir } = require('../../src/lib/fs');
-
-module.exports = async function getFilesAndMetaInDir(basePath, excludedDirs) {
-  let dirContents = await _getAllEntriesInDir(basePath, excludedDirs);
-  
+export async function getFilesAndMetaInDir(basePath, excludedDirs) {
   return await Promise.all(
-    dirContents
-      .sort((a, b) => a > b ? 1 : a < b ? -1 : 0)
-      .map(async x => {
-        x.bytes = x.type == 'file' ? await fs.promises.readFile(path.join(basePath, x.path)) : null;
-        return x;
+    (await recursiveReaddir(
+      basePath,
+      {
+        excludedFilesOrFolders: excludedDirs,
+        sorted: true,
+      }
+    ))
+      .map(async ({ path, stats }) => {
+        await getBackupEntry({
+          baseFileOrFolderPath: basePath,
+          subFileOrFolderPath: path,
+          stats,
+          includeBytes: true,
+        });
       })
   );
-};
+}
