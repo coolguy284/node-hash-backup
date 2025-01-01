@@ -36,6 +36,8 @@ export const META_FILE_EXTENSION = '.json';
 export const META_DIRECTORY = 'files_meta';
 export const SINGULAR_META_FILE_NAME = `file${META_FILE_EXTENSION}`;
 export const BACKUP_PATH_SEP = '/';
+export const BITS_PER_BYTE = 8;
+export const HEX_CHAR_LENGTH_BITS = 4;
 
 export function fullInfoFileStringify(contents) {
   return JSON.stringify(contents, null, 2);
@@ -86,9 +88,6 @@ export async function isValidBackupDir(backupDirPath) {
     return false;
   }
 }
-
-export const BITS_PER_BYTE = 8;
-export const HEX_CHAR_LENGTH_BITS = 4;
 
 export const HASH_SIZES = new ReadOnlyMap(
   getHashes()
@@ -261,7 +260,7 @@ export function splitCompressObjectAlgoAndParams(compression) {
   };
 }
 
-export async function getBackupEntry({
+export async function getAndAddBackupEntry({
   baseFileOrFolderPath,
   subFileOrFolderPath,
   stats,

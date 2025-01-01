@@ -1,4 +1,8 @@
-import { createBackupManager } from './backup_manager.mjs';
+import { SymlinkModes } from './src/lib/fs.mjs';
+import {
+  createBackupManager,
+  DEFAULT_IN_MEMORY_CUTOFF_SIZE,
+} from './backup_manager.mjs';
 import { deleteBackupDirInternal } from './lib.mjs';
 
 export async function initBackupDir({
@@ -36,4 +40,34 @@ export async function deleteBackupDir({
     backupDirPath: backupDir,
     logger,
   });
+}
+
+export async function performBackup({
+  backupDir,
+  basePath,
+  name,
+  excludedFilesOrFolders = [],
+  symlinkMode = SymlinkModes.PRESERVE,
+  inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
+  ignoreErrors = false,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  await backupMgr.createBackup({
+    backupName: name,
+    fileOrFolderPath: basePath,
+    excludedFilesOrFolders,
+    symlinkMode,
+    inMemoryCutoffSize,
+    ignoreErrors,
+  });
+}
+
+export async function performRestore({
+  
+}) {
+  
 }

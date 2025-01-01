@@ -52,7 +52,7 @@ import {
   EDIT_LOCK_FILE,
   fullInfoFileStringify,
   getBackupDirInfo,
-  getBackupEntry,
+  getAndAddBackupEntry,
   getHasherOutput,
   HASH_SIZES,
   hashBytes,
@@ -63,7 +63,7 @@ import {
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
 
-const DEFAULT_IN_MEMORY_CUTOFF_SIZE = 4 * 2 ** 20;
+export const DEFAULT_IN_MEMORY_CUTOFF_SIZE = 4 * 2 ** 20;
 const FILE_TIMES_SET_CHUNK_SIZE = 50;
 
 class BackupManager {
@@ -178,9 +178,7 @@ class BackupManager {
         
         if (info.version > CURRENT_BACKUP_VERSION) {
           throw new Error(`backup dir version is for more recent version of program: ${info.version} > ${CURRENT_BACKUP_VERSION}`);
-        }
-        
-        if (info.version < CURRENT_BACKUP_VERSION) {
+        } else if (info.version < CURRENT_BACKUP_VERSION) {
           if (autoUpgradeDir) {
             await upgradeDirToCurrent({
               backupDirPath,
@@ -194,6 +192,8 @@ class BackupManager {
               'specify "autoUpgradeDir: true" in args to auto upgrade'
             );
           }
+        } else if (info.version != CURRENT_BACKUP_VERSION) {
+          throw new Error(`backup dir version is invalid: ${info.version}`);
         }
         
         // info.version == CURRENT_BACKUP_VERSION here
@@ -552,7 +552,7 @@ class BackupManager {
   }
   
   async #addAndGetBackupEntry(baseFileOrFolderPath, subFileOrFolderPath, stats, inMemoryCutoffSize, logger) {
-    const backupEntry = await getBackupEntry({
+    const backupEntry = await getAndAddBackupEntry({
       baseFileOrFolderPath,
       subFileOrFolderPath,
       stats,
@@ -873,6 +873,14 @@ class BackupManager {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
     
+    if (!(await fileOrFolderExists(fileOrFolderPath))) {
+      throw new Error(`file or folder path ${JSON.stringify(fileOrFolderPath)} does not exist`);
+    }
+    
+    if (await this.hasBackup(backupName)) {
+      throw new Error(`backup with name ${JSON.stringify(backupName)} already exists`);
+    }
+    
     const pathToBackupDir = relative(fileOrFolderPath, this.#backupDirPath);
     
     if (pathToBackupDir == '') {
@@ -929,6 +937,8 @@ class BackupManager {
         );
       }
     }
+    
+    this.#log(logger, `Writing backup file...`);
     
     const finishedBackupData = {
       createdAt: new Date().toISOString(),

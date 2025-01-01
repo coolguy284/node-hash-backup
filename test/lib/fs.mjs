@@ -1,5 +1,5 @@
 import { recursiveReaddir } from '../../src/lib/fs.mjs';
-import { getBackupEntry } from '../../src/lib.mjs';
+import { getAndAddBackupEntry } from '../../src/lib.mjs';
 
 export async function getFilesAndMetaInDir(basePath, excludedDirs) {
   return await Promise.all(
@@ -11,7 +11,7 @@ export async function getFilesAndMetaInDir(basePath, excludedDirs) {
       }
     ))
       .map(async ({ path, stats }) => {
-        await getBackupEntry({
+        await getAndAddBackupEntry({
           baseFileOrFolderPath: basePath,
           subFileOrFolderPath: path,
           stats,
