@@ -13,7 +13,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { formatWithOptions as utilFormatWithOptions } from 'util';
 
-import { } from './lib/fs.js'; 
+import { getFilesAndMetaInDir } from './lib/fs.js'; 
 
 // TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
 
@@ -36,8 +36,6 @@ let getBackupInfo = require('../src/main/get_backup_info');
 let initBackupDir = require('../src/main/init_backup_dir');
 let performBackup = require('../src/main/perform_backup');
 let performRestore = require('../src/main/perform_restore');
-
-let getFilesAndMetaInDir = require('./testlib/fs');
 
 let { getRandBytesCopy, getRandInt, getRandIntArray, getRandIntOneChoiceArray } = require('./testlib/rnglib');
 
