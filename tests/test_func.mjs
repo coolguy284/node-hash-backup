@@ -13,6 +13,13 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { formatWithOptions as utilFormatWithOptions } from 'util';
 
+import {
+  getBackupInfo,
+  initBackupDir,
+  performBackup,
+  performRestore,
+} from './new-src/backup_helper_funcs.mjs';
+
 import { getFilesAndMetaInDir } from './lib/fs.js'; 
 import { AdvancedPrng } from './lib/prng_extended.mjs';
 
@@ -80,32 +87,7 @@ function randomContent(notCompressible = null) {
   }
 }
 
-export async function performTest({
-  // "test" random name and content functions by printing to console their results 10x
-  testRandomName = DEFAULT_TEST_RANDOM_NAME,
-  testGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
-  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
-  // mtime change ignored when doing verification after modification since folders will get modified
-  testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
-  verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
-  doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
-  logger = console.log,
-  logFile = null, // TODO: set properly
-}) {
-  let logLines = [];
-  
-  // TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
-  // TODO
-}
-
-let getBackupInfo = require('../src/main/get_backup_info');
-let initBackupDir = require('../src/main/init_backup_dir');
-let performBackup = require('../src/main/perform_backup');
-let performRestore = require('../src/main/perform_restore');
-
-let loggingFile;
-
-let dirFuncs = {
+const DirectoryCreationFuncs = {
   manual1: async basePath => {
     await timestampLog(logger, logLines, `starting manual1 ${basePath}`);
     
@@ -191,7 +173,9 @@ let dirFuncs = {
     
     await timestampLog(logger, logLines, `finished random1 ${basePath}`);
   },
-  
+};
+
+const DirectoryModificationFuncs = {
   modif: async (basePath) => {
     await timestampLog(logger, logLines, `starting modif ${basePath}`);
     
@@ -265,7 +249,9 @@ let dirFuncs = {
     
     await timestampLog(logger, logLines, `finished copythenmodif ${basePathCopy}`);
   },
-  
+};
+
+const BackupTestFuncs = {
   performBackupWithArgs: async (tmpDir, backupDir, name) => {
     await timestampLog(logger, logLines, `starting backup ${name}`);
     
@@ -294,7 +280,7 @@ let dirFuncs = {
     return returnValue;
   },
   
-  checkRestoreAccuracy: async (tmpDir, name, ignoreMTime) => {
+  checkRestoreAccuracy: async (tmpDir, name, ignoreMTime, verboseFinalValidationLog) => {
     await timestampLog(logger, logLines, `checking validity of restore ${name}`);
     
     let dataObj = await getFilesAndMetaInDir(join(tmpDir, 'data', name));
@@ -383,9 +369,25 @@ let dirFuncs = {
   },
 };
 
-(async () => {
+export async function performTest({
+  // "test" random name and content functions by printing to console their results 10x
+  testRandomName = DEFAULT_TEST_RANDOM_NAME,
+  testGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
+  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
+  // mtime change ignored when doing verification after modification since folders will get modified
+  testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
+  verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
+  doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
+  logger = console.log,
+  logFile = null, // TODO: set properly
+}) {
+  let logLines = [];
+  
+  // TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
+  // TODO: check all imported funcs function, including getFilesAndMetaInDir
+  
   // open logging file and redirect stdout and stderr
-  loggingFile = await open(join(import.meta.dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
+  let loggingFile = await open(join(import.meta.dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
   let oldProcStdoutWrite = process.stdout.write.bind(process.stdout),
     oldProcStderrWrite = process.stderr.write.bind(process.stderr);
   process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
@@ -393,8 +395,8 @@ let dirFuncs = {
   
   if (testRandomName) {
     await timestampLog(logger, logLines, [
-      [randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName()],
-      [randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent()].map(x=>x.toString()),
+      new Array(10).fill().map(() => randomName()),
+      new Array(10).fill().map(() => randomContent().toString()),
     ]);
     return;
   }
@@ -495,13 +497,13 @@ let dirFuncs = {
     await backupOrRestore(dirFuncs.performRestoreWithArgs);
     
     // check validity of restores
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1');
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2');
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3');
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4');
+    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
+    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
+    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
+    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
     for (let i = 0; i < 10; i++) {
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1');
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
     }
     
     if (testDeliberateModification) {
@@ -513,13 +515,13 @@ let dirFuncs = {
       
       await timestampLog(logger, logLines, 'finished deliberate modifs');
       
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3', true);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4', true);
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
+      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, true);
-        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true);
+        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
       }
     }
   } catch (e) {
@@ -531,4 +533,4 @@ let dirFuncs = {
     // TODO: check graceful close works
     //process.exit();
   }
-})();
+}
