@@ -145,8 +145,8 @@ async function upgradeDir1To2({
 
 export async function upgradeDirToCurrent({
   backupDirPath,
-  logger,
-  globalLogger,
+  logger = null,
+  globalLogger = null,
 }) {
   if (typeof backupDirPath != 'string') {
     throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);

@@ -20,14 +20,17 @@ import {
 
 import {
   errorIfPathNotDir,
+  fileOrFolderExists,
   readLargeFile,
 } from './lib/fs.mjs';
+import { callBothLoggers } from './lib/logger.mjs';
 import { ReadOnlyMap } from './lib/read_only_map.mjs';
 import { ReadOnlySet } from './lib/read_only_set.mjs';
 import { unixNSIntToUnixSecString } from './lib/time.mjs';
 
 export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;
+export const EDIT_LOCK_FILE = 'edit.lock';
 export const FULL_INFO_FILE_NAME = 'info.json';
 export const META_FILE_EXTENSION = '.json';
 export const META_DIRECTORY = 'files_meta';
@@ -336,4 +339,37 @@ export async function getBackupEntry({
       ),
     };
   }
+}
+
+export async function deleteBackupDirInternal({
+  backupDirPath,
+  logger = null,
+  globalLogger = null,
+}) {
+  if (typeof backupDirPath != 'string') {
+    throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
+  }
+  
+  if (typeof logger != 'function' && logger != null) {
+    throw new Error(`logger not function or null: ${typeof logger}`);
+  }
+  
+  if (typeof globalLogger != 'function' && globalLogger != null) {
+    throw new Error(`globalLogger not function or null: ${typeof globalLogger}`);
+  }
+  
+  await errorIfPathNotDir(backupDirPath);
+  
+  if (!(await fileOrFolderExists(join(backupDirPath, 'info.json')))) {
+    throw new Error(`Directory does not appear to be a backup dir: ${backupDirPath}`);
+  }
+  
+  callBothLoggers({ logger, globalLogger }, `Destroying backup dir at ${JSON.stringify(backupDirPath)}`);
+  
+  await rm(join(backupDirPath, 'backups'), { recursive: true });
+  await rm(join(backupDirPath, 'files'), { recursive: true });
+  await rm(join(backupDirPath, 'files_meta'), { recursive: true });
+  await rm(join(backupDirPath, 'info.json'));
+  
+  callBothLoggers({ logger, globalLogger }, `Backup dir successfully destroyed at ${JSON.stringify(backupDirPath)}`);
 }

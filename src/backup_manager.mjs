@@ -48,6 +48,8 @@ import {
   COMPRESSION_ALGOS,
   CURRENT_BACKUP_VERSION,
   decompressBytes,
+  deleteBackupDirInternal,
+  EDIT_LOCK_FILE,
   fullInfoFileStringify,
   getBackupDirInfo,
   getBackupEntry,
@@ -131,16 +133,15 @@ class BackupManager {
   
   async #initManager({
     backupDirPath,
-    autoUpgradeDir,
-    globalLogger,
-    logger = null,
+    autoUpgradeDir = false,
+    globalLogger = null,
   }) {
     if (typeof backupDirPath != 'string') {
       throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
     }
     
-    if (typeof autoUpgradeDir != 'boolean' && autoUpgradeDir != null) {
-      throw new Error(`autoUpgradeDir must be boolean or null, but was: ${typeof autoUpgradeDir}`);
+    if (typeof autoUpgradeDir != 'boolean') {
+      throw new Error(`autoUpgradeDir must be boolean, but was: ${typeof autoUpgradeDir}`);
     }
     
     if (typeof globalLogger != 'function' && globalLogger != null) {
@@ -149,62 +150,72 @@ class BackupManager {
     
     this.#globalLogger = globalLogger ?? null;
     
-    if (typeof logger != 'function' && logger != null) {
-      throw new Error(`logger must be a function or null, but was: ${typeof logger}`);
-    }
-    
     await errorIfPathNotDir(backupDirPath);
     
     // create lock file
-    this.#lockFile = await open(join(backupDirPath, 'edit.lock'), 'w');
+    this.#lockFile = await open(join(backupDirPath, EDIT_LOCK_FILE), 'r+');
     
-    this.#backupDirPath = backupDirPath;
-    
-    const currentDirContents =
-      (await readdir(backupDirPath))
-        .filter(x => x != 'edit.lock');
-    
-    if (currentDirContents.length != 0) {
-      // dir contains hash backup contents
-      
-      let info = await getBackupDirInfo(backupDirPath);
-      
-      if (info.version > CURRENT_BACKUP_VERSION) {
-        throw new Error(`backup dir version is for more recent version of program: ${info.version} > ${CURRENT_BACKUP_VERSION}`);
-      }
-      
-      if (info.version < CURRENT_BACKUP_VERSION) {
-        if (autoUpgradeDir) {
-          await upgradeDirToCurrent({
-            backupDirPath,
-            logger,
-            globalLogger,
-          });
-          
-          info = await getBackupDirInfo(backupDirPath);
-        } else {
-          throw new Error(
-            `cannot open backup dir, dir version (${info.version}) < supported version (${CURRENT_BACKUP_VERSION})\n` +
-            'specify "autoUpgradeDir: true" in args to auto upgrade'
-          );
-        }
-      }
-      
-      // info.version == CURRENT_BACKUP_VERSION here
-      
-      this.#setBackupDirVars({
-        hashAlgo: info.hash,
-        hashSlices: info.hashSlices,
-        hashSliceLength: info.hashSliceLength ?? null,
-        ...(
-          info.compression != null ?
-            splitCompressObjectAlgoAndParams(info.compression) :
-            {}
-        ),
+    try {
+      const { bytesRead } = await this.#lockFile.read({
+        buffer: Buffer.alloc(1),
+        position: 0,
       });
+      
+      if (bytesRead > 0) {
+        throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it`);
+      }
+      
+      this.#backupDirPath = backupDirPath;
+      
+      const currentDirContents =
+        (await readdir(backupDirPath))
+          .filter(x => x != EDIT_LOCK_FILE);
+      
+      if (currentDirContents.length != 0) {
+        // dir contains hash backup contents
+        
+        let info = await getBackupDirInfo(backupDirPath);
+        
+        if (info.version > CURRENT_BACKUP_VERSION) {
+          throw new Error(`backup dir version is for more recent version of program: ${info.version} > ${CURRENT_BACKUP_VERSION}`);
+        }
+        
+        if (info.version < CURRENT_BACKUP_VERSION) {
+          if (autoUpgradeDir) {
+            await upgradeDirToCurrent({
+              backupDirPath,
+              globalLogger,
+            });
+            
+            info = await getBackupDirInfo(backupDirPath);
+          } else {
+            throw new Error(
+              `cannot open backup dir, dir version (${info.version}) < supported version (${CURRENT_BACKUP_VERSION})\n` +
+              'specify "autoUpgradeDir: true" in args to auto upgrade'
+            );
+          }
+        }
+        
+        // info.version == CURRENT_BACKUP_VERSION here
+        
+        this.#setBackupDirVars({
+          hashAlgo: info.hash,
+          hashSlices: info.hashSlices,
+          hashSliceLength: info.hashSliceLength ?? null,
+          ...(
+            info.compression != null ?
+              splitCompressObjectAlgoAndParams(info.compression) :
+              {}
+          ),
+        });
+      }
+      
+      // otherwise, dir is currently empty, leave vars at defaults
+    } catch (err) {
+      await this.#lockFile[Symbol.asyncDispose];
+      
+      throw err;
     }
-    
-    // otherwise, dir is currently empty, leave vars at defaults
     
     return this;
   }
@@ -598,8 +609,8 @@ class BackupManager {
   
   // This function is async as it calls an async helper and returns the corresponding promise
   constructor(backupDirPath, {
-    autoUpgradeDir,
-    globalLogger,
+    autoUpgradeDir = false,
+    globalLogger = null,
   }) {
     return this.#initManager({
       backupDirPath,
@@ -784,14 +795,11 @@ class BackupManager {
       throw new Error('backup dir already destroyed');
     }
     
-    this.#log(logger, `Destroying backup dir at ${JSON.stringify(this.#backupDirPath)}`);
-    
-    await rm(join(this.#backupDirPath, 'backups'), { recursive: true });
-    await rm(join(this.#backupDirPath, 'files'), { recursive: true });
-    await rm(join(this.#backupDirPath, 'files_meta'), { recursive: true });
-    await rm(join(this.#backupDirPath, 'info.json'));
-    
-    this.#log(logger, `Backup dir successfully destroyed at ${JSON.stringify(this.#backupDirPath)}`);
+    await deleteBackupDirInternal({
+      backupDirPath: this.#backupDirPath,
+      logger,
+      globalLogger,
+    });
     
     this.#clearBackupDirVars();
   }
@@ -1422,7 +1430,7 @@ class BackupManager {
     
     // delete lock file
     await lockFile[Symbol.asyncDispose]();
-    await unlink(join(backupDirPath, 'edit.lock'));
+    await unlink(join(backupDirPath, EDIT_LOCK_FILE));
   }
   
   async _getFilesHexInStore(fileHashHexPrefix = '') {
@@ -1589,8 +1597,20 @@ class BackupManager {
   }
 }
 
-export async function createBackupManager(backupDirPath) {
+export async function createBackupManager(
+  backupDirPath,
+  {
+    autoUpgradeDir = false,
+    globalLogger = null,
+  }
+) {
   // the 'await' call does have an effect, as constructor returns a promise that gets
   // fulfilled with the newly constructed BackupManager object
-  return await new BackupManager(backupDirPath);
+  return await new BackupManager(
+    backupDirPath,
+    {
+      autoUpgradeDir,
+      globalLogger,
+    }
+  );
 }

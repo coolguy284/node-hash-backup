@@ -83,9 +83,9 @@ export async function readLargeFile(filename) {
   }
 }
 
-export async function fileOrFolderExists(filename) {
+export async function fileOrFolderExists(fileOrFolderName) {
   try {
-    await access(filename);
+    await access(fileOrFolderName);
     return true;
   } catch {
     return false;
@@ -441,17 +441,7 @@ export async function humanReadableSizeString(bytes) {
     return `${(bytes / 2 ** 30).toFixed(3)} GiB`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 50) {
     return `${(bytes / 2 ** 40).toFixed(3)} TiB`;
-  } else /* if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 60) */ {
+  } else {
     return `${(bytes / 2 ** 50).toFixed(3)} PiB`;
-  } /* else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 70) {
-    return `-${(bytes / 2 ** 60).toFixed(3)} EiB`;
-  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 80) {
-    return `-${(bytes / 2 ** 70).toFixed(3)} ZiB`;
-  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 90) {
-    return `-${(bytes / 2 ** 80).toFixed(3)} YiB`;
-  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 100) {
-    return `-${(bytes / 2 ** 90).toFixed(3)} RiB`;
-  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 110) {
-    return `-${(bytes / 2 ** 100).toFixed(3)} QiB`;
-  } */
+  }
 }
