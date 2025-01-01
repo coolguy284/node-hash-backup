@@ -1,11 +1,23 @@
-let TEST_RANDOMNAME = false,
-    TEST_GETFILESANDMETADIR = false,
-    TEST_DELIBERATEMODIF = false, // mtime change ignored when doing verification after modification since folders will get modified
-    VERBOSE_FINAL_VALID_LOG = false;
+import {} from 'fs/promises';
+import {} from 'path';
+import { tmpdir } from 'os';
+
+export async function performTest({
+  // "test" random name and content functions by printing to console their results 10x
+  testRandomName = false,
+  testGetFilesAndMetaDir = false,
+  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
+  // mtime change ignored when doing verification after modification since folders will get modified
+  testDeliberateModification = false,
+  verboseFinalValidationLog = false,
+  doNotSaveLogIfTestPassed = true,
+  logger = console.log,
+  logFile = null, // TODO: set properly
+}) {
+  
+}
 
 let fs = require('fs');
-let path = require('path');
-let os = require('os');
 let { formatWithOptions: utilFormatWithOptions } = require('util');
 
 let getBackupInfo = require('../src/main/get_backup_info');
@@ -61,10 +73,10 @@ let dirFuncs = {
     
     await fs.promises.mkdir(basePath);
     await Promise.all([
-      await fs.promises.mkdir(path.join(basePath, 'folder')),
-      await fs.promises.writeFile(path.join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      await fs.promises.mkdir(join(basePath, 'folder')),
+      await fs.promises.writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
-    await fs.promises.writeFile(path.join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder.'));
+    await fs.promises.writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder.'));
     
     await timestampLog(`finished manual1 ${basePath}`);
   },
@@ -74,8 +86,8 @@ let dirFuncs = {
     
     await fs.promises.mkdir(basePath);
     await Promise.all([
-      await fs.promises.mkdir(path.join(basePath, 'emptyfolder')),
-      await fs.promises.writeFile(path.join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      await fs.promises.mkdir(join(basePath, 'emptyfolder')),
+      await fs.promises.writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
     
     await timestampLog(`finished manual2 ${basePath}`);
@@ -94,10 +106,10 @@ let dirFuncs = {
     
     await fs.promises.mkdir(basePath);
     await Promise.all([
-      await fs.promises.mkdir(path.join(basePath, 'folder')),
-      await fs.promises.writeFile(path.join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      await fs.promises.mkdir(join(basePath, 'folder')),
+      await fs.promises.writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
-    await fs.promises.writeFile(path.join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.'));
+    await fs.promises.writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.'));
     
     await timestampLog(`finished manual4 ${basePath}`);
   },
@@ -110,7 +122,7 @@ let dirFuncs = {
     for (let i = 0; i < 5; i++) {
       let dirNameJ = randomName();
       fsOps.push((async () => {
-        await fs.promises.mkdir(path.join(basePath, dirNameJ));
+        await fs.promises.mkdir(join(basePath, dirNameJ));
         let zeroFoldersJ = getRandInt(2);
         let numFoldersJ = zeroFoldersJ ? 0 : getRandInt(5) + 1;
         let zeroFilesJ = getRandInt(2);
@@ -119,23 +131,23 @@ let dirFuncs = {
         for (let j = 0; j < numFoldersJ; j++) {
           let dirNameK = randomName();
           fsOpsJ.push((async () => {
-            await fs.promises.mkdir(path.join(basePath, dirNameJ, dirNameK));
+            await fs.promises.mkdir(join(basePath, dirNameJ, dirNameK));
             let zeroFilesK = getRandInt(2);
             let numFilesK = zeroFilesK ? 0 : getRandInt(5) + 1;
             let fsOpsK = [];
             for (let j = 0; j < numFilesK; j++) {
-              fsOpsK.push(fs.promises.writeFile(path.join(basePath, dirNameJ, dirNameK, randomName()), Buffer.from(randomContent())));
+              fsOpsK.push(fs.promises.writeFile(join(basePath, dirNameJ, dirNameK, randomName()), Buffer.from(randomContent())));
             }
           })());
         }
         for (let j = 0; j < numFilesJ; j++) {
-          fsOpsJ.push(fs.promises.writeFile(path.join(basePath, dirNameJ, randomName()), Buffer.from(randomContent())));
+          fsOpsJ.push(fs.promises.writeFile(join(basePath, dirNameJ, randomName()), Buffer.from(randomContent())));
         }
         await Promise.all(fsOpsJ);
       })());
     }
     for (let i = 0; i < 5; i++) {
-      fsOps.push(fs.promises.writeFile(path.join(basePath, randomName()), Buffer.from(randomContent())));
+      fsOps.push(fs.promises.writeFile(join(basePath, randomName()), Buffer.from(randomContent())));
     }
     await Promise.all(fsOps);
     
@@ -153,9 +165,9 @@ let dirFuncs = {
     let fileChoices = getRandIntOneChoiceArray(5, 2), folderChoice = getRandInt(5);
     
     await Promise.all([
-      fs.promises.writeFile(path.join(basePath, dirContentsFiles[fileChoices[0]]), randomContent()),
-      fs.promises.rename(path.join(basePath, dirContentsFiles[fileChoices[1]]), path.join(basePath, randomName())),
-      fs.promises.rename(path.join(basePath, dirContentsFolders[folderChoice]), path.join(basePath, randomName())),
+      fs.promises.writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), randomContent()),
+      fs.promises.rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, randomName())),
+      fs.promises.rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, randomName())),
     ]);
     
     await timestampLog(`finished modif ${basePath}`);
@@ -171,7 +183,7 @@ let dirFuncs = {
     
     let fileChoice = getRandInt(5);
     
-    let fileToModif = path.join(basePath, dirContentsFiles[fileChoice]);
+    let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
     let fileToModifBuf = await fs.promises.readFile(fileToModif);
     
@@ -192,7 +204,7 @@ let dirFuncs = {
     
     let fileChoice = getRandInt(5);
     
-    let fileToModif = path.join(basePath, dirContentsFiles[fileChoice]);
+    let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
     let fileToModifBuf = await fs.promises.readFile(fileToModif);
     
@@ -220,7 +232,7 @@ let dirFuncs = {
     await timestampLog(`starting backup ${name}`);
     
     let returnValue = await performBackup({
-      basePath: path.join(tmpDir, 'data', name),
+      basePath: join(tmpDir, 'data', name),
       backupDir,
       name,
     });
@@ -235,7 +247,7 @@ let dirFuncs = {
     
     let returnValue = await performRestore({
       backupDir,
-      basePath: path.join(tmpDir, 'restore', name),
+      basePath: join(tmpDir, 'restore', name),
       name,
     });
     
@@ -247,8 +259,8 @@ let dirFuncs = {
   checkRestoreAccuracy: async (tmpDir, name, ignoreMTime) => {
     await timestampLog(`checking validity of restore ${name}`);
     
-    let dataObj = await getFilesAndMetaInDir(path.join(tmpDir, 'data', name));
-    let restoreObj = await getFilesAndMetaInDir(path.join(tmpDir, 'restore', name));
+    let dataObj = await getFilesAndMetaInDir(join(tmpDir, 'data', name));
+    let restoreObj = await getFilesAndMetaInDir(join(tmpDir, 'restore', name));
     
     let valid = true;
     
@@ -319,7 +331,7 @@ let dirFuncs = {
         await timestampLog('restore ' + JSON.stringify(restoreObjString));
       } else {
         await timestampLog('final stringify check passed');
-        if (VERBOSE_FINAL_VALID_LOG) {
+        if (verboseFinalValidationLog) {
           await timestampLog('data ' + JSON.stringify(dataObjString));
           await timestampLog('restore ' + JSON.stringify(restoreObjString));
         }
@@ -335,14 +347,13 @@ let dirFuncs = {
 
 (async () => {
   // open logging file and redirect stdout and stderr
-  loggingFile = await fs.promises.open(path.join(__dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
+  loggingFile = await fs.promises.open(join(import.meta.dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
   let oldProcStdoutWrite = process.stdout.write.bind(process.stdout),
     oldProcStderrWrite = process.stderr.write.bind(process.stderr);
   process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
   process.stderr.write = c => { loggingFile.write(c); oldProcStderrWrite(c) };
   
-  // "test" random name and content functions by printing to console their results 10x
-  if (TEST_RANDOMNAME) {
+  if (testRandomName) {
     await timestampLog([
       [randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName(), randomName()],
       [randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent(), randomContent()].map(x=>x.toString()),
@@ -350,59 +361,59 @@ let dirFuncs = {
     return;
   }
   
-  if (TEST_GETFILESANDMETADIR) {
+  if (testGetFilesAndMetaDir) {
     await timestampLog(await getFilesAndMetaInDir('src'));
     return;
   }
   
   // make temp dir for tests
-  let tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'nodehash-'));
+  const tmpDir = await fs.promises.mkdtemp(join(tmpdir(), 'nodehash-'));
   
   try {
     // create filetree
     await Promise.all([
       (async () => {
-        await fs.promises.mkdir(path.join(tmpDir, 'data'));
+        await fs.promises.mkdir(join(tmpDir, 'data'));
         await Promise.all([
-          dirFuncs.manual1(path.join(tmpDir, 'data', 'manual1')),
-          dirFuncs.manual2(path.join(tmpDir, 'data', 'manual2')),
-          dirFuncs.manual3(path.join(tmpDir, 'data', 'manual3')),
-          dirFuncs.manual4(path.join(tmpDir, 'data', 'manual4')),
+          dirFuncs.manual1(join(tmpDir, 'data', 'manual1')),
+          dirFuncs.manual2(join(tmpDir, 'data', 'manual2')),
+          dirFuncs.manual3(join(tmpDir, 'data', 'manual3')),
+          dirFuncs.manual4(join(tmpDir, 'data', 'manual4')),
           (async () => {
-            await dirFuncs.random1(path.join(tmpDir, 'data', 'randomconstant'));
+            await dirFuncs.random1(join(tmpDir, 'data', 'randomconstant'));
             let fsOps = [];
             for (let i = 0; i < 10; i++) {
-              fsOps.push(dirFuncs.random1(path.join(tmpDir, 'data', 'random' + i)));
+              fsOps.push(dirFuncs.random1(join(tmpDir, 'data', 'random' + i)));
             }
             await Promise.all(fsOps);
             
             let fsOps2 = [];
             for (let i2 = 0; i2 < 10; i2++) {
-              fsOps2.push(fs.promises.cp(path.join(tmpDir, 'data', 'randomconstant'), path.join(tmpDir, 'data', 'random' + i2), { recursive: true }));
+              fsOps2.push(fs.promises.cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
             }
             await Promise.all(fsOps2);
             
             let fsOps3 = [];
             for (let i3 = 0; i3 < 10; i3++) {
-              fsOps3.push(dirFuncs.copyThenModif(path.join(tmpDir, 'data', 'random' + i3), path.join(tmpDir, 'data', 'random' + i3 + '.1')));
+              fsOps3.push(dirFuncs.copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
             }
             await Promise.all(fsOps3);
           })(),
         ]);
       })(),
-      fs.promises.mkdir(path.join(tmpDir, 'backup')),
+      fs.promises.mkdir(join(tmpDir, 'backup')),
       (async () => {
-        await fs.promises.mkdir(path.join(tmpDir, 'restore'));
+        await fs.promises.mkdir(join(tmpDir, 'restore'));
         let dirArr = ['manual1', 'manual2', 'manual3', 'manual4'];
         for (let i = 0; i < 10; i++) {
           dirArr.push('random' + i);
           dirArr.push('random' + i + '.1');
         }
-        await Promise.all(dirArr.map(x => fs.promises.mkdir(path.join(tmpDir, 'restore', x))));
+        await Promise.all(dirArr.map(x => fs.promises.mkdir(join(tmpDir, 'restore', x))));
       })(),
     ]);
     
-    let backupDir = path.join(tmpDir, 'backup');
+    let backupDir = join(tmpDir, 'backup');
     
     // init backup dir
     await timestampLog('starting initbackupdir');
@@ -455,13 +466,12 @@ let dirFuncs = {
       await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1');
     }
     
-    // do deliberate modif and check validity again if var set
-    if (TEST_DELIBERATEMODIF) {
+    if (testDeliberateModification) {
       await timestampLog('starting deliberate modifs');
       
-      await dirFuncs.modif(path.join(tmpDir, 'restore', 'random7.1'));
-      await dirFuncs.medModif(path.join(tmpDir, 'restore', 'random8.1'));
-      await dirFuncs.mildModif(path.join(tmpDir, 'restore', 'random9.1'));
+      await dirFuncs.modif(join(tmpDir, 'restore', 'random7.1'));
+      await dirFuncs.medModif(join(tmpDir, 'restore', 'random8.1'));
+      await dirFuncs.mildModif(join(tmpDir, 'restore', 'random9.1'));
       
       await timestampLog('finished deliberate modifs');
       
@@ -480,6 +490,7 @@ let dirFuncs = {
     // after tests finished, close program on pressing enter
     await new Promise(r => process.stdin.once('data', r));
     await fs.promises.rm(tmpDir, { recursive: true });
-    process.exit();
+    // TODO: check graceful close works
+    //process.exit();
   }
 })();

@@ -12,7 +12,7 @@ delete backup and delete backup dir must have confirm=yes
 fix inconsistent periods at the end of console logged messages
 use custom error type when throwing, and print custom errors differently (without the traceback)
 
-update readme.md and help output to match true command
+update readme.md and help output to match true commands
   particularly add 'remove' command '--setFileTimes' option
 
 create command line access for each command in backup manager class within reason
