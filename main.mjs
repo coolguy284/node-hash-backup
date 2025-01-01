@@ -1,18 +1,21 @@
-export { createBackupManager } from './new-src/backup_manager.mjs';
-export {} from './new-src/backup_helper_funcs.mjs';
+export { createBackupManager } from './src/backup_manager.mjs';
+export {
+  createBackupDir,
+  deleteBackupDir,
+} from './src/backup_helper_funcs.mjs';
 export {
   CURRENT_BACKUP_VERSION,
   getBackupDirInfo,
   isValidBackupDir,
   MIN_BACKUP_VERSION,
-} from './new-src/lib.mjs';
+} from './src/lib.mjs';
 
 /*
 export {
   errorIfPathNotDir,
   writeFileReplaceWhenDone,
-} from './new-src/lib/fs.mjs';
-export { callBothLoggers } from './new-src/lib/logger.mjs';
+} from './src/lib/fs.mjs';
+export { callBothLoggers } from './src/lib/logger.mjs';
 export {
   FULL_INFO_FILE_NAME,
   fullInfoFileStringify,
@@ -20,6 +23,6 @@ export {
   META_FILE_EXTENSION,
   metaFileStringify,
   SINGULAR_META_FILE_NAME,
-} from './new-src/lib.mjs';
-export { upgradeDirToCurrent } from './new-src/upgrader.mjs';
+} from './src/lib.mjs';
+export { upgradeDirToCurrent } from './src/upgrader.mjs';
 */

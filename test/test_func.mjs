@@ -18,7 +18,7 @@ import {
   initBackupDir,
   performBackup,
   performRestore,
-} from './new-src/backup_helper_funcs.mjs';
+} from './src/backup_helper_funcs.mjs';
 
 import { getFilesAndMetaInDir } from './lib/fs.js'; 
 import { AdvancedPrng } from './lib/prng_extended.mjs';

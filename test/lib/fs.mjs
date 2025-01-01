@@ -1,5 +1,5 @@
-import { recursiveReaddir } from '../../new-src/lib/fs.mjs';
-import { getBackupEntry } from '../../new-src/lib.mjs';
+import { recursiveReaddir } from '../../src/lib/fs.mjs';
+import { getBackupEntry } from '../../src/lib.mjs';
 
 export async function getFilesAndMetaInDir(basePath, excludedDirs) {
   return await Promise.all(
