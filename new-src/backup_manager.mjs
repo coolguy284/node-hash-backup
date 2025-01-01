@@ -272,6 +272,30 @@ class BackupManager {
     }
   }
   
+  #setBackupDirVars({
+    hashAlgo,
+    hashSlices,
+    hashSliceLength,
+    compressionAlgo = null,
+    compressionParams = null,
+  }) {
+    this.#hashAlgo = hashAlgo;
+    this.#hashSlices = hashSlices;
+    this.#hashSliceLength = hashSliceLength;
+    this.#compressionAlgo = compressionAlgo;
+    this.#compressionParams = compressionParams;
+    this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
+  }
+  
+  #clearBackupDirVars() {
+    this.#hashAlgo = null;
+    this.#hashSlices = null;
+    this.#hashSliceLength = null;
+    this.#compressionAlgo = null;
+    this.#compressionParams = null;
+    this.#hashHexLength = null;
+  }
+  
   async #initManager({
     backupDirPath,
     autoUpgradeDir,
@@ -335,16 +359,21 @@ class BackupManager {
       
       // info.version == CURRENT_BACKUP_VERSION here
       
-      this.#hashAlgo = info.hash;
-      this.#hashSlices = info.hashSlices;
-      this.#hashSliceLength = info.hashSliceLength ?? null;
-      if (info.compression != null) {
-        this.#compressionAlgo = info.compression.algorithm;
-        this.#compressionParams = Object.fromEntries(
-          Object.entries(info.compression).filter(([key, _]) => key != 'algorithm')
-        );
-      }
-      this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
+      this.#setBackupDirVars({
+        hashAlgo: info.hash,
+        hashSlices: info.hashSlices,
+        hashSliceLength: info.hashSliceLength ?? null,
+        ...(
+          info.compression != null ?
+            {
+              compressionAlgo: info.compression.algorithm,
+              compressionParams: Object.fromEntries(
+                Object.entries(info.compression).filter(([key, _]) => key != 'algorithm')
+              ),
+            } :
+            {}
+        ),
+      });
     }
     
     // otherwise, dir is currently empty, leave vars at defaults
@@ -882,12 +911,13 @@ class BackupManager {
     
     this.#log(logger, `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`);
     
-    this.#hashAlgo = hashAlgo;
-    this.#hashSlices = hashSlices;
-    this.#hashSliceLength = hashSliceLength;
-    this.#compressionAlgo = compressionAlgo;
-    this.#compressionParams = compressionParams;
-    this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
+    this.#setBackupDirVars({
+      hashAlgo,
+      hashSlices,
+      hashSliceLength,
+      compressionAlgo,
+      compressionParams,
+    });
   }
   
   getAllowFullBackupDirDestroyStatus() {
@@ -935,12 +965,7 @@ class BackupManager {
     
     this.#log(logger, `Backup dir successfully destroyed at ${JSON.stringify(this.#backupDirPath)}`);
     
-    this.#hashAlgo = null;
-    this.#hashSlices = null;
-    this.#hashSliceLength = null;
-    this.#compressionAlgo = null;
-    this.#compressionParams = null;
-    this.#hashHexLength = null;
+    this.#clearBackupDirVars();
   }
   
   async listBackups() {
@@ -1170,7 +1195,7 @@ class BackupManager {
   }) {
     this.#ensureBackupDirLive();
     
-    
+    // TODO
   }
   
   async getSubtreeInfoFromBackup({
@@ -1220,7 +1245,7 @@ class BackupManager {
   
   async [Symbol.asyncDispose]() {
     if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
+      return;
     }
     
     const lockFile = this.#lockFile;
@@ -1228,12 +1253,7 @@ class BackupManager {
     this.#disposed = true;
     this.#lockFile = null;
     this.#backupDirPath = null;
-    this.#hashAlgo = null;
-    this.#hashSliceLength = null;
-    this.#hashSlices = null;
-    this.#compressionAlgo = null;
-    this.#compressionParams = null;
-    this.#hashHexLength = null;
+    this.#clearBackupDirVars();
     this.#globalLogger = null;
     this.#allowFullBackupDirDestroy = null;
     this.#allowSingleBackupDestroy = null;
