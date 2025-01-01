@@ -7,7 +7,6 @@ import { join } from 'path';
 import { writeFileReplaceWhenDone } from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
 import {
-  callBothLoggers,
   CURRENT_BACKUP_VERSION,
   FULL_INFO_FILE_NAME,
   fullInfoFileStringify,

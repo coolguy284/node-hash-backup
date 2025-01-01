@@ -64,9 +64,9 @@ export async function readLargeFile(filename) {
     do {
       let buffer;
       
-      ({ buffer, bytesRead }) = fd.read({
+      ({ buffer, bytesRead } = fd.read({
         buffer: Buffer.alloc(LARGE_FILE_CHUNK_SIZE),
-      });
+      }));
       
       if (bytesRead > 0) {
         if (bytesRead < buffer.length) {

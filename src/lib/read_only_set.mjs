@@ -24,4 +24,8 @@ export class ReadOnlySet {
   clear() {
     throw new Error('ReadOnlySet is not editable');
   }
+  
+  [Symbol.for('nodejs.util.inspect.custom')](_, inspectOptions, inspect) {
+    return `ReadOnly${inspect(this.#set, inspectOptions)}`;
+  }
 }

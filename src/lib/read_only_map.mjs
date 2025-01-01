@@ -28,4 +28,20 @@ export class ReadOnlyMap {
   clear() {
     throw new Error('ReadOnlyMap is not editable');
   }
+  
+  keys() {
+    return this.#map.keys();
+  }
+  
+  values() {
+    return this.#map.values();
+  }
+  
+  entries() {
+    return this.#map.entries();
+  }
+  
+  [Symbol.for('nodejs.util.inspect.custom')](_, inspectOptions, inspect) {
+    return `ReadOnly${inspect(this.#map, inspectOptions)}`;
+  }
 }

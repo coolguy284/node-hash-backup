@@ -93,7 +93,7 @@ export const HASH_SIZES = new ReadOnlyMap(
       hashName,
       (
         createHash(hashName)
-          .update(Buffer.alloc())
+          .update(Buffer.alloc(0))
           .digest()
           .length
       ) * BITS_PER_BYTE,
@@ -112,8 +112,6 @@ export const INSECURE_HASHES = new ReadOnlySet(
           .some(hashAlgoPart => INSECURE_HASH_PARTS.has(hashAlgoPart))
     )
 );
-
-console.log(INSECURE_HASHES);
 
 export const COMPRESSION_ALGOS = new ReadOnlySet([
   'deflate-raw',
