@@ -25,6 +25,7 @@ export const SymlinkModes = Enum([
   'PASSTHROUGH',
   'PRESERVE',
 ]);
+const HUMAN_READABLE_THRESHOLD = 16;
 
 export async function errorIfPathNotDir(validationPath) {
   if (typeof validationPath != 'string') {
@@ -301,20 +302,27 @@ export async function setFileTimes(fileTimeEntries) {
       fileTimeEntries
         .map(({
           filePath,
-          accessTime,
-          modifyTime,
-          createTime,
+          accessTimeUnixNSInt = null,
+          modifyTimeUnixNSInt = null,
+          createTimeUnixNSInt = null,
         }, i) => {
-          environmentVars[`C284_${i}_F`] = filePath;
-          environmentVars[`C284_${i}_C`] = unixNSIntToUTCTimeString(createTime);
-          environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTime);
-          environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTime);
-          
-          return `$file = Get-Item $Env:C284_${i}_F\n` +
-            `$file.CreationTime = Get-Date $Env:C284_${i}_C\n` +
-            `$file.LastWriteTime = Get-Date $Env:C284_${i}_M\n` +
-            `$file.LastAccessTime = Get-Date $Env:C284_${i}_A\n`;
+          if (accessTimeUnixNSInt == null && modifyTimeUnixNSInt == null && createTimeUnixNSInt == null) {
+            return null;
+          } else {
+            environmentVars[`C284_${i}_F`] = filePath;
+            if (createTimeUnixNSInt != null) environmentVars[`C284_${i}_C`] = unixNSIntToUTCTimeString(createTimeUnixNSInt);
+            if (modifyTimeUnixNSInt != null) environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTimeUnixNSInt);
+            if (accessTimeUnixNSInt != null) environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTimeUnixNSInt);
+            
+            return [
+              `$file = Get-Item $Env:C284_${i}_F`,
+              createTimeUnixNSInt != null ? `$file.CreationTime = Get-Date $Env:C284_${i}_C` : '',
+              modifyTimeUnixNSInt != null ? `$file.LastWriteTime = Get-Date $Env:C284_${i}_M` : '',
+              accessTimeUnixNSInt != null ? `$file.LastAccessTime = Get-Date $Env:C284_${i}_A` : '',
+            ].join('\n');
+          }
         })
+        .filter(fileSetCode => fileSetCode != null)
         .join('\n');
       
       return await callProcess({
@@ -331,16 +339,23 @@ export async function setFileTimes(fileTimeEntries) {
       fileTimeEntries
         .map(({
           filePath,
-          accessTime,
-          modifyTime,
+          accessTimeUnixNSInt = null,
+          modifyTimeUnixNSInt = null,
         }, i) => {
-          environmentVars[`C284_${i}_F`] = filePath;
-          environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTime);
-          environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTime);
-          
-          return `touch -m -d $C284_${i}_M $C284_${i}_F\n` +
-            `touch -a -d $C284_${i}_A $C284_${i}_F`;
+          if (accessTimeUnixNSInt == null && modifyTimeUnixNSInt == null) {
+            return null;
+          } else {
+            environmentVars[`C284_${i}_F`] = filePath;
+            if (modifyTimeUnixNSInt != null) environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTimeUnixNSInt);
+            if (accessTimeUnixNSInt != null) environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTimeUnixNSInt);
+            
+            return [
+              modifyTimeUnixNSInt != null ? `touch -m -d $C284_${i}_M $C284_${i}_F` : '',
+              accessTimeUnixNSInt != null ? `touch -a -d $C284_${i}_A $C284_${i}_F` : '',
+            ].join('\n');
+          }
         })
+        .filter(fileSetCode => fileSetCode != null)
         .join('\n');
       
       return await callProcess({
@@ -395,4 +410,36 @@ export async function safeRename(oldFilePath, newFilePath) {
   }
   
   await rename(oldFilePath, newFilePath);
+}
+
+export async function humanReadableSizeString(bytes) {
+  if (!Number.isSafeInteger(bytes)) {
+    throw new Error(`bytes not integer: ${bytes}`);
+  }
+  
+  if (bytes < 0) {
+    return `-${humanReadableSizeString(-bytes)}`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 10) {
+    return `${bytes} bytes`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 20) {
+    return `${(bytes / 2 ** 10).toFixed(3)} KiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 30) {
+    return `${(bytes / 2 ** 20).toFixed(3)} MiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 40) {
+    return `${(bytes / 2 ** 30).toFixed(3)} GiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 50) {
+    return `${(bytes / 2 ** 40).toFixed(3)} TiB`;
+  } else /* if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 60) */ {
+    return `${(bytes / 2 ** 50).toFixed(3)} PiB`;
+  } /* else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 70) {
+    return `-${(bytes / 2 ** 60).toFixed(3)} EiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 80) {
+    return `-${(bytes / 2 ** 70).toFixed(3)} ZiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 90) {
+    return `-${(bytes / 2 ** 80).toFixed(3)} YiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 100) {
+    return `-${(bytes / 2 ** 90).toFixed(3)} RiB`;
+  } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 110) {
+    return `-${(bytes / 2 ** 100).toFixed(3)} QiB`;
+  } */
 }

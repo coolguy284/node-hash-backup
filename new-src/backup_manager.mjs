@@ -7,10 +7,10 @@ import {
   mkdir,
   open,
   readdir,
-  readlink,
   rename,
   rm,
   rmdir,
+  symlink,
   unlink,
 } from 'fs/promises';
 import {
@@ -24,10 +24,12 @@ import { pipeline } from 'stream/promises';
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
+  humanReadableSizeString,
   readLargeFile,
   recursiveReaddir,
   recursiveReaddirSimpleFileNamesOnly,
   safeRename,
+  setFileTimes,
   setReadOnly,
   splitPath,
   SymlinkModes,
@@ -35,6 +37,7 @@ import {
   writeFileReplaceWhenDone,
 } from './lib/fs.mjs';
 import { callBothLoggers } from './lib/logger.mjs';
+import { unixSecStringToUnixNSInt } from './lib/time.mjs';
 import { streamsEqual } from './lib/stream_equality.mjs';
 import {
   backupFileStringify,
@@ -58,7 +61,8 @@ import {
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
 
-const DEFAULT_IN_MEMORY_SIZE = 4 * 2 ** 20;
+const DEFAULT_IN_MEMORY_CUTOFF_SIZE = 4 * 2 ** 20;
+const FILE_TIMES_SET_CHUNK_SIZE = 50;
 
 class BackupManager {
   // class vars
@@ -817,8 +821,8 @@ class BackupManager {
     fileOrFolderPath,
     excludedFilesOrFolders = [],
     symlinkMode = SymlinkModes.PRESERVE,
+    inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     ignoreErrors = false,
-    inMemoryCutoffSize = DEFAULT_IN_MEMORY_SIZE,
     logger = null,
   }) {
     this.#ensureBackupDirLive();
@@ -849,12 +853,12 @@ class BackupManager {
       throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
     }
     
-    if (typeof ignoreErrors != 'boolean') {
-      throw new Error(`ignoreErrors not boolean: ${typeof ignoreErrors}`);
-    }
-    
     if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
       throw new Error(`inMemoryCutoffSize not string: ${typeof inMemoryCutoffSize}`);
+    }
+    
+    if (typeof ignoreErrors != 'boolean') {
+      throw new Error(`ignoreErrors not boolean: ${typeof ignoreErrors}`);
     }
     
     if (typeof logger != 'function' && logger != null) {
@@ -1215,6 +1219,12 @@ class BackupManager {
     return Array.from(filenames);
   }
   
+  static #SYMLINK_TYPE_CONVERSION = new Map([
+    ['junction', 'junction'],
+    ['directory', 'dir'],
+    ['file', 'file'],
+  ]);
+  
   // If restoring a folder, output can not exist, or can be an empty folder; if restoring file, output must not exist
   async restoreFileOrFolderFromBackup({
     backupName,
@@ -1222,13 +1232,137 @@ class BackupManager {
     outputFileOrFolderPath,
     excludedFilesOrFolders = [],
     symlinkMode = SymlinkModes.PRESERVE,
-    inMemoryCutoffSize = DEFAULT_IN_MEMORY_SIZE,
-    setFileTimes = true,
+    setFileTimes: doSetFileTimes = true,
     logger = null,
   }) {
     this.#ensureBackupDirLive();
     
-    // TODO
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    if (typeof backupFileOrFolderPath != 'string') {
+      throw new Error(`backupFileOrFolderPath not string: ${typeof backupFileOrFolderPath}`);
+    }
+    
+    if (typeof outputFileOrFolderPath != 'string') {
+      throw new Error(`outputFileOrFolderPath not string: ${typeof outputFileOrFolderPath}`);
+    }
+    
+    if (!Array.isArray(excludedFilesOrFolders)) {
+      throw new Error(`excludedFilesOrFolders not array: ${excludedFilesOrFolders}`);
+    }
+    
+    for (let i = 0; i < excludedFilesOrFolders.length; i++) {
+      if (typeof excludedFilesOrFolders[i] != 'string') {
+        throw new Error(`excludedFilesOrFolders[${i}] not string: ${typeof excludedFilesOrFolders[i]}`);
+      }
+    }
+    
+    if (typeof symlinkMode != 'string') {
+      throw new Error(`symlinkMode not string: ${typeof symlinkMode}`);
+    }
+    
+    if (!(symlinkMode in SymlinkModes)) {
+      throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
+    }
+    
+    if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
+      throw new Error(`inMemoryCutoffSize not string: ${typeof inMemoryCutoffSize}`);
+    }
+    
+    if (typeof doSetFileTimes != 'boolean') {
+      throw new Error(`setFileTimes not boolean: ${typeof doSetFileTimes}`);
+    }
+    
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger not function or null: ${typeof logger}`);
+    }
+    
+    this.#log(logger, `Starting restore of ${JSON.stringify(backupName)} into path ${JSON.stringify(fileOrFolderPath)}`);
+    
+    const backupData = (await this.getSubtreeInfoFromBackup({
+      backupName,
+      backupFileOrFolderPath,
+    }))
+      .filter(
+        ({ path }) =>
+          !excludedFilesOrFolders.some(
+            excludePath =>
+              path.startsWith(`${excludePath}/`) ||
+              path == excludePath
+          )
+      );
+    
+    for (const { path, type, hash, symlinkType, symlinkPath } of backupData) {
+      const outputPath = join(outputFileOrFolderPath, path);
+      
+      switch (type) {
+        case 'file': {
+          this.#log(logger, `Restoring ${entry.path} [file ${humanReadableSizeString(this._getFileMeta(hash).size)}]...`);
+          
+          const backupFileStream = await this._getFileStream(hash);
+          await pipeline(
+            backupFileStream,
+            createWriteStream(outputPath)
+          );
+          break;
+        }
+        
+        case 'directory':
+          this.#log(logger, `Restoring ${entry.path} [directory]...`);
+          
+          await mkdir(outputPath);
+          break;
+        
+        case 'symbolic link': {
+          const symlinkBuf = Buffer.from(symlinkPath, 'base64');
+          
+          this.#log(logger, `Restoring ${entry.path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
+          
+          if (symlinkType != null) {
+            const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
+            await symlink(symlinkBuf, outputPath, convertedType);
+          } else {
+            await symlink(symlinkBuf, outputPath);
+          }
+          break;
+        }
+      }
+    }
+    
+    if (doSetFileTimes) {
+      for (let forwardIndex = 0; forwardIndex < backupData.length; forwardIndex += FILE_TIMES_SET_CHUNK_SIZE) {
+        const reverseIndexEnd = backupData.length - forwardIndex;
+        const reverseIndexStart = Math.max(reverseIndexEnd - FILE_TIMES_SET_CHUNK_SIZE, 0);
+        
+        this.#log(
+          logger,
+          'Setting timestamps of entries: ' +
+            `${forwardIndex}-${forwardIndex + FILE_TIMES_SET_CHUNK_SIZE - 1}` +
+            `/${backupData.length} ` +
+            `(${((forwardIndex + FILE_TIMES_SET_CHUNK_SIZE) / backupData.length * 100).toFixed(3)}%)`
+        );
+        
+        await setFileTimes(
+          backupData
+            .slice(reverseIndexStart, reverseIndexEnd)
+            .map(({
+              path,
+              atime,
+              mtime,
+              birthtime,
+            }) => ({
+              filePath: path,
+              accessTimeUnixNSInt: unixSecStringToUnixNSInt(atime),
+              modifyTimeUnixNSInt: unixSecStringToUnixNSInt(mtime),
+              createTimeUnixNSInt: unixSecStringToUnixNSInt(birthtime),
+            }))
+        );
+      }
+    }
+    
+    this.#log(logger, `Successfully restored backup ${JSON.stringify(backupName)} to ${JSON.stringify(fileOrFolderPath)}`);
   }
   
   async pruneUnreferencedFiles({ logger = null }) {
@@ -1243,6 +1377,7 @@ class BackupManager {
     }
     
     const lockFile = this.#lockFile;
+    const backupDirPath = this.#backupDirPath;
     
     this.#disposed = true;
     this.#lockFile = null;
@@ -1254,7 +1389,7 @@ class BackupManager {
     
     // delete lock file
     await lockFile[Symbol.asyncDispose]();
-    await unlink(join(this.#backupDirPath, 'edit.lock'));
+    await unlink(join(backupDirPath, 'edit.lock'));
   }
   
   async _getFilesHexInStore(fileHashHexPrefix = '') {
@@ -1398,12 +1533,18 @@ class BackupManager {
   // Output can not exist, or can be an empty folder; if restoring file, output must not exist
   async restoreFromBackup({
     backupName,
-    outputPath,
+    outputFileOrFolderPath,
+    excludedFilesOrFolders = [],
+    symlinkMode = SymlinkModes.PRESERVE,
+    setFileTimes = true,
     logger = null,
   }) {
     await this.restoreFileOrFolderFromBackup({
       backupName,
-      outputPath,
+      outputFileOrFolderPath,
+      excludedFilesOrFolders,
+      symlinkMode,
+      setFileTimes,
       logger,
     });
   }

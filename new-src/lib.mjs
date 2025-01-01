@@ -2,7 +2,10 @@ import {
   createHash,
   getHashes,
 } from 'crypto';
-import { readFile } from 'fs/promises';
+import {
+  readFile,
+  readlink,
+} from 'fs/promises';
 import { join } from 'path';
 import {
   createBrotliCompress,
