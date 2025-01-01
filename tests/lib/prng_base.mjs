@@ -97,8 +97,8 @@ export class Sfc32 {
     }
   }
   
-  randomBytes() {
-    let buffer = Buffer.alloc(bytes);
+  randomBytes(numBytes) {
+    let buffer = Buffer.alloc(numBytes);
     
     this.fillWithRandomBytes(buffer);
     
