@@ -245,6 +245,7 @@ class BackupManager {
   #hashSliceLength = null;
   #compressionAlgo = null;
   #compressionParams = null;
+  #hashHexLength = null;
   #globalLogger;
   #allowFullBackupDirDestroy = false;
   #allowSingleBackupDestroy = false;
@@ -259,6 +260,16 @@ class BackupManager {
       },
       data
     );
+  }
+  
+  #ensureBackupDirLive() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
+    if (this.#hashAlgo == null) {
+      throw new Error('backup dir not initialized');
+    }
   }
   
   async #initManager({
@@ -333,6 +344,7 @@ class BackupManager {
           Object.entries(info.compression).filter(([key, _]) => key != 'algorithm')
         );
       }
+      this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
     }
     
     // otherwise, dir is currently empty, leave vars at defaults
@@ -875,9 +887,14 @@ class BackupManager {
     this.#hashSliceLength = hashSliceLength;
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
+    this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
   }
   
   getAllowFullBackupDirDestroyStatus() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     return this.#allowFullBackupDirDestroy;
   }
   
@@ -923,16 +940,11 @@ class BackupManager {
     this.#hashSliceLength = null;
     this.#compressionAlgo = null;
     this.#compressionParams = null;
+    this.#hashHexLength = null;
   }
   
   async listBackups() {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     return (await readdir(join(this.#backupDirPath, 'backups')))
       .filter(x => x.endsWith('.json'))
@@ -940,13 +952,7 @@ class BackupManager {
   }
   
   async hasBackup(backupName) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     if (typeof backupName != 'string') {
       throw new Error(`backupName not string: ${typeof backupName}`);
@@ -966,13 +972,7 @@ class BackupManager {
     inMemoryCutoffSize = 4 * 2 ** 20,
     logger,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     if (typeof backupName != 'string') {
       throw new Error(`backupName not string: ${typeof backupName}`);
@@ -1081,10 +1081,18 @@ class BackupManager {
   }
   
   getAllowSingleBackupDestroyStatus() {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     return this.#allowSingleBackupDestroy;
   }
   
   updateAllowSingleBackupDestroyStatus_Danger(newSingleBackupDestroy) {
+    if (this.#disposed) {
+      throw new Error('BackupManager already disposed');
+    }
+    
     if (typeof newSingleBackupDestroy != 'boolean') {
       throw new Error(`newSingleBackupDestroy not boolean: ${typeof newSingleBackupDestroy}`);
     }
@@ -1097,13 +1105,7 @@ class BackupManager {
     pruneUnreferencedFilesAfter = true,
     logger,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     if (!this.#allowSingleBackupDestroy) {
       throw new Error(
@@ -1134,13 +1136,7 @@ class BackupManager {
     newBackupName,
     logger,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     if (typeof oldBackupName != 'string') {
       throw new Error(`oldBackupName not string: ${typeof oldBackupName}`);
@@ -1172,25 +1168,16 @@ class BackupManager {
     backupName,
     backupFileOrFolderPath,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
+    this.#ensureBackupDirLive();
     
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
     
-    // TODO
   }
   
-  async getAllFilesOrFoldersInfoFromBackup(backupName) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+  async getSubtreeInfoFromBackup({
+    backupName,
+    backupFileOrFolderPath,
+  }) {
+    this.#ensureBackupDirLive();
     
     // TODO
   }
@@ -1199,13 +1186,7 @@ class BackupManager {
     backupName,
     backupFilePath,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     // TODO
   }
@@ -1214,13 +1195,7 @@ class BackupManager {
     backupName,
     backupFolderPath,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     // TODO
   }
@@ -1232,41 +1207,15 @@ class BackupManager {
     outputFileOrFolderPath,
     logger,
   }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     // TODO
   }
   
   async pruneUnreferencedFiles({ logger }) {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
+    this.#ensureBackupDirLive();
     
     // TODO
-  }
-  
-  // Layout of object returned by this function may change over time, beware
-  async fullBackupInfoDump() {
-    if (this.#disposed) {
-      throw new Error('BackupManager already disposed');
-    }
-    
-    if (this.#hashAlgo == null) {
-      throw new Error('backup dir not initialized');
-    }
-    
-    // TODO
-    // TODO: only call public functions in backupmanager to create the info dump
   }
   
   async [Symbol.asyncDispose]() {
@@ -1284,6 +1233,7 @@ class BackupManager {
     this.#hashSlices = null;
     this.#compressionAlgo = null;
     this.#compressionParams = null;
+    this.#hashHexLength = null;
     this.#globalLogger = null;
     this.#allowFullBackupDirDestroy = null;
     this.#allowSingleBackupDestroy = null;
@@ -1293,7 +1243,134 @@ class BackupManager {
     await unlink(join(this.#backupDirPath, 'edit.lock'));
   }
   
+  async _getFilesHexInStore(fileHashHexPrefix = '') {
+    this.#ensureBackupDirLive();
+    
+    if (typeof fileHashHexPrefix != 'string') {
+      throw new Error(`fileHashHexPrefix not string: ${typeof fileHashHexPrefix}`);
+    }
+    
+    if (fileHashHexPrefix.length > this.#hashHexLength) {
+      throw new Error(`fileHashHexPrefix length (${fileHashHexPrefix.length}) > hash length (${this.#hashHexLength})`);
+    }
+    
+    if (!/^[0-9a-f]+$/.test(fileHashHexPrefix)) {
+      throw new Error(`fileHashHexPrefix not hex: ${fileHashHexPrefix}`);
+    }
+    
+    let folderToRead = join(this.#backupDirPath, 'files');
+    
+    if (this.#hashSlices > 0) {
+      let slicesRemaining = this.#hashSlices;
+      
+      while (fileHashHexPrefix.length > this.#hashSliceLength && slicesRemaining > 0) {
+        folderToRead = join(folderToRead, fileHashHexPrefix.slice(0, this.#hashSliceLength));
+        
+        slicesRemaining--;
+        fileHashHexPrefix = fileHashHexPrefix.slice(this.#hashSliceLength);
+      }
+    }
+    
+    try {
+      return (await readdir(folderToRead))
+        .filter(file => file.startsWith(fileHashHexPrefix));
+    } catch {
+      return [];
+    }
+  }
+  
+  async _fileHexIsInStore(fileHashHex) {
+    this.#ensureBackupDirLive();
+    
+    if (typeof fileHashHex != 'string') {
+      throw new Error(`fileHashHex not string: ${typeof fileHashHex}`);
+    }
+    
+    if (fileHashHex.length != this.#hashHexLength) {
+      throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
+    }
+    
+    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+      throw new Error(`fileHashHex not hex: ${fileHashHex}`);
+    }
+    
+    return await this.#fileIsInStore(fileHashHex);
+  }
+  
+  async _getFileMeta(fileHashHex) {
+    this.#ensureBackupDirLive();
+    
+    if (typeof fileHashHex != 'string') {
+      throw new Error(`fileHashHex not string: ${typeof fileHashHex}`);
+    }
+    
+    if (fileHashHex.length != this.#hashHexLength) {
+      throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
+    }
+    
+    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+      throw new Error(`fileHashHex not hex: ${fileHashHex}`);
+    }
+    
+    if (!(await this.#fileIsInStore(fileHashHex))) {
+      throw new Error(`file hash not found in store: ${fileHashHex}`);
+    }
+    
+    return this.#getMetaOfFile(fileHashHex);
+  }
+  
+  async _getFileBytes(fileHashHex) {
+    this.#ensureBackupDirLive();
+    
+    if (typeof fileHashHex != 'string') {
+      throw new Error(`fileHashHex not string: ${typeof fileHashHex}`);
+    }
+    
+    if (fileHashHex.length != this.#hashHexLength) {
+      throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
+    }
+    
+    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+      throw new Error(`fileHashHex not hex: ${fileHashHex}`);
+    }
+    
+    if (!(await this.#fileIsInStore(fileHashHex))) {
+      throw new Error(`file hash not found in store: ${fileHashHex}`);
+    }
+    
+    return this.#getFileBytesFromStore(fileHashHex);
+  }
+  
+  async _getFileStream(fileHashHex) {
+    this.#ensureBackupDirLive();
+    
+    if (typeof fileHashHex != 'string') {
+      throw new Error(`fileHashHex not string: ${typeof fileHashHex}`);
+    }
+    
+    if (fileHashHex.length != this.#hashHexLength) {
+      throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
+    }
+    
+    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+      throw new Error(`fileHashHex not hex: ${fileHashHex}`);
+    }
+    
+    if (!(await this.#fileIsInStore(fileHashHex))) {
+      throw new Error(`file hash not found in store: ${fileHashHex}`);
+    }
+    
+    return this.#getFileStreamFromStore(fileHashHex);
+  }
+  
   // public helper funcs
+  
+  async getAllFilesOrFoldersInfoFromBackup(backupName) {
+    return await this.getSubtreeInfoFromBackup({
+      backupName,
+      backupFileOrFolderPath: '.',
+    });
+  }
   
   // Output can not exist, or can be an empty folder; if restoring file, output must not exist
   async restoreFromBackup({
@@ -1307,6 +1384,12 @@ class BackupManager {
       outputPath,
       logger,
     });
+  }
+  
+  // Layout of object returned by this function may change over time, beware
+  async fullBackupInfoDump() {
+    // TODO
+    // TODO: only call public functions in backupmanager to create the info dump
   }
 }
 
