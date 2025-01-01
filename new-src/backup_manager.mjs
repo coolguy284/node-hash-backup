@@ -1104,7 +1104,7 @@ class BackupManager {
     this.#ensureBackupDirLive();
     
     if (!(await this.hasBackup(backupName))) {
-      throw new Error(`backupName not a backup: ${backupName}`);
+      throw new Error(`backupName does not exist: ${backupName}`);
     }
     
     const entries = (await this.#getCachedBackupData(backupName)).entries;
@@ -1235,8 +1235,6 @@ class BackupManager {
     setFileTimes: doSetFileTimes = true,
     logger = null,
   }) {
-    this.#ensureBackupDirLive();
-    
     if (typeof backupName != 'string') {
       throw new Error(`backupName not string: ${typeof backupName}`);
     }
@@ -1278,6 +1276,8 @@ class BackupManager {
     if (typeof logger != 'function' && logger != null) {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
+    
+    this.#ensureBackupDirLive();
     
     this.#log(logger, `Starting restore of ${JSON.stringify(backupName)} into path ${JSON.stringify(fileOrFolderPath)}`);
     
@@ -1366,9 +1366,42 @@ class BackupManager {
   }
   
   async pruneUnreferencedFiles({ logger = null }) {
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger not function or null: ${typeof logger}`);
+    }
+    
     this.#ensureBackupDirLive();
     
-    // TODO
+    this.#log(logger, 'Scanning for unreferenced files...');
+    
+    const filesInStore = await this._getFilesHexInStore();
+    
+    let referencedFilesInStore = new Set();
+    
+    for (const backupName of this.listBackups()) {
+      for (const { entry } of this.#getCachedBackupData(backupName)) {
+        if (entry.type == 'file') {
+          referencedFilesInStore.add(entry.hash);
+        }
+      }
+    }
+    
+    let unreferencedFiles = [];
+    
+    for (const fileHex of filesInStore) {
+      if (!referencedFilesInStore.has(fileHex)) {
+        unreferencedFiles.push(fileHex);
+      }
+    }
+    
+    this.#log(logger, `Pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}...`);
+    
+    for (const fileHex of unreferencedFiles) {
+      this.#log(logger, `Pruning file with hash ${fileHex}...`);
+      this.#removeFileFromStore(fileHex, logger);
+    }
+    
+    this.#log(logger, `Finished pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}...`);
   }
   
   async [Symbol.asyncDispose]() {
