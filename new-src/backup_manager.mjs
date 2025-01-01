@@ -23,7 +23,7 @@ import { pipeline } from 'stream/promises';
 
 import {
   errorIfPathNotDir,
-  fileExists,
+  fileOrFolderExists,
   readLargeFile,
   recursiveReaddir,
   safeRename,
@@ -231,7 +231,7 @@ class BackupManager {
   async #fileIsInStore(fileHashHex) {
     const filePath = this.#getPathOfFile(fileHashHex);
     
-    return await fileExists(filePath);
+    return await fileOrFolderExists(filePath);
   }
   
   async #addFileBytesToStore(fileBytes, logger) {
@@ -265,7 +265,7 @@ class BackupManager {
       
       let metaJson;
       
-      if (fileExists(metaFilePath)) {
+      if (await fileOrFolderExists(metaFilePath)) {
         metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
       } else {
         await mkdir(dirname(metaFilePath), { recursive: true });
@@ -363,7 +363,7 @@ class BackupManager {
             
             let metaJson;
             
-            if (fileExists(metaFilePath)) {
+            if (await fileOrFolderExists(metaFilePath)) {
               metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
             } else {
               await mkdir(dirname(metaFilePath), { recursive: true });
@@ -847,7 +847,7 @@ class BackupManager {
     
     const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
     
-    return await fileExists(backupFilePath);
+    return await fileOrFolderExists(backupFilePath);
   }
   
   async createBackup({

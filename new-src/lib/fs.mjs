@@ -82,7 +82,7 @@ export async function readLargeFile(filename) {
   }
 }
 
-export async function fileExists(filename) {
+export async function fileOrFolderExists(filename) {
   try {
     await access(filename);
     return true;
@@ -345,7 +345,7 @@ export async function isReadOnly(filePath) {
 }
 
 export async function safeRename(oldFilePath, newFilePath) {
-  if (await fileExists(newFilePath)) {
+  if (await fileOrFolderExists(newFilePath)) {
     throw new Error(`newFilePath (${newFilePath}) of rename exists`);
   }
   
