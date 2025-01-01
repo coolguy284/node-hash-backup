@@ -1,4 +1,6 @@
+esmify test script
 finish backupmanager class
+
 delete backup and delete backup dir must have confirm=yes
 create command line access for each command in backup manager class within reason
 clear TODO from codebase

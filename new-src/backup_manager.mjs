@@ -234,6 +234,45 @@ class BackupManager {
     return await fileOrFolderExists(filePath);
   }
   
+  async #getAndAddFileToMeta({
+    fileHashHex,
+    compressionUsed,
+    compressedSize,
+  }) {
+    const newFilePath = this.#getPathOfFile(fileHashHex);
+    const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
+    
+    let metaJson;
+    
+    if (await fileOrFolderExists(metaFilePath)) {
+      metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
+    } else {
+      await mkdir(dirname(metaFilePath), { recursive: true });
+      metaJson = {};
+    }
+    
+    metaJson[fileHashHex] = {
+      size: fileBytes.length,
+      ...(
+        compressionUsed ?
+          {
+            compressedSize,
+            compression: {
+              algorithm: this.#compressionAlgo,
+              ...this.#compressionParams,
+            },
+          } :
+          {}
+      ),
+    };
+    
+    return {
+      newFilePath,
+      metaFilePath,
+      metaJson,
+    };
+  }
+  
   async #addFileBytesToStore(fileBytes, logger) {
     const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo)).toString('hex');
     
@@ -260,32 +299,15 @@ class BackupManager {
         }
       }
       
-      const newFilePath = this.#getPathOfFile(fileHashHex);
-      const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
-      
-      let metaJson;
-      
-      if (await fileOrFolderExists(metaFilePath)) {
-        metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
-      } else {
-        await mkdir(dirname(metaFilePath), { recursive: true });
-        metaJson = {};
-      }
-      
-      metaJson[fileHashHex] = {
-        size: fileBytes.length,
-        ...(
-          compressionUsed ?
-            {
-              compressedSize: compressedBytes.length,
-              compression: {
-                algorithm: this.#compressionAlgo,
-                ...this.#compressionParams,
-              },
-            } :
-            {}
-        ),
-      };
+      const {
+        newFilePath,
+        metaFilePath,
+        metaJson,
+      } = await this.#getAndAddFileToMeta({
+        fileHashHex,
+        compressionUsed,
+        compressedSize: compressedBytes.length,
+      });
       
       await mkdir(dirname(newFilePath), { recursive: true });
       await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes);
@@ -358,32 +380,15 @@ class BackupManager {
               await unlink(compressedFilePath);
             }
             
-            const newFilePath = this.#getPathOfFile(fileHashHex);
-            const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
-            
-            let metaJson;
-            
-            if (await fileOrFolderExists(metaFilePath)) {
-              metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
-            } else {
-              await mkdir(dirname(metaFilePath), { recursive: true });
-              metaJson = {};
-            }
-            
-            metaJson[fileHashHex] = {
-              size: fileBytes.length,
-              ...(
-                compressionUsed ?
-                  {
-                    compressedSize,
-                    compression: {
-                      algorithm: this.#compressionAlgo,
-                      ...this.#compressionParams,
-                    },
-                  } :
-                  {}
-              ),
-            };
+            const {
+              newFilePath,
+              metaFilePath,
+              metaJson,
+            } = await this.#getAndAddFileToMeta({
+              fileHashHex,
+              compressionUsed,
+              compressedSize,
+            });
             
             await mkdir(dirname(newFilePath), { recursive: true });
             if (compressionUsed) {
@@ -392,7 +397,7 @@ class BackupManager {
               await copyFile(filePath, newFilePath);
             }
             await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
-      
+            
             await setReadOnly(newFilePath);
           } finally {
             if ((await readdir(tmpDirPath)).length == 0) {
