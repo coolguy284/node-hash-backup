@@ -57,6 +57,8 @@ import {
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
 
+const DEFAULT_IN_MEMORY_SIZE = 4 * 2 ** 20;
+
 class BackupManager {
   // class vars
   
@@ -69,6 +71,7 @@ class BackupManager {
   #compressionAlgo = null;
   #compressionParams = null;
   #hashHexLength = null;
+  #loadedBackupsCache = null;
   #globalLogger;
   #allowFullBackupDirDestroy = false;
   #allowSingleBackupDestroy = false;
@@ -108,6 +111,7 @@ class BackupManager {
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
     this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
+    this.#loadedBackupsCache = new Map();
   }
   
   #clearBackupDirVars() {
@@ -117,13 +121,14 @@ class BackupManager {
     this.#compressionAlgo = null;
     this.#compressionParams = null;
     this.#hashHexLength = null;
+    this.#loadedBackupsCache = null;
   }
   
   async #initManager({
     backupDirPath,
     autoUpgradeDir,
     globalLogger,
-    logger,
+    logger = null,
   }) {
     if (typeof backupDirPath != 'string') {
       throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
@@ -589,6 +594,40 @@ class BackupManager {
     }
   }
   
+  static #processBackupData({ createdAt, entries }) {
+    return {
+      createdAt,
+      entries: new Map(
+        entries
+          .map(entry => [entry.path, entry])
+      ),
+    };
+  }
+  
+  #setCachedBackupData(backupName, backupData) {
+    this.#loadedBackupsCache.set(backupName, BackupManager.#processBackupData(backupData));
+  }
+  
+  #deleteCachedBackupData(backupName) {
+    this.#loadedBackupsCache.delete(backupName);
+  }
+  
+  async #getCachedBackupData(backupName) {
+    let backupData;
+    
+    if (this.#loadedBackupsCache.has(backupName)) {
+      backupData = this.#loadedBackupsCache.get(backupName);
+    } else {
+      const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+      backupData = BackupManager.#processBackupData(
+        JSON.parse((await readLargeFile(backupFilePath)).toString())
+      );
+      this.#loadedBackupsCache.set(backupName, backupData);
+    }
+    
+    return backupData;
+  }
+  
   // public funcs
   
   // This function is async as it calls an async helper and returns the corresponding promise
@@ -621,7 +660,7 @@ class BackupManager {
     hashSliceLength = null,
     compressionAlgo = 'brotli',
     compressionParams = { level: 6 },
-    logger,
+    logger = null,
   }) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
@@ -817,8 +856,8 @@ class BackupManager {
     excludedFilesOrFolders = [],
     symlinkMode = SymlinkModes.PRESERVE,
     ignoreErrors = false,
-    inMemoryCutoffSize = 4 * 2 ** 20,
-    logger,
+    inMemoryCutoffSize = DEFAULT_IN_MEMORY_SIZE,
+    logger = null,
   }) {
     this.#ensureBackupDirLive();
     
@@ -917,15 +956,21 @@ class BackupManager {
       }
     }
     
+    const finishedBackupData = {
+      createdAt: new Date().toISOString(),
+      entries: newEntries,
+    };
+    
     await writeFileReplaceWhenDone(
       backupFilePath,
-      backupFileStringify({
-        createdAt: new Date().toISOString(),
-        entries: newEntries,
-      })
+      backupFileStringify(finishedBackupData)
     );
     
     await setReadOnly(backupFilePath);
+    
+    this.#setCachedBackupData(backupName, finishedBackupData);
+    
+    this.#log(logger, `Successfully created backup of ${JSON.stringify(fileOrFolderPath)} with name ${JSON.stringify(backupName)}`);
   }
   
   getAllowSingleBackupDestroyStatus() {
@@ -951,7 +996,7 @@ class BackupManager {
   async destroyBackup({
     backupName,
     pruneUnreferencedFilesAfter = true,
-    logger,
+    logger = null,
   }) {
     this.#ensureBackupDirLive();
     
@@ -976,13 +1021,15 @@ class BackupManager {
       await this.pruneUnreferencedFiles({ logger });
     }
     
+    this.#deleteCachedBackupData(backupName);
+    
     this.#log(logger, `Successfully deleted backup ${JSON.stringify(backupName)}`);
   }
   
   async renameBackup({
     oldBackupName,
     newBackupName,
-    logger,
+    logger = null,
   }) {
     this.#ensureBackupDirLive();
     
@@ -1012,55 +1059,217 @@ class BackupManager {
     this.#log(logger, `Successfully renamed backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
   }
   
+  async getBackupCreationDate() {
+    this.#ensureBackupDirLive();
+    
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backupName not a backup: ${backupName}`);
+    }
+    
+    return new Date((await this.#getCachedBackupData(backupName)).createdAt);
+  }
+  
+  async backupSubtreeExists({
+    backupName,
+    backupFileOrFolderPath,
+  }) {
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    if (typeof backupFileOrFolderPath != 'string') {
+      throw new Error(`backupFileOrFolderPath not string: ${typeof backupFileOrFolderPath}`);
+    }
+    
+    this.#ensureBackupDirLive();
+    
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backupName not a backup: ${backupName}`);
+    }
+    
+    let resultEntries = (await this.#getCachedBackupData(backupName)).entries;
+    
+    return resultEntries
+      .some(
+        ({ path }) =>
+          path == backupFileOrFolderPath
+      );
+  }
+  
   async getFileOrFolderInfoFromBackup({
     backupName,
     backupFileOrFolderPath,
   }) {
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    if (typeof backupFileOrFolderPath != 'string') {
+      throw new Error(`backupFileOrFolderPath not string: ${typeof backupFileOrFolderPath}`);
+    }
+    
     this.#ensureBackupDirLive();
     
-    // TODO
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backupName does not exist: ${backupName}`);
+    }
+    
+    const entries = (await this.#getCachedBackupData(backupName)).entries;
+    
+    if (!entries.has(backupFileOrFolderPath)) {
+      throw new Error(`entry not found in backup ${JSON.stringify(backupName)}, entry ${JSON.stringify(backupFileOrFolderPath)}`);
+    }
+    
+    return Object.fromEntries(Object.entries(entries.get(backupFileOrFolderPath)));
   }
   
   async getSubtreeInfoFromBackup({
     backupName,
-    backupFileOrFolderPath,
+    backupFileOrFolderPath = '.',
   }) {
+    if (typeof backupName != 'string') {
+      throw new Error(`backupName not string: ${typeof backupName}`);
+    }
+    
+    if (typeof backupFileOrFolderPath != 'string') {
+      throw new Error(`backupFileOrFolderPath not string: ${typeof backupFileOrFolderPath}`);
+    }
+    
     this.#ensureBackupDirLive();
     
-    // TODO
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backupName not a backup: ${backupName}`);
+    }
+    
+    const entries = (await this.#getCachedBackupData(backupName)).entries;
+    
+    let resultEntries;
+    
+    if (backupFileOrFolderPath != '.') {
+      resultEntries = [];
+      
+      for (const [ path, entry ] of entries) {
+        if (
+          path.startsWith(backupFileOrFolderPath + '/') ||
+          path == backupFileOrFolderPath
+        ) {
+          resultEntries.push(Object.fromEntries(Object.entries(entry)));
+        }
+      }
+    } else {
+      resultEntries =
+        Array.from(entries.values())
+          .map(
+            entry =>
+              Object.fromEntries(Object.entries(entry))
+          );
+    }
+    
+    if (resultEntries.length == 0) {
+      throw new Error(`no subtree found in backup ${JSON.stringify(backupName)} with prefix ${JSON.stringify(backupFileOrFolderPath)}`);
+    }
+    
+    return resultEntries;
   }
   
-  async getFileFromBackup({
+  async getFileBytesFromBackup({
     backupName,
     backupFilePath,
   }) {
     this.#ensureBackupDirLive();
     
-    // TODO
+    const entry = await this.getFileOrFolderInfoFromBackup({
+      backupName,
+      backupFileOrFolderPath: backupFilePath,
+    });
+    
+    if (entry.type != 'file') {
+      throw new Error(`entry is type ${entry.type}, not file`);
+    }
+    
+    return await this._getFileBytes(entry.hash);
+  }
+  
+  async getFileStreamFromBackup({
+    backupName,
+    backupFilePath,
+  }) {
+    this.#ensureBackupDirLive();
+    
+    const entry = await this.getFileOrFolderInfoFromBackup({
+      backupName,
+      backupFileOrFolderPath: backupFilePath,
+    });
+    
+    if (entry.type != 'file') {
+      throw new Error(`entry is type ${entry.type}, not file`);
+    }
+    
+    return await this._getFileStream(entry.hash);
   }
   
   async getFolderFilenamesFromBackup({
     backupName,
     backupFolderPath,
+    withEntries = false,
   }) {
     this.#ensureBackupDirLive();
     
-    // TODO
+    const subtreeInfo = await this.getSubtreeInfoFromBackup({
+      backupName,
+      backupFileOrFolderPath: backupFolderPath,
+    });
+    
+    if (subtreeInfo[0].type != 'directory') {
+      throw new Error(`entry is type ${subtreeInfo[0].type}, not directory`);
+    }
+    
+    let filenames = withEntries ? new Map() : new Set();
+    
+    for (const entry of subtreeInfo) {
+      let slicedPath;
+      
+      if (backupFolderPath == '.') {
+        slicedPath = path;
+      } else {
+        if (path.length <= backupFolderPath.length) {
+          continue;
+        }
+        
+        slicedPath = path.slice(backupFolderPath.length + 1);
+      }
+      
+      const folderName = slicedPath.split('/')[0];
+      
+      if (!filenames.has(folderName)) {
+        if (withEntries) {
+          filenames.set(folderName, entry);
+        } else {
+          filenames.add(folderName);
+        }
+      }
+    }
+    
+    return Array.from(filenames);
   }
   
   // If restoring a folder, output can not exist, or can be an empty folder; if restoring file, output must not exist
   async restoreFileOrFolderFromBackup({
     backupName,
-    backupFileOrFolderPath,
+    backupFileOrFolderPath = '.',
     outputFileOrFolderPath,
-    logger,
+    excludedFilesOrFolders = [],
+    symlinkMode = SymlinkModes.PRESERVE,
+    inMemoryCutoffSize = DEFAULT_IN_MEMORY_SIZE,
+    setFileTimes = true,
+    logger = null,
   }) {
     this.#ensureBackupDirLive();
     
     // TODO
   }
   
-  async pruneUnreferencedFiles({ logger }) {
+  async pruneUnreferencedFiles({ logger = null }) {
     this.#ensureBackupDirLive();
     
     // TODO
@@ -1206,12 +1415,17 @@ class BackupManager {
     return this.#getFileStreamFromStore(fileHashHex);
   }
   
+  _clearCaches() {
+    this.#ensureBackupDirLive();
+    
+    this.#loadedBackupsCache.clear();
+  }
+  
   // public helper funcs
   
   async getAllFilesOrFoldersInfoFromBackup(backupName) {
     return await this.getSubtreeInfoFromBackup({
       backupName,
-      backupFileOrFolderPath: '.',
     });
   }
   
@@ -1219,11 +1433,10 @@ class BackupManager {
   async restoreFromBackup({
     backupName,
     outputPath,
-    logger,
+    logger = null,
   }) {
     await this.restoreFileOrFolderFromBackup({
       backupName,
-      backupFileOrFolderPath: '.',
       outputPath,
       logger,
     });
