@@ -31,7 +31,6 @@ export const DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED = true;
 
 const RANDOM_NAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const RANDOM_CONTENT_CHARS = 'abcdef0123';
-let advancedPrng = new AdvancedPrng();
 
 async function timestampLog(logger, logLines, ...vals) {
   let logLine = utilFormatWithOptions(
@@ -50,7 +49,7 @@ async function timestampLog(logger, logLines, ...vals) {
   logLines.push(logLine);
 }
 
-function randomName() {
+function randomName(advancedPrng) {
   let numSections = advancedPrng.getRandomInteger(3) + 1;
   
   let sectionLengths = [];
@@ -68,7 +67,7 @@ function randomName() {
     ).join('.');
 }
 
-function randomContent(notCompressible = null) {
+function randomContent(advancedPrng, notCompressible = null) {
   let length = advancedPrng.getRandomInteger(16000);
   
   if (notCompressible == null) {
@@ -134,7 +133,7 @@ const DirectoryCreationFuncs = {
     await timestampLog(logger, logLines, `finished manual4 ${basePath}`);
   },
   
-  random1: async basePath => {
+  random1: async (advancedPrng, basePath) => {
     await timestampLog(logger, logLines, `starting random1 ${basePath}`);
     
     await mkdir(basePath);
@@ -176,7 +175,7 @@ const DirectoryCreationFuncs = {
 };
 
 const DirectoryModificationFuncs = {
-  modif: async (basePath) => {
+  modif: async (advancedPrng, basePath) => {
     await timestampLog(logger, logLines, `starting modif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
@@ -195,7 +194,7 @@ const DirectoryModificationFuncs = {
     await timestampLog(logger, logLines, `finished modif ${basePath}`);
   },
   
-  medModif: async (basePath) => {
+  medModif: async (advancedPrng, basePath) => {
     await timestampLog(logger, logLines, `starting medmodif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
@@ -216,7 +215,7 @@ const DirectoryModificationFuncs = {
     await timestampLog(logger, logLines, `finished medmodif ${basePath}`);
   },
   
-  mildModif: async (basePath) => {
+  mildModif: async (advancedPrng, basePath) => {
     await timestampLog(logger, logLines, `starting mildmodif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
@@ -241,11 +240,11 @@ const DirectoryModificationFuncs = {
     await timestampLog(logger, logLines, `finished mildmodif ${basePath}`);
   },
   
-  copyThenModif: async (basePathOrig, basePathCopy) => {
+  copyThenModif: async (advancedPrng, basePathOrig, basePathCopy) => {
     await timestampLog(logger, logLines, `starting copythenmodif ${basePathCopy}`);
     
     await cp(basePathOrig, basePathCopy, { recursive: true });
-    await dirFuncs.modif(basePathCopy);
+    await DirectoryModificationFuncs.modif(advancedPrng, basePathCopy);
     
     await timestampLog(logger, logLines, `finished copythenmodif ${basePathCopy}`);
   },
@@ -381,6 +380,8 @@ export async function performTest({
   logger = console.log,
   logFile = null, // TODO: set properly
 }) {
+  let advancedPrng = new AdvancedPrng();
+  
   let logLines = [];
   
   // TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
@@ -416,15 +417,15 @@ export async function performTest({
       (async () => {
         await mkdir(join(tmpDir, 'data'));
         await Promise.all([
-          dirFuncs.manual1(join(tmpDir, 'data', 'manual1')),
-          dirFuncs.manual2(join(tmpDir, 'data', 'manual2')),
-          dirFuncs.manual3(join(tmpDir, 'data', 'manual3')),
-          dirFuncs.manual4(join(tmpDir, 'data', 'manual4')),
+          DirectoryCreationFuncs.manual1(join(tmpDir, 'data', 'manual1')),
+          DirectoryCreationFuncs.manual2(join(tmpDir, 'data', 'manual2')),
+          DirectoryCreationFuncs.manual3(join(tmpDir, 'data', 'manual3')),
+          DirectoryCreationFuncs.manual4(join(tmpDir, 'data', 'manual4')),
           (async () => {
-            await dirFuncs.random1(join(tmpDir, 'data', 'randomconstant'));
+            await DirectoryCreationFuncs.random1(advancedPrng, join(tmpDir, 'data', 'randomconstant'));
             let fsOps = [];
             for (let i = 0; i < 10; i++) {
-              fsOps.push(dirFuncs.random1(join(tmpDir, 'data', 'random' + i)));
+              fsOps.push(DirectoryCreationFuncs.random1(advancedPrng, join(tmpDir, 'data', 'random' + i)));
             }
             await Promise.all(fsOps);
             
@@ -436,7 +437,7 @@ export async function performTest({
             
             let fsOps3 = [];
             for (let i3 = 0; i3 < 10; i3++) {
-              fsOps3.push(dirFuncs.copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
+              fsOps3.push(DirectoryModificationFuncs.copyThenModif(advancedPrng, join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
             }
             await Promise.all(fsOps3);
           })(),
@@ -489,44 +490,44 @@ export async function performTest({
     };
     
     // perform backups
-    await backupOrRestore(dirFuncs.performBackupWithArgs);
+    await backupOrRestore(BackupTestFuncs.performBackupWithArgs);
     
     // print filled info
     await printBackupInfo();
     
     // perform restores
-    await backupOrRestore(dirFuncs.performRestoreWithArgs);
+    await backupOrRestore(BackupTestFuncs.performRestoreWithArgs);
     
     // check validity of restores
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
-    await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
     for (let i = 0; i < 10; i++) {
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
     }
     
     if (testDeliberateModification) {
       await timestampLog(logger, logLines, 'starting deliberate modifs');
       
-      await dirFuncs.modif(join(tmpDir, 'restore', 'random7.1'));
-      await dirFuncs.medModif(join(tmpDir, 'restore', 'random8.1'));
-      await dirFuncs.mildModif(join(tmpDir, 'restore', 'random9.1'));
+      await DirectoryModificationFuncs.modif(advancedPrng, join(tmpDir, 'restore', 'random7.1'));
+      await DirectoryModificationFuncs.medModif(advancedPrng, join(tmpDir, 'restore', 'random8.1'));
+      await DirectoryModificationFuncs.mildModif(advancedPrng, join(tmpDir, 'restore', 'random9.1'));
       
       await timestampLog(logger, logLines, 'finished deliberate modifs');
       
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
-      await dirFuncs.checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
+      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
-        await dirFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+        await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+        await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
       }
     }
-  } catch (e) {
-    await timestampLog(logger, logLines, e);
+  } catch (err) {
+    await timestampLog(logger, logLines, err);
   } finally {
     // after tests finished, close program on pressing enter
     await new Promise(r => process.stdin.once('data', r));

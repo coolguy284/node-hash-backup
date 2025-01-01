@@ -2,7 +2,13 @@
   "name": "hash-backup",
   "version": "2.0.0",
   "description": "A hash based incremental file backupper.",
-  "main": "main.js",
+  "main": "main.mjs",
+  "exports": {
+    ".": "./main.mjs",
+    "./test": "./test/test_func.mjs",
+    "./test/perform_test": "./test/perform_test.mjs",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "test": "node test/perform_test.mjs"
   },
