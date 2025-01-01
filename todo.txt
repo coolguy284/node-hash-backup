@@ -1,7 +1,20 @@
 esmify test script
 finish backupmanager class
+add above-compress-cutoff above which no compression at all, and below cutoff for no compression below a certain size (although rarely needed)
+add reverse search by hash for what backups and filenames in the backup have the file
+internal backup dir command to store file by repeatable stream func or by bytes
+command to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
+  with in memory cutoff like usual, only if the cutoff is even needed
+add option to backup for checkForDuplicateHashes, default true
+add option to restore for verifyExportedFileHashes, default true
 
 delete backup and delete backup dir must have confirm=yes
+fix inconsistent periods at the end of console logged messages
+use custom error type when throwing, and print custom errors differently (without the traceback)
+
+update readme.md and help output to match true command
+  particularly add 'remove' command '--setFileTimes' option
+
 create command line access for each command in backup manager class within reason
 clear TODO from codebase
 implement proper locking in backup manager class
@@ -9,78 +22,53 @@ implement tests
 extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
-support inheritance from another backup entry, specifying only created, updated (incl. modtimes), or deleted files/folders
+support inheritance from another backup entry, specifying only created, updated (incl. modtimes, attributes), or deleted files/folders
   support linking a backup to another or unlinking it, after backup is created
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
-support for file attrs like readonly, appendonly, immutable, etc.
 support for directory junction / file and directory symlinks
-
-old:
-update readme help output, particularly add 'remove' command '--setFileTimes' option
-add exclude dirs option to backup and restore command
-make tests more fully deterministic by creating random folders sequentially in order
-store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
+subcommands and command line options for all facets of the backup dir functions including defaults
+  support for specifying parameters for the compression algos
+  specify command arguments in --arg=value format only
+  if necessary, use command line params with no value where presence is enough to specify action (add in support for this anyway)
+  view command to view file hierarchy of backup
+  list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
+    add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
+configurable lockfile behavior, either error out or just wait until lockfile is deleted using watchfile
+cache meta datas accessed
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
-add docs for node api
+ensure able to back up single file into hash backup
 
-add check for valid hash or compression algorythm and valid compression level
+improved data storage:
+  support for file attrs like readonly, appendonly, immutable, etc.
+  add alternate stream support on windows, straightforwardly by storing paths with ':'
+  explicitly detect hardlinks
+
+low prio:
+version 3
+  handle duplicate hashes
+    //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n'
+  hash backup version 3 can have 2 modes, human readable json files and minified compressed json files
+  the readonly optional files in v2 are required readonly in v3
+  store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
+  option (maybe true by default?) to write protect all files in archive, and unprotect them when being edited only
+  add creationtime to file_meta json files
+  backup categories
+  low prio:
+    add checksums
+add lzma support to node-hash-backup as an optional dependency
 modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
   first step modifies hash slice length, hash slices count, and hash type (if set)
     first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename
-  second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level
-implement backup command in-memory arg set to false, check-duplicate-hash set to false
-handle duplicate hashes
-  //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n' +
-use equals to specify command line arguments in case parameter value starts with dashes
-add support for command line args with no value
-verify backup directory before performing backup
-add option to change hash digest encoding (currently just hex)
-prevent hash slices * hash slice length from going over the length of hash itself
-improve readme
-use custom error type when throwing, and print custom errors differently (without the traceback)
-add comments
-remove command for removing backups
-list command for listing backups (also lists basic stats like number of files, folders, entries, and total size)
-prune command that removes files not referenced by any backup
-rename backup command
-verify command for whole hash backup or optionally just one backup
+  second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level or both
+
+verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
+  verify command for whole hash backup or optionally just one backup
   alternate mode that is functionally equivalent to restoring and checksumming but does so without restoring
     add variant that will calculate hash and hash with names of slice of it to exactly match restoring it and calculating hash
-add auto purge option to remove command, defaults to true
-compress stored json files
-add checksums
-memoize fsmetajson gets and maybe make into function
-hash backup version 3 can have 2 modes, human readable json files and minified compressed json files
-add alternate stream support on windows
-allow subfolders in backups folder
-add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
-add lzma support to node-hash-backup as an optional dependency
-add ultimate compression mode that tests every algo with max settings and uses the one with the smallest filesize
-change in-memory to in-memory-cutoff, filesize in bytes above which it will not be in memory; add max-compress-cutoff above which no max compression; add compress-cutoff above or maybe below which no compression at all
-add archive wide toggle for write protection on the archive files
-create test that tests each facet of each feature
-check to make sure stopping program halfway does not cause broken data state anywhere
-make sure all async subfunctions / function calls in every async function are awaited
-add reverse search by hash for what backups and filenames in the backup have the file
-fix inconsistent periods at the end of console logged messages
-make gzip and deflate memlevel configurable option
-make sure program and modtime setting and getting works on linux
-transfer command that restores from one backup folder and backups to another, transferring all files in backup, but done more efficiently than actually restoring and backing up, by just copying the files in the backup folder
-delete command should only delete files and dirs with backup content in them
-restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)
-  option to always create copy of file in cached folder, therefore deleting the cache folder (when mode set to hardlink) will "seperate" the restored files from any new restores done (otherwise 2 files with same contents in the different restores will be linked)
-  warning with hardlink and symlink modes that any alteration of the files might alter files in the backup (and thus corrupt it), if option to always create copy not set; if option to always create copy set or copy made anyway due to compression, still possibility of modifying one file causing files in the cache, in other restores, and in the same restore with the same content to be modified as well
+copy over imports of upgrader.mjs into the file itself to isolate the imports and protect against accidental update of the functions
 hashslices in info.json maybe should be array like [[0,2],[2,4]] with each entry referring to a folder name slice from the hash of the file
-add creationtime to file_meta json files
-  potentially version change to version 3 of format
-add option to truncate hash potentially even as small as sha224 truncated to 64bit
-pendingoperations in info.json or pending_ops.json that stores current operation like modify so it can continue if stopped, new complete_operation command solely to resume this pending operation, other backup commands dont work until operation finished
-additional option for restore command that restores one folder tree or file from a backup
-backup files can link to previous backup file and only list changed attributes, new files, and deleted files; this makes new backup files smaller if not much changed
-view command to view file hierarchy of backup
 should be able to have at least 1 archive file (like zip, tar, wim, gz (yes single file ones count, particularly for tgz)) in folder paths like basepath for backup and restore, backupdir, excludedir, restoresubpath; path for view backup files subpath and other commands
   do 7zip style for paths of targz, ex. file.tgz/file.tar/insidefolder
-should be able to backup single file and if specify folder on restore then put orig name in folder else if specify folder and nonexistent file then restore to that path
 file compression reverse engineering
   attempt to reverse engineer compression of already compressed files and then decompress and recompress with better algorythm
   do for gzip bzip2 lzma png jpg
@@ -99,11 +87,26 @@ file compression reverse engineering
   backup command have bytes limit on decompressing files output length (in attempt to decompress and reverse engineer), to prevent using up harddisk or memory decompressing a 10kb input 1tb output gzip file and then recompressing it; the param should go from -1 to not even try reverse engineering anything (this will supersede nested zips setting and always prevent unpacking) to infinity
   for targz try unpacking tar and if not try only reverse engineering gz
   same for tarbz2 tarxz etc
-lockfile for editing backupdir, it is created when backup dir is being edited, so if 2 edit commands try to access backup dir at same time the one that access dir later will just wait until file is gone, using watchfile (can use arg to error instead of auto defering, or maybe make defering the non default option); maybe instead of creating lockfile it will open an append file handle on info.json, although this would prevent views from working which is probably a good idea anyway as it is similar to oses preventing the read of a file while it is being written
-  if lockfile ends up being used, view command should print warning that results may be inaccurate if lockfile detected at any point in the view getting operation (use watchfolder or smth)
-store relative symbolic links properly and absolute ones too
-  backup command has symlink-mode arg that is enum that is either IGNORE (symlinks will not appear in backup dir), TREAT_AS_REGULAR (where it will be copied like it is normal file), FULL (store symlink path points to); default is FULL
+compress stored json files
+add comments
+add docs for node api
+create test that tests each facet of each feature
+improve readme
+add max-compress-cutoff above which no max compression
+option to perform verification of entire backup dir before performing backup
+add option to change hash digest encoding (currently just hex)
+add ultimate compression mode that tests every algo with max settings and uses the one with the smallest filesize
+make sure program and modtime setting and getting works on linux
+allow subfolders in backups folder
+pendingoperations in info.json or pending_ops.json that stores current operation like modify so it can continue if stopped, new complete_operation command solely to resume this pending operation, other backup commands dont work until operation finished
+restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)
+  option to always create copy of file in cached folder, therefore deleting the cache folder (when mode set to hardlink) will "seperate" the restored files from any new restores done (otherwise 2 files with same contents in the different restores will be linked)
+  warning with hardlink and symlink modes that any alteration of the files might alter files in the backup (and thus corrupt it), if option to always create copy not set; if option to always create copy set or copy made anyway due to compression, still possibility of modifying one file causing files in the cache, in other restores, and in the same restore with the same content to be modified as well
 
-low prio:
-verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
-copy over imports of upgrader.mjs into the file itself to isolate the imports and protect against accidental update of the functions
+unnecessary / difficult:
+make sure all async subfunctions / function calls in every async function are awaited
+check to make sure stopping program halfway does not cause broken data state anywhere
+
+not doing:
+wipe backup dir command should only delete files and dirs with backup content in them
+make tests more fully deterministic by creating random folders sequentially in order
