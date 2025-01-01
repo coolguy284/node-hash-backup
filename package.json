@@ -4,7 +4,7 @@
   "description": "A hash based incremental file backupper.",
   "main": "src/main.js",
   "scripts": {
-    "test": "node tests/tests.js"
+    "test": "node tests/perform_test.mjs"
   },
   "repository": {
     "type": "git",

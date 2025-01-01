@@ -1,5 +1,5 @@
 import {} from 'fs/promises';
-import {} from 'path';
+import { join } from 'path';
 import { tmpdir } from 'os';
 
 export async function performTest({
