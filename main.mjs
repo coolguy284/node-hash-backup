@@ -1,4 +1,5 @@
 export { createBackupManager } from './new-src/backup_manager.mjs';
+export {} from './new-src/backup_helper_funcs.mjs';
 export {
   CURRENT_BACKUP_VERSION,
   getBackupDirInfo,
