@@ -1,7 +1,5 @@
-esmify test script
 make tests more fully deterministic by creating random folders sequentially in order
 
-finish backupmanager class
 add above-compress-cutoff above which no compression at all, and below cutoff for no compression below a certain size (although rarely needed)
 add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes

@@ -387,6 +387,7 @@ export async function performTest({
   // TODO: check all imported funcs function, including getFilesAndMetaInDir
   
   // open logging file and redirect stdout and stderr
+  await mkdir(join(import.meta.dirname, '../logs'), { recursive: true });
   let loggingFile = await open(join(import.meta.dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
   let oldProcStdoutWrite = process.stdout.write.bind(process.stdout),
     oldProcStderrWrite = process.stderr.write.bind(process.stderr);
