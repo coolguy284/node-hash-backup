@@ -243,6 +243,35 @@ export async function recursiveReaddir(
     .filter(entry => entry != null);
 }
 
+async function recursiveReaddirSimpleFileNamesOnlyInternal(dirPath, depth) {
+  if (depth == 1) {
+    return await readdir(dirPath);
+  } else {
+    return (await Promise.all(
+      (await readdir(dirPath))
+        .map(
+          async subDirName =>
+            await recursiveReaddirSimpleFileNamesOnlyInternal(
+              join(dirPath, subDirName),
+              depth - 1
+            )
+        )
+    )).flat();
+  }
+}
+
+export async function recursiveReaddirSimpleFileNamesOnly(dirPath, depth) {
+  if (typeof dirPath != 'string') {
+    throw new Error(`dirPath not string: ${typeof dirPath}`);
+  }
+  
+  if (!Number.isSafeInteger(depth) || depth <= 0) {
+    throw new Error(`depth not positive integer`);
+  }
+  
+  return await recursiveReaddirSimpleFileNamesOnlyInternal(dirPath, depth);
+}
+
 export async function setFileTimes(fileTimeEntries) {
   if (fileTimeEntries.length == 0) {
     return;

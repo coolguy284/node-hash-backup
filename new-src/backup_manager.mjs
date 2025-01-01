@@ -26,6 +26,7 @@ import {
   fileOrFolderExists,
   readLargeFile,
   recursiveReaddir,
+  recursiveReaddirSimpleFileNamesOnly,
   safeRename,
   setReadOnly,
   splitPath,
@@ -1322,8 +1323,10 @@ class BackupManager {
     
     let folderToRead = join(this.#backupDirPath, 'files');
     
+    let slicesRemaining;
+    
     if (this.#hashSlices > 0) {
-      let slicesRemaining = this.#hashSlices;
+      slicesRemaining = this.#hashSlices;
       
       while (fileHashHexPrefix.length > this.#hashSliceLength && slicesRemaining > 0) {
         folderToRead = join(folderToRead, fileHashHexPrefix.slice(0, this.#hashSliceLength));
@@ -1331,12 +1334,14 @@ class BackupManager {
         slicesRemaining--;
         fileHashHexPrefix = fileHashHexPrefix.slice(this.#hashSliceLength);
       }
+    } else {
+      slicesRemaining = 0;
     }
     
-    try {
-      return (await readdir(folderToRead))
-        .filter(file => file.startsWith(fileHashHexPrefix));
-    } catch {
+    if (await fileOrFolderExists(folderToRead)) {
+      return (await recursiveReaddirSimpleFileNamesOnly(folderToRead, slicesRemaining + 1))
+        .filter(fileHashHex => fileHashHex.startsWith(fileHashHexPrefix));
+    } else {
       return [];
     }
   }
