@@ -8,7 +8,7 @@ backup  .   .   .   .   . the backup directory
         createdAt: string (ISO date of backup creation),
         entries: array [
           object {
-            path: string (relative path inside the backup folder),
+            path: string (relative path inside the backup folder, '.' for root folder (/ file), and path string for other folders / files; path string uses '/' as separator always; no leading '/' and no trailing '/' for any path),
             type: string (either "file", "directory", or "symbolic link"),
             hash?: string (file hash, property only present on files),
             symlinkType?: string (either "file", "directory", or "junction"; not present if unknown or on linux),

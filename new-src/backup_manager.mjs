@@ -37,6 +37,7 @@ import { callBothLoggers } from './lib/logger.mjs';
 import { streamsEqual } from './lib/stream_equality.mjs';
 import { unixNSIntToUnixSecString } from './lib/time.mjs';
 import {
+  BACKUP_PATH_SEP,
   backupFileStringify,
   createCompressor,
   createDecompressor,
@@ -536,7 +537,11 @@ class BackupManager {
   }
   
   async #addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger) {
-    const relativeFilePath = relative(fileOrFolderPath, filePath) || '.';
+    const backupInternalNativePath = relative(fileOrFolderPath, filePath);
+    const relativeFilePath =
+      backupInternalNativePath == '' ?
+        '.' :
+        splitPath().join(BACKUP_PATH_SEP);
     
     const atime = unixNSIntToUnixSecString(stats.atimeNs);
     const mtime = unixNSIntToUnixSecString(stats.mtimeNs);
