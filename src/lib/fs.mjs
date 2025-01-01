@@ -368,6 +368,10 @@ export async function setFileTimes(fileTimeEntries) {
 }
 
 export async function setReadOnly(filePath) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
   const currentPerms = (await lstat(filePath)).mode & 0o777;
   const newPerms = currentPerms & 0o555;
   
@@ -377,6 +381,10 @@ export async function setReadOnly(filePath) {
 }
 
 export async function unsetReadOnly(filePath) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
   const currentPerms = (await lstat(filePath)).mode & 0o777;
   let newPerms = currentPerms;
   
@@ -398,6 +406,10 @@ export async function unsetReadOnly(filePath) {
 }
 
 export async function isReadOnly(filePath) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
   const currentPerms = (await lstat(filePath)).mode & 0o777;
   const readOnlyPerms = currentPerms & 0o555;
   
