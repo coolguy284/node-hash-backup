@@ -26,3 +26,12 @@ export {
   MIN_BACKUP_VERSION,
   // VARIABLE_LENGTH_HAHSHES,
 } from './src/lib.mjs';
+
+// check for running as main
+
+import { realpath } from 'fs/promises';
+
+if (process.argv[0] == await realpath(import.meta.filename)) {
+  // execute main cli code
+  // TODO
+}

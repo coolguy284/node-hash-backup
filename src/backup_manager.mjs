@@ -22,6 +22,7 @@ import {
 } from 'path';
 import { pipeline } from 'stream/promises';
 
+import { deepObjectClone } from './lib/deep_clone.mjs';
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
@@ -45,7 +46,6 @@ import {
   backupFileStringify,
   createCompressor,
   createDecompressor,
-  createHasher,
   compressBytes,
   COMPRESSION_ALGOS,
   CURRENT_BACKUP_VERSION,
@@ -55,7 +55,6 @@ import {
   fullInfoFileStringify,
   getBackupDirInfo,
   getAndAddBackupEntry,
-  getHasherOutput,
   HASH_SIZES,
   hashBytes,
   hashStream,
@@ -657,6 +656,26 @@ class BackupManager {
   
   getBackupDirPath() {
     return this.#backupDirPath;
+  }
+  
+  getHashAlgo() {
+    return this.#hashAlgo;
+  }
+  
+  getHashSlices() {
+    return this.#hashSlices;
+  }
+  
+  getHashSliceLength() {
+    return this.#hashSliceLength;
+  }
+  
+  getCompressionAlgo() {
+    return this.#compressionAlgo;
+  }
+  
+  getCompressionParams() {
+    return deepObjectClone(this.#compressionParams);
   }
   
   async initBackupDir({
