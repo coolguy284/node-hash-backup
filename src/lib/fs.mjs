@@ -26,6 +26,12 @@ export const SymlinkModes = Enum([
   'PRESERVE',
 ]);
 const HUMAN_READABLE_THRESHOLD = 16;
+export const RelativeStatus = Enum([
+  'NO_RELATIVE',
+  'FIRST_IS_SUBPATH_OF_SECOND',
+  'SECOND_IS_SUBPATH_OF_FIRST',
+  'PATHS_EQUAL',
+]);
 
 export async function errorIfPathNotDir(validationPath) {
   if (typeof validationPath != 'string') {
@@ -444,4 +450,40 @@ export async function humanReadableSizeString(bytes) {
   } else {
     return `${(bytes / 2 ** 50).toFixed(3)} PiB`;
   }
+}
+
+export function getRelativeStatus(firstPath, secondPath) {
+  const pathFromFirstToSecond = relative(firstPath, secondPath);
+  
+  if (pathFromFirstToSecond == '') {
+    return {
+      status: RelativeStatus.PATHS_EQUAL,
+      pathFromFirstToSecond,
+      pathFromSecondToFirst: pathFromFirstToSecond,
+    };
+  }
+  
+  const pathFromSecondToFirst = relative(secondPath, firstPath);
+  
+  if (splitPath(pathFromFirstToSecond).every(pathSegment => pathSegment == '..')) {
+    return {
+      status: RelativeStatus.FIRST_IS_SUBPATH_OF_SECOND,
+      pathFromFirstToSecond,
+      pathFromSecondToFirst,
+    };
+  }
+  
+  if (splitPath(pathFromSecondToFirst).every(pathSegment => pathSegment == '..')) {
+    return {
+      status: RelativeStatus.SECOND_IS_SUBPATH_OF_FIRST,
+      pathFromFirstToSecond,
+      pathFromSecondToFirst,
+    };
+  }
+  
+  return {
+    status: RelativeStatus.NO_RELATIVE,
+    pathFromFirstToSecond,
+    pathFromSecondToFirst,
+  };
 }

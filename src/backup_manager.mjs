@@ -4,6 +4,7 @@ import {
 } from 'fs';
 import {
   copyFile,
+  lstat,
   mkdir,
   open,
   readdir,
@@ -12,11 +13,11 @@ import {
   rmdir,
   symlink,
   unlink,
+  writeFile,
 } from 'fs/promises';
 import {
   dirname,
   join,
-  relative,
   resolve,
 } from 'path';
 import { pipeline } from 'stream/promises';
@@ -24,14 +25,15 @@ import { pipeline } from 'stream/promises';
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
+  getRelativeStatus,
   humanReadableSizeString,
   readLargeFile,
   recursiveReaddir,
   recursiveReaddirSimpleFileNamesOnly,
+  RelativeStatus,
   safeRename,
   setFileTimes,
   setReadOnly,
-  splitPath,
   SymlinkModes,
   testCreateFile,
   writeFileReplaceWhenDone,
@@ -56,6 +58,7 @@ import {
   getHasherOutput,
   HASH_SIZES,
   hashBytes,
+  hashStream,
   HEX_CHAR_LENGTH_BITS,
   INSECURE_HASHES,
   metaFileStringify,
@@ -129,6 +132,14 @@ class BackupManager {
     this.#compressionParams = null;
     this.#hashHexLength = null;
     this.#loadedBackupsCache = null;
+  }
+  
+  async #hashBytes(bytes) {
+    return await hashBytes(bytes, this.#hashAlgo);
+  }
+  
+  async #hashStream(stream) {
+    return await hashStream(stream, this.#hashAlgo);
   }
   
   async #initManager({
@@ -290,7 +301,7 @@ class BackupManager {
   }
   
   async #addFileBytesToStore(fileBytes, logger) {
-    const fileHashHex = (await hashBytes(fileBytes, this.#hashAlgo)).toString('hex');
+    const fileHashHex = (await this.#hashBytes(fileBytes)).toString('hex');
     
     this.#log(logger, `Hash: ${fileHashHex}`);
     
@@ -339,21 +350,12 @@ class BackupManager {
     const fileHandle = await open(filePath);
     
     try {
-      const fileStream = fileHandle.createReadStream();
-      const hasher = createHasher(this.#hashAlgo);
-      const hasherResult = getHasherOutput(hasher);
-      
-      await pipeline(
-        fileStream,
-        hasher
-      );
-      
-      const fileHashHex = (await hasherResult).toString('hex');
+      const fileHashHex = (await this.#hashStream(fileHandle.createReadStream())).toString('hex');
       
       this.#log(logger, `Hash: ${fileHashHex}`);
       
       if (await this.#fileIsInStore(fileHashHex)) {
-        const storeFileStream = this.#getFileStreamFromStore(fileHashHex);
+        const storeFileStream = await this.#getFileStreamFromStore(fileHashHex);
         
         if (!(await streamsEqual([fileStream, storeFileStream]))) {
           throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
@@ -367,12 +369,12 @@ class BackupManager {
           
           try {
             const compressedFilePath = join(tmpDirPath, fileHashHex);
-            const fileStream2 = fileHandle.createReadStream();
+            const fileStream = fileHandle.createReadStream();
             const compressor = createCompressor(this.#compressionAlgo, this.#compressionParams);
             const compressedFile = createWriteStream(compressedFilePath);
             
             await pipeline(
-              fileStream2,
+              fileStream,
               compressor,
               compressedFile
             );
@@ -441,30 +443,44 @@ class BackupManager {
     return metaJson[fileHashHex];
   }
   
-  async #getFileBytesFromStore(fileHashHex) {
+  async #getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
     const fileMeta = this.#getMetaOfFile(fileHashHex);
     
     const rawFileBytes = await readLargeFile(filePath);
     
+    let fileBytes;
+    
     if (fileMeta.compression != null) {
       const { compressionAlgo, compressionParams } = splitCompressObjectAlgoAndParams(fileMeta.compression);
       
-      return await decompressBytes(
+      fileBytes = await decompressBytes(
         rawFileBytes,
         compressionAlgo,
         compressionParams
       );
     } else {
-      return rawFileBytes;
+      fileBytes = rawFileBytes;
     }
+    
+    if (verifyFileHashOnRetrieval) {
+      const storeFileHashHex = (await this.#hashBytes(fileBytes)).toString('hex');
+      
+      if (storeFileHashHex != fileHashHex) {
+        throw new Error(`file in store has hash ${storeFileHashHex} != expected hash ${fileHashHex}`);
+      }
+    }
+    
+    return fileBytes;
   }
   
-  #getFileStreamFromStore(fileHashHex) {
+  async #getFileStreamFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
     const fileMeta = this.#getMetaOfFile(fileHashHex);
     
-    const fileStream = createReadStream(filePath);
+    const rawFileStream = createReadStream(filePath);
+    
+    let fileStream;
     
     if (fileMeta.compression != null) {
       const { compressionAlgo, compressionParams } = splitCompressObjectAlgoAndParams(fileMeta.compression);
@@ -475,9 +491,21 @@ class BackupManager {
         compressionParams
       );
       
-      fileStream.pipe(decompressor);
+      rawFileStream.pipe(decompressor);
       
-      return decompressor;
+      fileStream = decompressor;
+    } else {
+      fileStream = rawFileStream;
+    }
+    
+    if (verifyFileHashOnRetrieval) {
+      const storeFileHashHex = (await this.#hashStream(fileStream)).toString('hex');
+      
+      if (storeFileHashHex != fileHashHex) {
+        throw new Error(`file in store has hash ${storeFileHashHex} != expected hash ${fileHashHex}`);
+      }
+      
+      return await this.#getFileStreamFromStore(fileHashHex, false);
     } else {
       return fileStream;
     }
@@ -828,6 +856,7 @@ class BackupManager {
     backupName,
     fileOrFolderPath,
     excludedFilesOrFolders = [],
+    allowBackupDirSubPathOfFileOrFolderPath = false,
     symlinkMode = SymlinkModes.PRESERVE,
     inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     ignoreErrors = false,
@@ -881,26 +910,31 @@ class BackupManager {
       throw new Error(`backup with name ${JSON.stringify(backupName)} already exists`);
     }
     
-    const pathToBackupDir = relative(fileOrFolderPath, this.#backupDirPath);
+    const {
+      status: relativeStatus,
+      pathFromSecondToFirst: pathToBackupDir,
+    } = getRelativeStatus(this.#backupDirPath, fileOrFolderPath);
     
-    if (pathToBackupDir == '') {
-      // this.#backupDirPath is same as fileOrFolderPath
-      throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is same as backupDirPath ${this.#backupDirPath}`);
-    }
-    
-    if (splitPath(pathToBackupDir).every(pathSegment => pathSegment == '..')) {
-      // fileOrFolderPath is subfolder of this.#backupDirPath
-      throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is a subfolder of backupDirPath ${this.#backupDirPath}`);
-    }
-    
-    const pathToFileOrFolder = relative(this.#backupDirPath, fileOrFolderPath);
-    
-    if (splitPath(pathToFileOrFolder).every(pathSegment => pathSegment == '..')) {
-      // this.#backupDirPath is subfolder of fileOrFolderPath
-      excludedFilesOrFolders = [
-        ...excludedFilesOrFolders,
-        pathToBackupDir,
-      ];
+    switch (relativeStatus) {
+      case RelativeStatus.PATHS_EQUAL:
+        // this.#backupDirPath is same as fileOrFolderPath
+        throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is same as backupDirPath ${this.#backupDirPath}`);
+      
+      case RelativeStatus.SECOND_IS_SUBPATH_OF_FIRST:
+        // fileOrFolderPath is subfolder of this.#backupDirPath
+        throw new Error(`fileOrFolderPath (${fileOrFolderPath}) is a subfolder of backupDirPath ${this.#backupDirPath}`);
+      
+      case RelativeStatus.FIRST_IS_SUBPATH_OF_SECOND:
+        // this.#backupDirPath is subfolder of fileOrFolderPath
+        if (allowBackupDirSubPathOfFileOrFolderPath) {
+          excludedFilesOrFolders = [
+            ...excludedFilesOrFolders,
+            pathToBackupDir,
+          ];
+        } else {
+          throw new Error(`backupDirPath (${backupFilePath}) is a subfolder of fileOrFolderPath (${fileOrFolderPath})`);
+        }
+        break;
     }
     
     const backupFilePath = path(this.#backupDirPath, 'backups', `${backupName}.json`);
@@ -1250,7 +1284,11 @@ class BackupManager {
     outputFileOrFolderPath,
     excludedFilesOrFolders = [],
     symlinkMode = SymlinkModes.PRESERVE,
+    inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     setFileTimes: doSetFileTimes = true,
+    createParentFolders = false,
+    overwriteExistingRestoreFolderOrFile = false,
+    verifyFileHashOnRetrieval = true,
     logger = null,
   }) {
     if (typeof backupName != 'string') {
@@ -1291,13 +1329,40 @@ class BackupManager {
       throw new Error(`setFileTimes not boolean: ${typeof doSetFileTimes}`);
     }
     
+    if (typeof createParentFolders != 'boolean') {
+      throw new Error(`createParentFolders not boolean: ${typeof createParentFolders}`);
+    }
+    
+    if (typeof overwriteExistingRestoreFolderOrFile != 'boolean') {
+      throw new Error(`overwriteExistingRestoreFolderOrFile not boolean: ${typeof overwriteExistingRestoreFolderOrFile}`);
+    }
+    
+    if (typeof verifyFileHashOnRetrieval != 'boolean') {
+      throw new Error(`verifyFileHashOnRetrieval not boolean: ${typeof verifyFileHashOnRetrieval}`);
+    }
+    
     if (typeof logger != 'function' && logger != null) {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
     
     this.#ensureBackupDirLive();
     
-    this.#log(logger, `Starting restore of ${JSON.stringify(backupName)} into path ${JSON.stringify(fileOrFolderPath)}`);
+    const { status: relativeStatus } = getRelativeStatus(this.#backupDirPath, outputFileOrFolderPath);
+    
+    switch (relativeStatus) {
+      case RelativeStatus.PATHS_EQUAL:
+        // this.#backupDirPath is same as outputFileOrFolderPath
+        throw new Error(`outputFileOrFolderPath (${outputFileOrFolderPath}) is same as backupDirPath ${this.#backupDirPath}`);
+      
+      case RelativeStatus.SECOND_IS_SUBPATH_OF_FIRST:
+        // outputFileOrFolderPath is subfolder of this.#backupDirPath
+        throw new Error(`outputFileOrFolderPath (${outputFileOrFolderPath}) is a subfolder of backupDirPath ${this.#backupDirPath}`);
+      
+      case RelativeStatus.FIRST_IS_SUBPATH_OF_SECOND:
+        throw new Error(`backupDirPath (${backupFilePath}) is a subfolder of outputFileOrFolderPath (${outputFileOrFolderPath})`);
+    }
+    
+    this.#log(logger, `Starting restore of ${JSON.stringify(backupName)} into path ${JSON.stringify(outputFileOrFolderPath)}`);
     
     const backupData = (await this.getSubtreeInfoFromBackup({
       backupName,
@@ -1312,6 +1377,48 @@ class BackupManager {
           )
       );
     
+    const parentOutputFileOrFolderPath = dirname(outputFileOrFolderPath);
+    
+    if (!(await fileOrFolderExists(parentOutputFileOrFolderPath))) {
+      if (createParentFolders) {
+        this.#log(logger, `Creating parent folder: ${JSON.stringify(parentOutputFileOrFolderPath)}`);
+        
+        await mkdir(parentOutputFileOrFolderPath, { recursive: true });
+      } else {
+        throw new Error(`parent folder does not exist: ${JSON.stringify(parentOutputFileOrFolderPath)}`);
+      }
+    } else {
+      if (!(await lstat(parentOutputFileOrFolderPath)).isDirectory()) {
+        throw new Error(`parent folder is not a folder: ${parentOutputFileOrFolderPath}`);
+      }
+    }
+    
+    if (await fileOrFolderExists(outputFileOrFolderPath)) {
+      if ((await lstat(outputFileOrFolderPath)).isDirectory()) {
+        if ((await readdir(outputFileOrFolderPath)).length != 0) {
+          if (overwriteExistingRestoreFolderOrFile) {
+            this.#log(logger, `Clearing contents of existing restore folder: ${JSON.stringify(outputFileOrFolderPath)}`);
+            
+            await rm(outputFileOrFolderPath, { recursive: true });
+            
+            this.#log(logger, `Finished clearing contents of existing restore folder: ${JSON.stringify(outputFileOrFolderPath)}`);
+          } else {
+            throw new Error(`output folder already contains contents: ${JSON.stringify(outputFileOrFolderPath)}`);
+          }
+        } else {
+          await rmdir(outputFileOrFolderPath);
+        }
+      } else {
+        if (overwriteExistingRestoreFolderOrFile) {
+          this.#log(logger, `Deleting existing restore file: ${JSON.stringify(outputFileOrFolderPath)}`);
+          
+          await unlink(outputFileOrFolderPath);
+        } else {
+          throw new Error(`output file already exists: ${JSON.stringify(outputFileOrFolderPath)}`);
+        }
+      }
+    }
+    
     for (const { path, type, hash, symlinkType, symlinkPath } of backupData) {
       const outputPath = join(outputFileOrFolderPath, path);
       
@@ -1319,11 +1426,24 @@ class BackupManager {
         case 'file': {
           this.#log(logger, `Restoring ${entry.path} [file ${humanReadableSizeString(this._getFileMeta(hash).size)}]...`);
           
-          const backupFileStream = await this._getFileStream(hash);
-          await pipeline(
-            backupFileStream,
-            createWriteStream(outputPath)
-          );
+          const { size: fileSize } = await this.#getMetaOfFile(hash);
+          
+          if (fileSize <= inMemoryCutoffSize) {
+            const fileBytes = await this._getFileBytes(hash, {
+              verifyFileHashOnRetrieval,
+            });
+            
+            await writeFile(outputPath, fileBytes);
+          } else {
+            const backupFileStream = await this._getFileStream(hash, {
+              verifyFileHashOnRetrieval,
+            });
+            
+            await pipeline(
+              backupFileStream,
+              createWriteStream(outputPath)
+            );
+          }
           break;
         }
         
@@ -1523,7 +1643,7 @@ class BackupManager {
     return this.#getMetaOfFile(fileHashHex);
   }
   
-  async _getFileBytes(fileHashHex) {
+  async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true }) {
     this.#ensureBackupDirLive();
     
     if (typeof fileHashHex != 'string') {
@@ -1538,14 +1658,20 @@ class BackupManager {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
+    if (typeof verifyFileHashOnRetrieval != 'boolean') {
+      throw new Error(`verifyFileHashOnRetrieval not boolean: ${typeof verifyFileHashOnRetrieval}`);
+    }
+    
     if (!(await this.#fileIsInStore(fileHashHex))) {
       throw new Error(`file hash not found in store: ${fileHashHex}`);
     }
     
-    return this.#getFileBytesFromStore(fileHashHex);
+    const fileBytes = this.#getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval);
+    
+    return fileBytes;
   }
   
-  async _getFileStream(fileHashHex) {
+  async _getFileStream(fileHashHex, { verifyFileHashOnRetrieval = true }) {
     this.#ensureBackupDirLive();
     
     if (typeof fileHashHex != 'string') {
@@ -1560,11 +1686,15 @@ class BackupManager {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
+    if (typeof verifyFileHashOnRetrieval != 'boolean') {
+      throw new Error(`verifyFileHashOnRetrieval not boolean: ${typeof verifyFileHashOnRetrieval}`);
+    }
+    
     if (!(await this.#fileIsInStore(fileHashHex))) {
       throw new Error(`file hash not found in store: ${fileHashHex}`);
     }
     
-    return this.#getFileStreamFromStore(fileHashHex);
+    return await this.#getFileStreamFromStore(fileHashHex, verifyFileHashOnRetrieval);
   }
   
   _clearCaches() {

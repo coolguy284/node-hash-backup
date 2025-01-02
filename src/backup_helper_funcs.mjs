@@ -18,13 +18,17 @@ export async function initBackupDir({
     globalLogger: logger,
   });
   
-  await backupMgr.initBackupDir({
-    hashAlgo: hash,
-    hashSlices,
-    hashSliceLength,
-    compressionAlgo: compressAlgo,
-    compressionParams: compressParams,
-  });
+  try {
+    await backupMgr.initBackupDir({
+      hashAlgo: hash,
+      hashSlices,
+      hashSliceLength,
+      compressionAlgo: compressAlgo,
+      compressionParams: compressParams,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
 }
 
 export async function deleteBackupDir({
@@ -44,9 +48,10 @@ export async function deleteBackupDir({
 
 export async function performBackup({
   backupDir,
-  basePath,
   name,
+  basePath,
   excludedFilesOrFolders = [],
+  allowBackupDirSubPathOfFileOrFolderPath = true,
   symlinkMode = SymlinkModes.PRESERVE,
   inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
   ignoreErrors = false,
@@ -56,18 +61,53 @@ export async function performBackup({
     globalLogger: logger,
   });
   
-  await backupMgr.createBackup({
-    backupName: name,
-    fileOrFolderPath: basePath,
-    excludedFilesOrFolders,
-    symlinkMode,
-    inMemoryCutoffSize,
-    ignoreErrors,
-  });
+  try {
+    await backupMgr.createBackup({
+      backupName: name,
+      fileOrFolderPath: basePath,
+      excludedFilesOrFolders,
+      allowBackupDirSubPathOfFileOrFolderPath,
+      symlinkMode,
+      inMemoryCutoffSize,
+      ignoreErrors,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
 }
 
 export async function performRestore({
-  
+  backupDir,
+  name,
+  backupFileOrFolderPath = '.',
+  basePath,
+  excludedFilesOrFolders = [],
+  symlinkMode = SymlinkModes.PRESERVE,
+  inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
+  setFileTimes = true,
+  createParentFolders = false,
+  overwriteExistingRestoreFolderOrFile = false,
+  verifyFileHashOnRetrieval = true,
+  logger = console.log,
 }) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
   
+  try {
+    await backupMgr.restoreFileOrFolderFromBackup({
+      backupName: name,
+      backupFileOrFolderPath,
+      outputFileOrFolderPath: basePath,
+      excludedFilesOrFolders,
+      symlinkMode,
+      inMemoryCutoffSize,
+      setFileTimes,
+      createParentFolders,
+      overwriteExistingRestoreFolderOrFile,
+      verifyFileHashOnRetrieval,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
 }

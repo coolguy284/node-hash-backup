@@ -40,6 +40,12 @@ cache meta datas accessed
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 ensure able to back up single file into hash backup
 
+createbackupview and importbackup
+then transfer
+add ctrl c lock to certain parts of code (look up good way), to ensure any backup or load or other operation isnt interrupted during write
+on helper funcs, properly try finally the resource after successful creation of backupmanager
+fix symlinkmode on restore
+
 improved data storage:
   support for file attrs like readonly, appendonly, immutable, etc.
   add alternate stream support on windows, straightforwardly by storing paths with ':'

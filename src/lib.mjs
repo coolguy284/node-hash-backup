@@ -7,6 +7,7 @@ import {
   readlink,
 } from 'fs/promises';
 import { join } from 'path';
+import { pipeline } from 'stream/promises';
 import {
   createBrotliCompress,
   createBrotliDecompress,
@@ -214,11 +215,19 @@ export async function decompressBytes(compressedBytes, compressionAlgo, compress
   });
 }
 
-export function createHasher(hashAlgo) {
+function createHasher(hashAlgo) {
+  if (typeof hashAlgo != 'string') {
+    throw new Error(`hashAlgo not string: ${typeof hashAlgo}`);
+  }
+  
+  if (!HASH_SIZES.has(hashAlgo)) {
+    throw new Error(`hashAlgo unknown: ${hashAlgo}`);
+  }
+  
   return createHash(hashAlgo);
 }
 
-export async function getHasherOutput(hasher) {
+async function getHasherOutput(hasher) {
   return await new Promise((r, j) => {
     let outputChunks = [];
     
@@ -248,6 +257,19 @@ export async function hashBytes(bytes, hashAlgo) {
     
     hasher.write(bytes);
   });
+}
+
+export async function hashStream(stream, hashAlgo) {
+  let hasher = createHasher(hashAlgo);
+  
+  let hasherResult = getHasherOutput(hasher);
+  
+  await pipeline(
+    stream,
+    hasher
+  );
+  
+  return await hasherResult;
 }
 
 export function splitCompressObjectAlgoAndParams(compression) {
