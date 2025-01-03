@@ -823,7 +823,7 @@ class BackupManager {
     }
     
     if (hashSlices != 0) {
-      const hashLengthBits = HASH_SIZES.has(hashAlgo);
+      const hashLengthBits = HASH_SIZES.get(hashAlgo);
       const totalHashSliceLengthBits = hashSlices * hashSliceLength * HEX_CHAR_LENGTH_BITS;
       if (totalHashSliceLengthBits > hashLengthBits) {
         throw new Error(

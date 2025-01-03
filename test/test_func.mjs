@@ -549,20 +549,26 @@ export async function performTest({
     testMgr.timestampLog(err);
     errorOccurred = true;
   } finally {
-    // after tests finished, close program on pressing enter
-    console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
-    await new Promise(r => process.stdin.once('data', r));
-    // stdin gets set into flowing mode by the above
-    process.stdin.pause();
+    if (awaitUserInputAtEnd) {
+      // after tests finished, close program on pressing enter
+      console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
+      await new Promise(r => process.stdin.once('data', r));
+      // stdin gets set into flowing mode by the above, must pause after or else process will remain open
+      process.stdin.pause();
+    }
+    
     if (!errorOccurred) {
       await rm(tmpDir, { recursive: true });
     } else {
       await testMgr.writeLogFile();
     }
+    
     await removeDirIfEmpty(LOGS_DIR);
     await removeDirIfEmpty(TESTS_DIR);
     await removeDirIfEmpty(TEST_DATA_DIR);
+    
     console.log('Done');
+    
     setTimeout(() => {
       console.log(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
       process.exit();
