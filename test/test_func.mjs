@@ -33,6 +33,7 @@ const RANDOM_CONTENT_CHARS = 'abcdef0123';
 const TEST_DATA_DIR = join(import.meta.dirname, '../test_data');
 const LOGS_DIR = join(TEST_DATA_DIR, 'logs');
 const TESTS_DIR = join(TEST_DATA_DIR, 'tests');
+const FORCE_QUIT_TIMEOUT = 10_000;
 
 async function removeDirIfEmpty(dirPath) {
   if ((await readdir(dirPath)).length == 0) {
@@ -399,6 +400,7 @@ export async function performTest({
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
   logger = console.log,
   logFile = null, // TODO: set properly
+  awaitUserInputAtEnd = false,
 } = {}) {
   let testMgr = new TestManager(logger);
   
@@ -559,5 +561,9 @@ export async function performTest({
     await removeDirIfEmpty(TESTS_DIR);
     await removeDirIfEmpty(TEST_DATA_DIR);
     console.log('Done');
+    setTimeout(() => {
+      console.log(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
+      process.exit();
+    }, FORCE_QUIT_TIMEOUT).unref();
   }
 }
