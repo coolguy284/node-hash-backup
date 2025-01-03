@@ -1747,7 +1747,7 @@ class BackupManager {
       throw new Error(`fileHashHexPrefix length (${fileHashHexPrefix.length}) > hash length (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]+$/.test(fileHashHexPrefix)) {
+    if (!/^[0-9a-f]*$/.test(fileHashHexPrefix)) {
       throw new Error(`fileHashHexPrefix not hex: ${fileHashHexPrefix}`);
     }
     
@@ -1787,7 +1787,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -1805,7 +1805,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -1827,7 +1827,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -1855,7 +1855,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]+$/.test(fileHashHex)) {
+    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     

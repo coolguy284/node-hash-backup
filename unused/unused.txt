@@ -1,0 +1,19 @@
+export function ensureValueIsHex(hexString, expectedLength = null) {
+  if (typeof hexString != 'string') {
+    throw new Error(`hexString not string: ${typeof hexString}`);
+  }
+  
+  if (!/^[0-9a-f]*$/.test(hexString)) {
+    throw new Error(`hexString not hex: ${hexString}`);
+  }
+  
+  if (expectedLength != null) {
+    if (!Number.isSafeInteger(expectedLength) || expectedLength < 0) {
+      throw new Error(`expectedLength invalid: ${expectedLength}`);
+    }
+    
+    if (hexString.length != expectedLength) {
+      throw new Error(`hexString wrong length: expected ${expectedLength}, was ${hexString.length}`);
+    }
+  }
+}

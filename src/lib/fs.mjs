@@ -149,7 +149,7 @@ async function recursiveReaddirInternal(
   if (selfStats.isDirectory()) {
     const dirContents =
       (await Promise.all(
-        (await readdir(dirPath))
+        (await readdir(fileOrDirPath))
           .map(name => {
             return {
               name,
@@ -185,7 +185,7 @@ async function recursiveReaddirInternal(
 }
 
 export async function recursiveReaddir(
-  dirPath,
+  fileOrDirPath,
   {
     excludedFilesOrFolders = [],
     includeDirs = true,
@@ -194,8 +194,8 @@ export async function recursiveReaddir(
     sorted = false,
   }
 ) {
-  if (typeof dirPath != 'string') {
-    throw new Error(`dirPath not string: ${typeof dirPath}`);
+  if (typeof fileOrDirPath != 'string') {
+    throw new Error(`fileOrDirPath not string: ${typeof fileOrDirPath}`);
   }
   
   if (!Array.isArray(excludedFilesOrFolders)) {
@@ -229,7 +229,7 @@ export async function recursiveReaddir(
   }
   
   let internalResult = await recursiveReaddirInternal(
-    dirPath,
+    fileOrDirPath,
     {
       excludedFilesOrFolders,
       symlinkMode,
