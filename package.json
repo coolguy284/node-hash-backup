@@ -1,5 +1,6 @@
 {
   "name": "hash-backup",
+  "type": "module",
   "version": "2.0.0",
   "description": "A hash based incremental file backupper.",
   "main": "main.mjs",
@@ -24,7 +25,10 @@
   "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@tsconfig/recommended": "^1.0.8",
     "eslint": "^9.17.0",
-    "globals": "^15.14.0"
+    "globals": "^15.14.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0"
   }
 }

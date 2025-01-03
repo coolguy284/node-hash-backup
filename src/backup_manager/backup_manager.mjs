@@ -9,6 +9,7 @@ import {
   mkdir,
   open,
   readdir,
+  readFile,
   rename,
   rm,
   rmdir,
