@@ -24,7 +24,7 @@ import { AdvancedPrng } from './lib/prng_extended.mjs';
 
 export const DEFAULT_TEST_RANDOM_NAME = false;
 export const DEFAULT_TEST_GET_FILES_AND_META_DIR = false;
-export const DEFAULT_TEST_DELIBERATE_MODIFICATION = false;
+export const DEFAULT_TEST_DELIBERATE_MODIFICATION = true;
 export const DEFAULT_VERBOSE_FINAL_VALIDATION_LOG = false;
 export const DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED = true;
 export const DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED = true;
@@ -41,6 +41,8 @@ async function removeDirIfEmpty(dirPath) {
     await rmdir(dirPath);
   }
 }
+
+class RestoreInaccurateError extends Error {}
 
 class TestManager {
   // class vars
@@ -307,7 +309,14 @@ class TestManager {
       valid = false;
     }
     
-    let stringProps = ['path', 'type', ...(ignoreMTime ? [] : ['mtime']), 'birthtime']; // atime ignored because it changes, ctime ignored because cannot be set
+    // atime ignored because it changes, ctime ignored because cannot be set
+    let stringProps = [
+      'path',
+      'type',
+      'symlinkPath',
+      ...(ignoreMTime ? [] : ['mtime']),
+      'birthtime'
+    ];
     
     let objLength = Math.min(dataObj.length, restoreObj.length);
     
@@ -358,6 +367,7 @@ class TestManager {
         JSON.stringify(obj.map(x => ({
           path: x.path,
           type: x.type,
+          symlinkPath: x.symlinkPath,
           mtime: x.mtime,
           birthtime: x.birthtime,
           bytes: x.bytes ? x.bytes.toString('base64') : null,
@@ -379,6 +389,7 @@ class TestManager {
     if (!valid) {
       this.timestampLog('data\n', dataObj);
       this.timestampLog('restore\n', restoreObj);
+      throw new RestoreInaccurateError('restore inaccurate');
     }
   }
   
@@ -549,7 +560,26 @@ export async function performTest({
         await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
         for (let i = 0; i < 10; i++) {
           await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
-          await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+          
+          if (i >= 7 && i <= 9) {
+            let passed = false;
+            
+            try {
+              await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+            } catch (err) {
+              if (err instanceof RestoreInaccurateError) {
+                passed = true;
+              } else {
+                throw err;
+              }
+            }
+            
+            if (!passed) {
+              throw new Error(`deliberate modification failed to cause a validation error`);
+            }
+          } else {
+            await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+          }
         }
       }
     } catch (err) {
