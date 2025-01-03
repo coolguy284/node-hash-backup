@@ -1,7 +1,6 @@
 option to disable backupmgr cache
 make tests more fully deterministic by creating random folders sequentially in order
 
-add above-compress-cutoff above which no compression at all, and below cutoff for no compression below a certain size (although rarely needed)
 option to reset access times after finishing backing up a folder
 add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes

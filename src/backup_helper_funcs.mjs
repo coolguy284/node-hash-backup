@@ -54,6 +54,8 @@ export async function performBackup({
   allowBackupDirSubPathOfFileOrFolderPath = true,
   symlinkMode = SymlinkModes.PRESERVE,
   inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
+  compressionMinimumSizeThreshold = -1,
+  compressionMaximumSizeThreshold = Infinity,
   ignoreErrors = false,
   logger = console.log,
 }) {
@@ -69,6 +71,8 @@ export async function performBackup({
       allowBackupDirSubPathOfFileOrFolderPath,
       symlinkMode,
       inMemoryCutoffSize,
+      compressionMinimumSizeThreshold,
+      compressionMaximumSizeThreshold,
       ignoreErrors,
     });
   } finally {

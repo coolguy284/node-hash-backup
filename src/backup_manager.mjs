@@ -306,7 +306,12 @@ class BackupManager {
     };
   }
   
-  async #addFileBytesToStore(fileBytes, logger) {
+  async #addFileBytesToStore({
+    fileBytes,
+    compressionMinimumSizeThreshold,
+    compressionMaximumSizeThreshold,
+    logger,
+  }) {
     const fileHashHex = (await this.#hashBytes(fileBytes)).toString('hex');
     
     this.#log(logger, `Hash: ${fileHashHex}`);
@@ -321,7 +326,7 @@ class BackupManager {
       let compressionUsed = false;
       let compressedBytes;
       
-      if (this.#compressionAlgo != null) {
+      if (this.#compressionAlgo != null && fileBytes.length >= compressionMinimumSizeThreshold && fileBytes.length <= compressionMaximumSizeThreshold) {
         compressedBytes = await compressBytes(fileBytes, this.#compressionAlgo, this.#compressionParams);
         
         if (compressedBytes.length < fileBytes.length) {
@@ -355,7 +360,12 @@ class BackupManager {
     return fileHashHex;
   }
   
-  async #addFilePathStreamToStore(filePath, logger) {
+  async #addFilePathStreamToStore({
+    filePath,
+    compressionMinimumSizeThreshold,
+    compressionMaximumSizeThreshold,
+    logger,
+  }) {
     const fileHandle = await open(filePath);
     
     try {
@@ -372,7 +382,9 @@ class BackupManager {
       } else {
         let compressionUsed = false;
         
-        if (this.#compressionAlgo != null) {
+        const { size: fileSize } = await fileHandle.stat();
+        
+        if (this.#compressionAlgo != null && fileSize >= compressionMinimumSizeThreshold && fileSize <= compressionMaximumSizeThreshold) {
           const tmpDirPath = join(this.#backupDirPath, 'temp');
           await mkdir(tmpDirPath, { recursive: true });
           
@@ -616,7 +628,15 @@ class BackupManager {
     }
   }
   
-  async #addAndGetBackupEntry(baseFileOrFolderPath, subFileOrFolderPath, stats, inMemoryCutoffSize, logger) {
+  async #addAndGetBackupEntry({
+    baseFileOrFolderPath,
+    subFileOrFolderPath,
+    stats,
+    inMemoryCutoffSize,
+    compressionMinimumSizeThreshold,
+    compressionMaximumSizeThreshold,
+    logger,
+  }) {
     const backupEntry = await getAndAddBackupEntry({
       baseFileOrFolderPath,
       subFileOrFolderPath,
@@ -626,9 +646,19 @@ class BackupManager {
         // only called if file or something else that will be attempted to be read as a file
         if (stats.size <= inMemoryCutoffSize) {
           const fileBytes = await readLargeFile(subFileOrFolderPath);
-          return await this.#addFileBytesToStore(fileBytes, logger);
+          return await this.#addFileBytesToStore({
+            fileBytes,
+            compressionMinimumSizeThreshold,
+            compressionMaximumSizeThreshold,
+            logger,
+          });
         } else {
-          return await this.#addFilePathStreamToStore(subFileOrFolderPath, logger);
+          return await this.#addFilePathStreamToStore({
+            fileBytes: subFileOrFolderPath,
+            compressionMinimumSizeThreshold,
+            compressionMaximumSizeThreshold,
+            logger,
+          });
         }
       },
     });
@@ -916,6 +946,8 @@ class BackupManager {
     allowBackupDirSubPathOfFileOrFolderPath = false,
     symlinkMode = SymlinkModes.PRESERVE,
     inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
+    compressionMinimumSizeThreshold = -1,
+    compressionMaximumSizeThreshold = Infinity,
     ignoreErrors = false,
     logger = null,
   }) {
@@ -949,6 +981,14 @@ class BackupManager {
     
     if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
       throw new Error(`inMemoryCutoffSize not string: ${typeof inMemoryCutoffSize}`);
+    }
+    
+    if (compressionMinimumSizeThreshold != Infinity && (!Number.isSafeInteger(compressionMinimumSizeThreshold) || compressionMinimumSizeThreshold < -1)) {
+      throw new Error(`compressionMinimumSizeThreshold not string: ${typeof compressionMinimumSizeThreshold}`);
+    }
+    
+    if (compressionMaximumSizeThreshold != Infinity && (!Number.isSafeInteger(compressionMaximumSizeThreshold) || compressionMaximumSizeThreshold < -1)) {
+      throw new Error(`compressionMaximumSizeThreshold not string: ${typeof compressionMaximumSizeThreshold}`);
     }
     
     if (typeof ignoreErrors != 'boolean') {
@@ -1017,14 +1057,30 @@ class BackupManager {
       if (ignoreErrors) {
         try {
           newEntries.push(
-            await this.#addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger)
+            await this.#addAndGetBackupEntry({
+              baseFileOrFolderPath: fileOrFolderPath,
+              subFileOrFolderPath: filePath,
+              stats,
+              inMemoryCutoffSize,
+              compressionMinimumSizeThreshold,
+              compressionMaximumSizeThreshold,
+              logger,
+            })
           );
         } catch (err) {
           this.#log(logger, `ERROR: msg:${err.toString()} code:${err.code} stack:\n${err.stack}`);
         }
       } else {
         newEntries.push(
-          await this.#addAndGetBackupEntry(fileOrFolderPath, filePath, stats, inMemoryCutoffSize, logger)
+          await this.#addAndGetBackupEntry({
+            baseFileOrFolderPath: fileOrFolderPath,
+            subFileOrFolderPath: filePath,
+            stats,
+            inMemoryCutoffSize,
+            compressionMinimumSizeThreshold,
+            compressionMaximumSizeThreshold,
+            logger,
+          })
         );
       }
     }
