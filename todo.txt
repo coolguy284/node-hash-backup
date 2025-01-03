@@ -1,4 +1,3 @@
-cache filemeta as well
 option to disable backupmgr cache
 make tests more fully deterministic by creating random folders sequentially in order
 
@@ -20,7 +19,7 @@ update readme.md and help output to match true commands
 
 create command line access for each command in backup manager class within reason
 clear TODO from codebase
-implement proper locking in backup manager class
+implement proper async operation read/write locking in backup manager class
 implement tests
 extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
 support sliced hash algos and xof hash funcs with optional extra slicing
@@ -38,7 +37,6 @@ subcommands and command line options for all facets of the backup dir functions 
     add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
   backup command should autocomplete new backup name with optional discriminatior (like first_backup_type); only enable this behavior if flag set to true
 configurable lockfile behavior, either error out or just wait until lockfile is deleted using watchfile
-cache meta datas accessed
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 ensure able to back up single file into hash backup
 

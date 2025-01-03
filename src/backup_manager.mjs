@@ -81,6 +81,7 @@ class BackupManager {
   #compressionParams = null;
   #hashHexLength = null;
   #loadedBackupsCache = null;
+  #loadedFileMetasCache = null;
   #globalLogger;
   #allowFullBackupDirDestroy = false;
   #allowSingleBackupDestroy = false;
@@ -121,6 +122,7 @@ class BackupManager {
     this.#compressionParams = compressionParams;
     this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
     this.#loadedBackupsCache = new Map();
+    this.#loadedFileMetasCache = new Map();
   }
   
   #clearBackupDirVars() {
@@ -131,6 +133,7 @@ class BackupManager {
     this.#compressionParams = null;
     this.#hashHexLength = null;
     this.#loadedBackupsCache = null;
+    this.#loadedFileMetasCache = null;
   }
   
   async #hashBytes(bytes) {
@@ -277,7 +280,7 @@ class BackupManager {
       metaJson = {};
     }
     
-    metaJson[fileHashHex] = {
+    const metaEntry = {
       size: fileBytes.length,
       ...(
         compressionUsed ?
@@ -291,6 +294,10 @@ class BackupManager {
           {}
       ),
     };
+    
+    metaJson[fileHashHex] = metaEntry;
+    
+    this.#addMetaEntryToCache(fileHashHex, metaEntry);
     
     return {
       newFilePath,
@@ -433,26 +440,44 @@ class BackupManager {
     }
   }
   
-  async #getMetaOfFile(fileHashHex) {
-    const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
-    
-    const metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
-    
-    if (!(fileHashHex in metaJson)) {
-      throw new Error(`fileHash (${fileHashHex}) not found in meta files`);
-    }
-    
-    const {
-      size,
-      compressedSize,
-      compression = null,
-    } = metaJson[fileHashHex];
-    
+  static #processMetaEntry({
+    size,
+    compressedSize,
+    compression = null,
+  }) {
     return {
       size,
       compressedSize: compressedSize != null ? compressedSize : size,
       compression,
     };
+  }
+  
+  #addMetaEntryToCache(fileHashHex, metaEntry) {
+    if (!this.#loadedFileMetasCache.has(fileHashHex)) {
+      this.#loadedFileMetasCache.set(fileHashHex, BackupManager.#processMetaEntry(metaEntry));
+    }
+  }
+  
+  async #getMetaOfFile(fileHashHex) {
+    if (this.#loadedFileMetasCache.has(fileHashHex)) {
+      return this.#loadedFileMetasCache.get(fileHashHex);
+    } else {
+      const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
+      
+      const metaJson = JSON.parse((await readLargeFile(metaFilePath)).toString());
+      
+      if (!(fileHashHex in metaJson)) {
+        throw new Error(`fileHash (${fileHashHex}) not found in meta files`);
+      }
+      
+      for (const hash in metaJson) {
+        if (!this.#loadedFileMetasCache.has(hash)) {
+          this.#loadedFileMetasCache.set(hash, BackupManager.#processMetaEntry(metaJson[hash]));
+        }
+      }
+      
+      return this.#loadedFileMetasCache.get(fileHashHex);
+    }
   }
   
   async #getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval) {
@@ -1672,7 +1697,7 @@ class BackupManager {
       throw new Error(`file hash not found in store: ${fileHashHex}`);
     }
     
-    return this.#getMetaOfFile(fileHashHex);
+    return deepObjectClone(this.#getMetaOfFile(fileHashHex));
   }
   
   async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true }) {
@@ -1733,6 +1758,7 @@ class BackupManager {
     this.#ensureBackupDirLive();
     
     this.#loadedBackupsCache.clear();
+    this.#loadedFileMetasCache.clear();
   }
   
   async _getBackupOnlyMetaSize(backupName) {
