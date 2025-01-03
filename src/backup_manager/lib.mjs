@@ -5,6 +5,7 @@ import {
 import {
   readFile,
   readlink,
+  rm,
 } from 'fs/promises';
 import {
   join,
@@ -26,6 +27,7 @@ import {
   errorIfPathNotDir,
   fileOrFolderExists,
   readLargeFile,
+  splitPath,
 } from '../lib/fs.mjs';
 import { callBothLoggers } from '../lib/logger.mjs';
 import { ReadOnlyMap } from '../lib/read_only_map.mjs';
@@ -298,7 +300,7 @@ export async function getAndAddBackupEntry({
   const relativeFilePath =
     backupInternalNativePath == '' ?
       '.' :
-      splitPath().join(BACKUP_PATH_SEP);
+      splitPath(backupInternalNativePath).join(BACKUP_PATH_SEP);
   
   const atime = unixNSIntToUnixSecString(stats.atimeNs);
   const mtime = unixNSIntToUnixSecString(stats.mtimeNs);

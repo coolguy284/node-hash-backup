@@ -1,4 +1,4 @@
-export async function callBothLoggers({ logger, globalLogger }, data) {
+export function callBothLoggers({ logger, globalLogger }, data) {
   if (typeof logger != 'function' && logger != null) {
     throw new Error(`logger not function or null: ${typeof logger}`);
   }

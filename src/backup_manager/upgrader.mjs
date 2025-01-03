@@ -174,7 +174,7 @@ export async function upgradeDirToCurrent({
   
   switch (info.version) {
     case 1:
-      upgradeDir1To2({ backupDirPath, info, logger, globalLogger });
+      await upgradeDir1To2({ backupDirPath, info, logger, globalLogger });
   }
   
   callBothLoggers({ logger, globalLogger }, `Finished upgrading hash backup store across multiple versions, from version ${info.version} to ${CURRENT_BACKUP_VERSION}.`);
