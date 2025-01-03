@@ -1751,7 +1751,10 @@ class BackupManager {
       totalBytes += (await lstat(metaFilePath)).size;
     }
     
-    return totalBytes;
+    return {
+      fileCount: metaFiles.length,
+      sizeBytes: totalBytes,
+    };
   }
   
   async _getTotalFilesSize() {
@@ -1864,27 +1867,73 @@ class BackupManager {
     Layout of object returned by this function may change over time, beware.
     Current Layout:
     {
-      backups: [
-        [ backupName, backupData: singleBackupInfoDump ],
-        ...
-      ],
-      naiveSum: {
-        files,
-        folders,
-        symbolicLinks,
-        items,
-        sizeBytes,
-        compressedSizeBytes,
+      hashAlgo,
+      hashSlices,
+      hashSliceLength,
+      compressionAlgo,
+      compressionParams,
+    }
+  */
+  async backupTopologySummary() {
+    return {
+      hashAlgo: this.getHashAlgo(),
+      hashSlices: this.getHashSlices(),
+      hashSliceLength: this.getHashSliceLength(),
+      compressionAlgo: this.getCompressionAlgo(),
+      compressionParams: this.getCompressionParams(),
+    };
+  }
+  
+  /*
+    Layout of object returned by this function may change over time, beware.
+    Current Layout:
+    {
+      individualBackupsInfo: {
+        backups: [
+          [ backupName, backupData: singleBackupInfoDump ],
+          ...
+        ],
+        naiveSum: {
+          files,
+          folders,
+          symbolicLinks,
+          items,
+          sizeBytes,
+          compressedSizeBytes,
+        },
       },
       fullBackupInfo: {
-        generic: {
-          backupMetaSizeBytesTotal,
-          fileMetaSizeBytesTotal,
+        topology: backupTopologySummary,
+        meta: {
+          backupMeta: {
+            fileCount,
+            fileSizeTotal,
+          },
+          filesMeta: {
+            fileCount,
+            fileSizeTotal,
+          },
+          totalMeta: {
+            fileCount,
+            fileSizeTotal,
+          },
         },
-        referenced: {
-          fileCount,
-          fileSizeTotal,
-          fileCompressedSizeTotal,
+        nonMeta: {
+          referenced: {
+            fileCount,
+            fileSizeTotal,
+            fileCompressedSizeTotal,
+          },
+          nonReferenced: {
+            fileCount,
+            fileSizeTotal,
+            fileCompressedSizeTotal,
+          },
+          total: {
+            fileCount,
+            fileSizeTotal,
+            fileCompressedSizeTotal,
+          },
         },
         total: {
           fileCount,
@@ -1937,6 +1986,11 @@ class BackupManager {
     }
     
     const {
+      fileCount: totalMetaFileCount,
+      sizeBytes: totalMetaFileSizeBytes,
+    } = await this._getTotalFilesMetaSize();
+    
+    const {
       fileCount: totalFileCount,
       sizeBytes: totalSizeBytes,
       compressedSizeBytes: totalCompressedSizeBytes,
@@ -1953,29 +2007,54 @@ class BackupManager {
     }
     
     return {
-      backups: backupInfo,
-      naiveSum: {
-        files: filesTotal,
-        folders: foldersTotal,
-        symbolicLinks: symbolicLinksTotal,
-        items: filesTotal + foldersTotal + symbolicLinksTotal,
-        sizeBytes: sizeBytesTotal,
-        compressedSizeBytes: compressedSizeBytesTotal,
+      individualBackupsInfo: {
+        backups: backupInfo,
+        naiveSum: {
+          files: filesTotal,
+          folders: foldersTotal,
+          symbolicLinks: symbolicLinksTotal,
+          items: filesTotal + foldersTotal + symbolicLinksTotal,
+          sizeBytes: sizeBytesTotal,
+          compressedSizeBytes: compressedSizeBytesTotal,
+        },
       },
       fullBackupInfo: {
-        generic: {
-          backupMetaSizeBytesTotal,
-          fileMetaSizeBytesTotal: await this._getTotalFilesMetaSize(),
+        topology: this.backupTopologySummary(),
+        meta: {
+          backupMeta: {
+            fileCount: backupInfo.length,
+            fileSizeTotal: backupMetaSizeBytesTotal,
+          },
+          filesMeta: {
+            fileCount: totalMetaFileCount,
+            fileSizeTotal: totalMetaFileSizeBytes,
+          },
+          totalMeta: {
+            fileCount: backupInfo.length + totalMetaFileCount,
+            fileSizeTotal: backupMetaSizeBytesTotal + totalMetaFileSizeBytes,
+          },
         },
-        referenced: {
-          fileCount: referencedFileHashesTotal.size,
-          fileSizeTotal: referencedSizeTotal,
-          fileCompressedSizeTotal: referencedCompressedSizeTotal,
+        nonMeta: {
+          referenced: {
+            fileCount: referencedFileHashesTotal.size,
+            fileSizeTotal: referencedSizeTotal,
+            fileCompressedSizeTotal: referencedCompressedSizeTotal,
+          },
+          nonReferenced: {
+            fileCount: totalFileCount - referencedFileHashesTotal.size,
+            fileSizeTotal: totalSizeBytes - referencedSizeTotal,
+            fileCompressedSizeTotal: totalCompressedSizeBytes - referencedCompressedSizeTotal,
+          },
+          total: {
+            fileCount: totalFileCount,
+            fileSizeTotal: totalSizeBytes,
+            fileCompressedSizeTotal: totalCompressedSizeBytes,
+          },
         },
         total: {
-          fileCount: totalFileCount,
-          fileSizeTotal: totalSizeBytes,
-          fileCompressedSizeTotal: totalCompressedSizeBytes,
+          fileCount: backupInfo.length + totalMetaFileCount + totalFileCount,
+          fileSizeTotal: backupMetaSizeBytesTotal + totalMetaFileSizeBytes + totalSizeBytes,
+          fileCompressedSizeTotal: backupMetaSizeBytesTotal + totalMetaFileSizeBytes + totalCompressedSizeBytes,
         },
       },
     };
