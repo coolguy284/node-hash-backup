@@ -321,7 +321,7 @@ export async function getAndAddBackupEntry({
   } else if (stats.isSymbolicLink()) {
     if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [symbolic link]`);
     
-    const linkPathBuf = await readlink(filePath, { encoding: 'buffer' });
+    const linkPathBuf = await readlink(baseFileOrFolderPath, { encoding: 'buffer' });
     const linkPathBase64 =
       linkPathBuf
       .toString('base64');

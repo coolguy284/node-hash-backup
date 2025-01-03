@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
 import {
   cp,
   mkdir,
@@ -469,7 +470,7 @@ export async function performTest({
           dirArr.push('random' + i);
           dirArr.push('random' + i + '.1');
         }
-        await Promise.all(dirArr.map(x => mkdir(join(tmpDir, 'restore', x))));
+        await Promise.all(dirArr.map(async x => await mkdir(join(tmpDir, 'restore', x))));
       })(),
     ]);
     
@@ -518,31 +519,31 @@ export async function performTest({
     await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
     
     // check validity of restores
-    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
+    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
+    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
+    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
+    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
     for (let i = 0; i < 10; i++) {
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
     }
     
     if (testDeliberateModification) {
       testMgr.timestampLog('starting deliberate modifs');
       
-      await DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
-      await DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
-      await DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
+      await testMgr.DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
+      await testMgr.DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
+      await testMgr.DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
       
       testMgr.timestampLog('finished deliberate modifs');
       
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
-      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
-        await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
       }
     }
   } catch (err) {
@@ -557,10 +558,18 @@ export async function performTest({
       process.stdin.pause();
     }
     
-    if (!errorOccurred) {
-      await rm(tmpDir, { recursive: true });
+    if (errorOccurred) {
+      if (doLogFile) {
+        await testMgr.writeLogFile();
+      }
     } else {
-      await testMgr.writeLogFile();
+      await rm(tmpDir, { recursive: true });
+      
+      if (!doNotSaveLogIfTestPassed) {
+        if (doLogFile) {
+          await testMgr.writeLogFile();
+        }
+      }
     }
     
     await removeDirIfEmpty(LOGS_DIR);
