@@ -1,7 +1,6 @@
 import {
   cp,
   mkdir,
-  mkdtemp,
   readdir,
   readFile,
   rename,
@@ -399,7 +398,7 @@ export async function performTest({
   verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
   logger = console.log,
-  logFile = null, // TODO: set properly
+  doLogFile = true, // TODO: use properly
   awaitUserInputAtEnd = false,
 } = {}) {
   let testMgr = new TestManager(logger);
@@ -429,7 +428,7 @@ export async function performTest({
   process.stderr.write = c => { testMgr.timestampLog(c); oldProcStderrWrite(c) };
   
   // make temp dir for tests
-  const tmpDir = await mkdtemp(join(TESTS_DIR, 'nodehash-'));
+  const tmpDir = await mkdir(join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`));
   
   let errorOccurred = false;
   
