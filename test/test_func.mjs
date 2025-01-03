@@ -45,13 +45,19 @@ class TestManager {
   // class vars
   
   #logger;
+  #boundLogger;
   #logLines = [];
   #advancedPrng = new AdvancedPrng();;
   
   // public funcs
   
-  constructor(logger) {
+  constructor(logger = console.log) {
     this.#logger = logger;
+    this.#boundLogger = this.timestampLog.bind(this);
+  }
+  
+  getBoundLogger() {
+    return this.#boundLogger;
   }
   
   timestampLog(...vals) {
@@ -109,7 +115,7 @@ class TestManager {
   }
   
   async DirectoryCreationFuncs_manual1(basePath) {
-    await timestampLog(`starting manual1 ${basePath}`);
+    this.timestampLog(`starting manual1 ${basePath}`);
     
     await mkdir(basePath);
     await Promise.all([
@@ -118,11 +124,11 @@ class TestManager {
     ]);
     await writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder.'));
     
-    await timestampLog(`finished manual1 ${basePath}`);
+    this.timestampLog(`finished manual1 ${basePath}`);
   }
   
   async DirectoryCreationFuncs_manual2(basePath) {
-    await timestampLog(`starting manual2 ${basePath}`);
+    this.timestampLog(`starting manual2 ${basePath}`);
     
     await mkdir(basePath);
     await Promise.all([
@@ -130,19 +136,19 @@ class TestManager {
       await writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
     
-    await timestampLog(`finished manual2 ${basePath}`);
+    this.timestampLog(`finished manual2 ${basePath}`);
   }
   
   async DirectoryCreationFuncs_manual3(basePath) {
-    await timestampLog(`starting manual3 ${basePath}`);
+    this.timestampLog(`starting manual3 ${basePath}`);
     
     await mkdir(basePath);
     
-    await timestampLog(`finished manual3 ${basePath}`);
+    this.timestampLog(`finished manual3 ${basePath}`);
   }
   
   async DirectoryCreationFuncs_manual4(basePath) {
-    await timestampLog(`starting manual4 ${basePath}`);
+    this.timestampLog(`starting manual4 ${basePath}`);
     
     await mkdir(basePath);
     await Promise.all([
@@ -151,16 +157,16 @@ class TestManager {
     ]);
     await writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.'));
     
-    await timestampLog(`finished manual4 ${basePath}`);
+    this.timestampLog(`finished manual4 ${basePath}`);
   }
   
-  async DirectoryCreationFuncs_random1(advancedPrng, basePath) {
-    await timestampLog(`starting random1 ${basePath}`);
+  async DirectoryCreationFuncs_random1(basePath) {
+    this.timestampLog(`starting random1 ${basePath}`);
     
     await mkdir(basePath);
     let fsOps = [];
     for (let i = 0; i < 5; i++) {
-      let dirNameJ = randomName(advancedPrng);
+      let dirNameJ = this.randomName();
       fsOps.push((async () => {
         await mkdir(join(basePath, dirNameJ));
         let zeroFoldersJ = advancedPrng.getRandomInteger(2);
@@ -169,33 +175,33 @@ class TestManager {
         let numFilesJ = zeroFilesJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
         let fsOpsJ = [];
         for (let j = 0; j < numFoldersJ; j++) {
-          let dirNameK = randomName(advancedPrng);
+          let dirNameK = this.randomName();
           fsOpsJ.push((async () => {
             await mkdir(join(basePath, dirNameJ, dirNameK));
             let zeroFilesK = advancedPrng.getRandomInteger(2);
             let numFilesK = zeroFilesK ? 0 : advancedPrng.getRandomInteger(5) + 1;
             let fsOpsK = [];
             for (let j = 0; j < numFilesK; j++) {
-              fsOpsK.push(writeFile(join(basePath, dirNameJ, dirNameK, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
+              fsOpsK.push(writeFile(join(basePath, dirNameJ, dirNameK, this.randomName()), Buffer.from(this.randomContent())));
             }
           })());
         }
         for (let j = 0; j < numFilesJ; j++) {
-          fsOpsJ.push(writeFile(join(basePath, dirNameJ, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
+          fsOpsJ.push(writeFile(join(basePath, dirNameJ, this.randomName()), Buffer.from(this.randomContent())));
         }
         await Promise.all(fsOpsJ);
       })());
     }
     for (let i = 0; i < 5; i++) {
-      fsOps.push(writeFile(join(basePath, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
+      fsOps.push(writeFile(join(basePath, this.randomName()), Buffer.from(this.randomContent())));
     }
     await Promise.all(fsOps);
     
-    await timestampLog(`finished random1 ${basePath}`);
+    this.timestampLog(`finished random1 ${basePath}`);
   }
 
-  async DirectoryModificationFuncs_modif(advancedPrng, basePath) {
-    await timestampLog(`starting modif ${basePath}`);
+  async DirectoryModificationFuncs_modif(basePath) {
+    this.timestampLog(`starting modif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
     
@@ -205,16 +211,16 @@ class TestManager {
     let fileChoices = advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = advancedPrng.getRandomInteger(5);
     
     await Promise.all([
-      writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), randomContent(advancedPrng)),
-      rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, randomName(advancedPrng))),
-      rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, randomName(advancedPrng))),
+      writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.randomContent()),
+      rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.randomName())),
+      rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, this.randomName())),
     ]);
     
-    await timestampLog(`finished modif ${basePath}`);
+    this.timestampLog(`finished modif ${basePath}`);
   }
   
   async DirectoryModificationFuncs_medModif(basePath) {
-    await timestampLog(`starting medmodif ${basePath}`);
+    this.timestampLog(`starting medmodif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
     
@@ -231,11 +237,11 @@ class TestManager {
     
     await writeFile(fileToModif, fileToModifBuf);
     
-    await timestampLog(`finished medmodif ${basePath}`);
+    this.timestampLog(`finished medmodif ${basePath}`);
   }
   
   async DirectoryModificationFuncs_mildModif(basePath) {
-    await timestampLog(`starting mildmodif ${basePath}`);
+    this.timestampLog(`starting mildmodif ${basePath}`);
     
     let dirContents = await readdir(basePath, { withFileTypes: true });
     
@@ -256,48 +262,50 @@ class TestManager {
     
     await writeFile(fileToModif, fileToModifBuf);
     
-    await timestampLog(`finished mildmodif ${basePath}`);
+    this.timestampLog(`finished mildmodif ${basePath}`);
   }
   
   async DirectoryModificationFuncs_copyThenModif(basePathOrig, basePathCopy) {
-    await timestampLog(`starting copythenmodif ${basePathCopy}`);
+    this.timestampLog(`starting copythenmodif ${basePathCopy}`);
     
     await cp(basePathOrig, basePathCopy, { recursive: true });
-    await DirectoryModificationFuncs.modif(advancedPrng, basePathCopy);
+    await DirectoryModificationFuncs.modif(basePathCopy);
     
-    await timestampLog(`finished copythenmodif ${basePathCopy}`);
+    this.timestampLog(`finished copythenmodif ${basePathCopy}`);
   }
 
   async BackupTestFuncs_performBackupWithArgs(tmpDir, backupDir, name) {
-    await timestampLog(`starting backup ${name}`);
+    this.timestampLog(`starting backup ${name}`);
     
     let returnValue = await performBackup({
       basePath: join(tmpDir, 'data', name),
       backupDir,
       name,
+      logger: this.#boundLogger,
     });
     
-    await timestampLog(`finished backup ${name}`);
+    this.timestampLog(`finished backup ${name}`);
     
     return returnValue;
   }
   
   async BackupTestFuncs_performRestoreWithArgs(tmpDir, backupDir, name) {
-    await timestampLog(`starting restore ${name}`);
+    this.timestampLog(`starting restore ${name}`);
     
     let returnValue = await performRestore({
       backupDir,
       basePath: join(tmpDir, 'restore', name),
       name,
+      logger: this.#boundLogger,
     });
     
-    await timestampLog(`finished restore ${name}`);
+    this.timestampLog(`finished restore ${name}`);
     
     return returnValue;
   }
   
   async BackupTestFuncs_checkRestoreAccuracy(tmpDir, name, ignoreMTime, verboseFinalValidationLog) {
-    await timestampLog(`checking validity of restore ${name}`);
+    this.timestampLog(`checking validity of restore ${name}`);
     
     let dataObj = await getFilesAndMetaInDir(join(tmpDir, 'data', name));
     let restoreObj = await getFilesAndMetaInDir(join(tmpDir, 'restore', name));
@@ -305,7 +313,7 @@ class TestManager {
     let valid = true;
     
     if (dataObj.length != restoreObj.length) {
-      await timestampLog(`restore length mismatch, data length ${dataObj.length}, restore length ${restoreObj.length}`);
+      this.timestampLog(`restore length mismatch, data length ${dataObj.length}, restore length ${restoreObj.length}`);
       valid = false;
     }
     
@@ -318,20 +326,20 @@ class TestManager {
       
       for (let stringProp of stringProps) {
         if (dataEntry[stringProp] != restoreEntry[stringProp]) {
-          await timestampLog(`property mismatch, entry ${i}, property ${stringProp}, data value ${JSON.stringify(dataEntry[stringProp])}, restore value ${JSON.stringify(restoreEntry[stringProp])}`);
-          await timestampLog('dataentry\n', dataEntry);
-          await timestampLog('restoreentry\n', restoreEntry);
+          this.timestampLog(`property mismatch, entry ${i}, property ${stringProp}, data value ${JSON.stringify(dataEntry[stringProp])}, restore value ${JSON.stringify(restoreEntry[stringProp])}`);
+          this.timestampLog('dataentry\n', dataEntry);
+          this.timestampLog('restoreentry\n', restoreEntry);
           valid = false;
         }
       }
       
       if (dataEntry.bytes && restoreEntry.bytes) {
         if (dataEntry.bytes.length != restoreEntry.bytes.length) {
-          await timestampLog(`file length mismatch, entry ${i}, data length ${dataEntry.bytes.length}, restore length ${restoreEntry.bytes.length}`);
-          await timestampLog('dataentry\n', dataEntry);
-          await timestampLog('restoreentry\n', restoreEntry);
-          await timestampLog('databytestring\n', JSON.stringify(dataEntry.bytes.toString()));
-          await timestampLog('restorebytestring\n', JSON.stringify(restoreEntry.bytes.toString()));
+          this.timestampLog(`file length mismatch, entry ${i}, data length ${dataEntry.bytes.length}, restore length ${restoreEntry.bytes.length}`);
+          this.timestampLog('dataentry\n', dataEntry);
+          this.timestampLog('restoreentry\n', restoreEntry);
+          this.timestampLog('databytestring\n', JSON.stringify(dataEntry.bytes.toString()));
+          this.timestampLog('restorebytestring\n', JSON.stringify(restoreEntry.bytes.toString()));
           valid = false;
         }
         
@@ -339,13 +347,13 @@ class TestManager {
         
         for (let j = 0; j < entryByteLength; j++) {
           if (dataEntry.bytes[j] != restoreEntry.bytes[j]) {
-            await timestampLog(`file bytes mismatch, entry ${i}, byte ${j}, data byte ${dataEntry.bytes[j]}, restore byte ${restoreEntry.bytes[j]}`);
-            await timestampLog('dataentry\n', dataEntry);
-            await timestampLog('restoreentry\n', restoreEntry);
-            await timestampLog('databyteslice, 21 bytes, middle is altered byte\n', dataEntry.bytes.slice(Math.max(j - 10, 0), j + 11));
-            await timestampLog('restorebyteslice, 21 bytes, middle is altered byte\n', restoreEntry.bytes.slice(Math.max(j - 10, 0), j + 11));
-            await timestampLog('databytestring\n', JSON.stringify(dataEntry.bytes.toString()));
-            await timestampLog('restorebytestring\n', JSON.stringify(restoreEntry.bytes.toString()));
+            this.timestampLog(`file bytes mismatch, entry ${i}, byte ${j}, data byte ${dataEntry.bytes[j]}, restore byte ${restoreEntry.bytes[j]}`);
+            this.timestampLog('dataentry\n', dataEntry);
+            this.timestampLog('restoreentry\n', restoreEntry);
+            this.timestampLog('databyteslice, 21 bytes, middle is altered byte\n', dataEntry.bytes.slice(Math.max(j - 10, 0), j + 11));
+            this.timestampLog('restorebyteslice, 21 bytes, middle is altered byte\n', restoreEntry.bytes.slice(Math.max(j - 10, 0), j + 11));
+            this.timestampLog('databytestring\n', JSON.stringify(dataEntry.bytes.toString()));
+            this.timestampLog('restorebytestring\n', JSON.stringify(restoreEntry.bytes.toString()));
             valid = false;
             break;
           }
@@ -353,7 +361,7 @@ class TestManager {
       }
     }
     
-    await timestampLog(`validity of restore ${name} ${valid ? 'valid' : 'invalid'}`);
+    this.timestampLog(`validity of restore ${name} ${valid ? 'valid' : 'invalid'}`);
     
     if (valid) {
       let stringifyObj = obj =>
@@ -366,21 +374,21 @@ class TestManager {
         })));
       let dataObjString = stringifyObj(dataObj), restoreObjString = stringifyObj(restoreObj);
       if (dataObjString != restoreObjString) {
-        await timestampLog('error in validation logic, restore is not valid');
-        await timestampLog('data ' + JSON.stringify(dataObjString));
-        await timestampLog('restore ' + JSON.stringify(restoreObjString));
+        this.timestampLog('error in validation logic, restore is not valid');
+        this.timestampLog('data ' + JSON.stringify(dataObjString));
+        this.timestampLog('restore ' + JSON.stringify(restoreObjString));
       } else {
-        await timestampLog('final stringify check passed');
+        this.timestampLog('final stringify check passed');
         if (verboseFinalValidationLog) {
-          await timestampLog('data ' + JSON.stringify(dataObjString));
-          await timestampLog('restore ' + JSON.stringify(restoreObjString));
+          this.timestampLog('data ' + JSON.stringify(dataObjString));
+          this.timestampLog('restore ' + JSON.stringify(restoreObjString));
         }
       }
     }
     
     if (!valid) {
-      await timestampLog('data\n', dataObj);
-      await timestampLog('restore\n', restoreObj);
+      this.timestampLog('data\n', dataObj);
+      this.timestampLog('restore\n', restoreObj);
     }
   }
 }
@@ -403,13 +411,13 @@ export async function performTest({
   // TODO: check all imported funcs function, including getFilesAndMetaInDir
   
   if (testOnlyRandomName) {
-    await testMgr.timestampLog([
-      new Array(10).fill().map(() => testMgr.randomName(advancedPrng)),
-      new Array(10).fill().map(() => testMgr.randomContent(advancedPrng).toString()),
+    testMgr.timestampLog([
+      new Array(10).fill().map(() => testMgr.randomName()),
+      new Array(10).fill().map(() => testMgr.randomContent().toString()),
     ]);
     return;
   } else if (testOnlyGetFilesAndMetaDir) {
-    await testMgr.timestampLog(await getFilesAndMetaInDir('src'));
+    testMgr.timestampLog(await getFilesAndMetaInDir('src'));
     return;
   }
   
@@ -418,8 +426,7 @@ export async function performTest({
   await mkdir(TESTS_DIR, { recursive: true });
   
   // open logging file and redirect stdout and stderr
-  await mkdir(join(import.meta.dirname, '../logs'), { recursive: true });
-  let loggingFile = await open(join(import.meta.dirname, `../logs/${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
+  let loggingFile = await open(join(LOGS_DIR, `${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
   //let oldProcStdoutWrite = process.stdout.write.bind(process.stdout);
   let oldProcStderrWrite = process.stderr.write.bind(process.stderr);
   //process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
@@ -439,10 +446,10 @@ export async function performTest({
           testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
           testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
           (async () => {
-            await testMgr.DirectoryCreationFuncs_random1(advancedPrng, join(tmpDir, 'data', 'randomconstant'));
+            await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'randomconstant'));
             let fsOps = [];
             for (let i = 0; i < 10; i++) {
-              fsOps.push(testMgr.DirectoryCreationFuncs_random1(advancedPrng, join(tmpDir, 'data', 'random' + i)));
+              fsOps.push(testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i)));
             }
             await Promise.all(fsOps);
             
@@ -454,7 +461,7 @@ export async function performTest({
             
             let fsOps3 = [];
             for (let i3 = 0; i3 < 10; i3++) {
-              fsOps3.push(testMgr.DirectoryModificationFuncs_copyThenModif(advancedPrng, join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
+              fsOps3.push(testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
             }
             await Promise.all(fsOps3);
           })(),
@@ -475,7 +482,7 @@ export async function performTest({
     let backupDir = join(tmpDir, 'backup');
     
     // init backup dir
-    await testMgr.timestampLog('starting initbackupdir');
+    testMgr.timestampLog('starting initbackupdir');
     await initBackupDir({
       backupDir,
       hash: 'sha256',
@@ -483,13 +490,14 @@ export async function performTest({
       hashSlices: 1,
       compressAlgo: 'brotli',
       compressParams: { level: 11 },
+      logger: testMgr.getBoundLogger(),
     });
-    await testMgr.timestampLog('finished initbackupdir');
+    testMgr.timestampLog('finished initbackupdir');
     
     let printBackupInfo = async () => {
-      await testMgr.timestampLog('starting getbackupinfo');
-      await testMgr.timestampLog(await getBackupInfo({ backupDir }));
-      await testMgr.timestampLog('finished getbackupinfo');
+      testMgr.timestampLog('starting getbackupinfo');
+      testMgr.timestampLog(await getBackupInfo({ backupDir }));
+      testMgr.timestampLog('finished getbackupinfo');
     };
     
     // print empty info
@@ -526,13 +534,13 @@ export async function performTest({
     }
     
     if (testDeliberateModification) {
-      await testMgr.timestampLog('starting deliberate modifs');
+      testMgr.timestampLog('starting deliberate modifs');
       
-      await DirectoryModificationFuncs.modif(advancedPrng, join(tmpDir, 'restore', 'random7.1'));
-      await DirectoryModificationFuncs.medModif(advancedPrng, join(tmpDir, 'restore', 'random8.1'));
-      await DirectoryModificationFuncs.mildModif(advancedPrng, join(tmpDir, 'restore', 'random9.1'));
+      await DirectoryModificationFuncs.modif(join(tmpDir, 'restore', 'random7.1'));
+      await DirectoryModificationFuncs.medModif(join(tmpDir, 'restore', 'random8.1'));
+      await DirectoryModificationFuncs.mildModif(join(tmpDir, 'restore', 'random9.1'));
       
-      await testMgr.timestampLog('finished deliberate modifs');
+      testMgr.timestampLog('finished deliberate modifs');
       
       await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
       await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
@@ -544,7 +552,7 @@ export async function performTest({
       }
     }
   } catch (err) {
-    await testMgr.timestampLog(err);
+    testMgr.timestampLog(err);
     testMgr.setErrorOccurred();
   } finally {
     // after tests finished, close program on pressing enter
