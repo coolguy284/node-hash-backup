@@ -431,7 +431,7 @@ export async function safeRename(oldFilePath, newFilePath) {
   await rename(oldFilePath, newFilePath);
 }
 
-export async function humanReadableSizeString(bytes) {
+export function humanReadableSizeString(bytes) {
   if (!Number.isSafeInteger(bytes)) {
     throw new Error(`bytes not integer: ${bytes}`);
   }

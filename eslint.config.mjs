@@ -28,27 +28,14 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          'argsIgnorePattern': '^_',
+          'varsIgnorePattern': '^_',
+        },
+      ],
     },
   },
-  // {
-  //   files: ['**/*.mjs'],
-  //   plugins: {
-  //     '@typescript-eslint': tseslint.plugin,
-  //   },
-  //   extends: [
-  //     eslint.configs.recommended,
-  //     //tseslint.configs.recommendedTypeChecked,
-  //     tseslint.configs.strictTypeChecked,
-  //     tseslint.configs.stylisticTypeChecked,
-  //   ],
-  //   languageOptions: {
-  //     // globals: globals.nodeBuiltin,
-  //     parser: tseslint.parser,
-  //     parserOptions: {
-  //       project: true,
-  //       projectService: true,
-  //       tsconfigRootDir: import.meta.dirname,
-  //     },
-  //   },
-  // },
 );

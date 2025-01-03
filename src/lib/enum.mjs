@@ -13,7 +13,8 @@ export function Enum(values) {
   
   let valuesSet = new Set();
   
-  for (let value of values) {
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i];
     if (valuesSet.has(value)) {
       throw new Error(`values[${i}] ("${value}") is duplicate`);
     } else {
