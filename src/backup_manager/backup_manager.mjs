@@ -721,6 +721,7 @@ class BackupManager {
       backupData = this.#loadedBackupsCache.get(backupName);
     } else {
       const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+      //console.log([backupFilePath, await readLargeFile(backupFilePath), await readFile(backupFilePath)]);
       
       backupData = BackupManager.#processBackupData(
         JSON.parse((await readLargeFile(backupFilePath)).toString())
