@@ -238,7 +238,7 @@ class BackupManager {
       
       // otherwise, dir is currently empty, leave vars at defaults
     } catch (err) {
-      await this.#lockFile[Symbol.asyncDispose];
+      await this.#lockFile[Symbol.asyncDispose]();
       
       throw err;
     }
@@ -1722,7 +1722,7 @@ class BackupManager {
     this.#allowSingleBackupDestroy = null;
     
     // delete lock file
-    const { bytesRead } = await this.#lockFile.read({
+    const { bytesRead } = await lockFile.read({
       buffer: Buffer.alloc(1),
       position: 0,
     });
