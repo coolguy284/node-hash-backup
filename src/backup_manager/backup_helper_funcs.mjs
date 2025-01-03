@@ -121,6 +121,7 @@ export async function performRestore({
 export async function getBackupInfo({
   backupDir,
   name = null,
+  logger = console.log,
 }) {
   if (typeof name != 'string' && name != null) {
     throw new Error(`name not string or null: ${name}`);

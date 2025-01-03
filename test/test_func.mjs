@@ -490,7 +490,7 @@ export async function performTest({
     
     let printBackupInfo = async () => {
       testMgr.timestampLog('starting getbackupinfo');
-      testMgr.timestampLog(await getBackupInfo({ backupDir }));
+      testMgr.timestampLog(await getBackupInfo({ backupDir, logger: testMgr.getBoundLogger() }));
       testMgr.timestampLog('finished getbackupinfo');
     };
     
