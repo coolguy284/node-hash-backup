@@ -441,21 +441,24 @@ export async function performTest({
       // create filetree
       await Promise.all([
         (async () => {
-          await mkdir(join(tmpDir, 'data'));
+          await Promise.all([
+            mkdir(join(tmpDir, 'data')),
+            mkdir(join(tmpDir, 'data-build')),
+          ]);
           await Promise.all([
             testMgr.DirectoryCreationFuncs_manual1(join(tmpDir, 'data', 'manual1')),
             testMgr.DirectoryCreationFuncs_manual2(join(tmpDir, 'data', 'manual2')),
             testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
             testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
             (async () => {
-              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'randomconstant'));
+              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data-build', 'randomconstant'));
               for (let i = 0; i < 10; i++) {
                 await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i))
               }
               
               let fsOps = [];
               for (let i2 = 0; i2 < 10; i2++) {
-                fsOps.push(cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
+                fsOps.push(cp(join(tmpDir, 'data-build', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
               }
               await Promise.all(fsOps);
               
