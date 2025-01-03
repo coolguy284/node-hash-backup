@@ -139,7 +139,7 @@ const DirectoryCreationFuncs = {
     await mkdir(basePath);
     let fsOps = [];
     for (let i = 0; i < 5; i++) {
-      let dirNameJ = randomName();
+      let dirNameJ = randomName(advancedPrng);
       fsOps.push((async () => {
         await mkdir(join(basePath, dirNameJ));
         let zeroFoldersJ = advancedPrng.getRandomInteger(2);
@@ -148,25 +148,25 @@ const DirectoryCreationFuncs = {
         let numFilesJ = zeroFilesJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
         let fsOpsJ = [];
         for (let j = 0; j < numFoldersJ; j++) {
-          let dirNameK = randomName();
+          let dirNameK = randomName(advancedPrng);
           fsOpsJ.push((async () => {
             await mkdir(join(basePath, dirNameJ, dirNameK));
             let zeroFilesK = advancedPrng.getRandomInteger(2);
             let numFilesK = zeroFilesK ? 0 : advancedPrng.getRandomInteger(5) + 1;
             let fsOpsK = [];
             for (let j = 0; j < numFilesK; j++) {
-              fsOpsK.push(writeFile(join(basePath, dirNameJ, dirNameK, randomName()), Buffer.from(randomContent())));
+              fsOpsK.push(writeFile(join(basePath, dirNameJ, dirNameK, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
             }
           })());
         }
         for (let j = 0; j < numFilesJ; j++) {
-          fsOpsJ.push(writeFile(join(basePath, dirNameJ, randomName()), Buffer.from(randomContent())));
+          fsOpsJ.push(writeFile(join(basePath, dirNameJ, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
         }
         await Promise.all(fsOpsJ);
       })());
     }
     for (let i = 0; i < 5; i++) {
-      fsOps.push(writeFile(join(basePath, randomName()), Buffer.from(randomContent())));
+      fsOps.push(writeFile(join(basePath, randomName(advancedPrng)), Buffer.from(randomContent(advancedPrng))));
     }
     await Promise.all(fsOps);
     
@@ -186,9 +186,9 @@ const DirectoryModificationFuncs = {
     let fileChoices = advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = advancedPrng.getRandomInteger(5);
     
     await Promise.all([
-      writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), randomContent()),
-      rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, randomName())),
-      rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, randomName())),
+      writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), randomContent(advancedPrng)),
+      rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, randomName(advancedPrng))),
+      rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, randomName(advancedPrng))),
     ]);
     
     await timestampLog(logger, logLines, `finished modif ${basePath}`);
@@ -397,8 +397,8 @@ export async function performTest({
   
   if (testOnlyRandomName) {
     await timestampLog(logger, logLines, [
-      new Array(10).fill().map(() => randomName()),
-      new Array(10).fill().map(() => randomContent().toString()),
+      new Array(10).fill().map(() => randomName(advancedPrng)),
+      new Array(10).fill().map(() => randomContent(advancedPrng).toString()),
     ]);
     return;
   } else if (testOnlyGetFilesAndMetaDir) {
