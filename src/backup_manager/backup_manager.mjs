@@ -322,6 +322,7 @@ class BackupManager {
   
   async #addFileBytesToStore({
     fileBytes,
+    filePath,
     checkForDuplicateHashes,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
@@ -336,7 +337,7 @@ class BackupManager {
         const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
         
         if (!fileBytes.equals(storeFileBytes)) {
-          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes (path ${filePath}) have same ${this.#hashAlgo} hash: ${fileHashHex}`);
         }
       }
     } else {
@@ -694,6 +695,7 @@ class BackupManager {
           const fileBytes = await readLargeFile(subFileOrFolderPath);
           return await this.#addFileBytesToStore({
             fileBytes,
+            filePath: subFileOrFolderPath,
             checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
@@ -701,7 +703,7 @@ class BackupManager {
           });
         } else {
           return await this.#addFilePathStreamToStore({
-            fileBytes: subFileOrFolderPath,
+            filePath: subFileOrFolderPath,
             checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
