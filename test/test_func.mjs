@@ -167,15 +167,15 @@ class TestManager {
     for (let i = 0; i < 5; i++) {
       let dirNameJ = this.randomName();
       await mkdir(join(basePath, dirNameJ));
-      let zeroFoldersJ = advancedPrng.getRandomInteger(2);
-      let numFoldersJ = zeroFoldersJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
-      let zeroFilesJ = advancedPrng.getRandomInteger(2);
-      let numFilesJ = zeroFilesJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
+      let zeroFoldersJ = this.#advancedPrng.getRandomInteger(2);
+      let numFoldersJ = zeroFoldersJ ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
+      let zeroFilesJ = this.#advancedPrng.getRandomInteger(2);
+      let numFilesJ = zeroFilesJ ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
       for (let j = 0; j < numFoldersJ; j++) {
         let dirNameK = this.randomName();
         await mkdir(join(basePath, dirNameJ, dirNameK));
-        let zeroFilesK = advancedPrng.getRandomInteger(2);
-        let numFilesK = zeroFilesK ? 0 : advancedPrng.getRandomInteger(5) + 1;
+        let zeroFilesK = this.#advancedPrng.getRandomInteger(2);
+        let numFilesK = zeroFilesK ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
         for (let j = 0; j < numFilesK; j++) {
           await writeFile(join(basePath, dirNameJ, dirNameK, this.randomName()), Buffer.from(this.randomContent()));
         }
@@ -199,7 +199,7 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoices = advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = advancedPrng.getRandomInteger(5);
+    let fileChoices = this.#advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = this.#advancedPrng.getRandomInteger(5);
     
     await writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.randomContent());
     await rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.randomName()));
@@ -216,13 +216,13 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoice = advancedPrng.getRandomInteger(5);
+    let fileChoice = this.#advancedPrng.getRandomInteger(5);
     
     let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
     let fileToModifBuf = await readFile(fileToModif);
     
-    fileToModifBuf = Buffer.concat([fileToModifBuf, Buffer.from([advancedPrng.getRandomInteger(256)])]);
+    fileToModifBuf = Buffer.concat([fileToModifBuf, Buffer.from([this.#advancedPrng.getRandomInteger(256)])]);
     
     await writeFile(fileToModif, fileToModifBuf);
     
@@ -237,7 +237,7 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoice = advancedPrng.getRandomInteger(5);
+    let fileChoice = this.#advancedPrng.getRandomInteger(5);
     
     let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
@@ -245,7 +245,7 @@ class TestManager {
     
     if (fileToModifBuf.length == 0) throw new Error('Error: attempt to modify empty file.');
     
-    let fileToModifBufIndex = advancedPrng.getRandomInteger(fileToModifBuf.length);
+    let fileToModifBufIndex = this.#advancedPrng.getRandomInteger(fileToModifBuf.length);
     
     fileToModifBuf[fileToModifBufIndex] = (fileToModifBuf[fileToModifBufIndex] + 127) % 256;
     
@@ -258,7 +258,7 @@ class TestManager {
     this.timestampLog(`starting copythenmodif ${basePathCopy}`);
     
     await cp(basePathOrig, basePathCopy, { recursive: true });
-    await DirectoryModificationFuncs.modif(basePathCopy);
+    await DirectoryModificationFuncs_modif(basePathCopy);
     
     this.timestampLog(`finished copythenmodif ${basePathCopy}`);
   }
@@ -500,40 +500,40 @@ export async function performTest({
     };
     
     // perform backups
-    await backupOrRestore(BackupTestFuncs.performBackupWithArgs);
+    await backupOrRestore(testMgr.BackupTestFuncs_performBackupWithArgs.bind(testMgr));
     
     // print filled info
     await printBackupInfo();
     
     // perform restores
-    await backupOrRestore(BackupTestFuncs.performRestoreWithArgs);
+    await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
     
     // check validity of restores
-    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
-    await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
+    await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
     for (let i = 0; i < 10; i++) {
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
     }
     
     if (testDeliberateModification) {
       testMgr.timestampLog('starting deliberate modifs');
       
-      await DirectoryModificationFuncs.modif(join(tmpDir, 'restore', 'random7.1'));
-      await DirectoryModificationFuncs.medModif(join(tmpDir, 'restore', 'random8.1'));
-      await DirectoryModificationFuncs.mildModif(join(tmpDir, 'restore', 'random9.1'));
+      await DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
+      await DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
+      await DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
       
       testMgr.timestampLog('finished deliberate modifs');
       
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
-      await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
+      await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
-        await BackupTestFuncs.checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+        await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+        await BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
       }
     }
   } catch (err) {
