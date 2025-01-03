@@ -428,7 +428,8 @@ export async function performTest({
   process.stderr.write = c => { testMgr.timestampLog(c); oldProcStderrWrite(c) };
   
   // make temp dir for tests
-  const tmpDir = await mkdir(join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`));
+  const tmpDir = join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`);
+  await mkdir(tmpDir);
   
   let errorOccurred = false;
   

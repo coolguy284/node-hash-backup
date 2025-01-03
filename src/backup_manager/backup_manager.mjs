@@ -2023,7 +2023,7 @@ class BackupManager {
       compressionParams,
     }
   */
-  async backupTopologySummary() {
+  backupTopologySummary() {
     return {
       hashAlgo: this.getHashAlgo(),
       hashSlices: this.getHashSlices(),
@@ -2095,11 +2095,13 @@ class BackupManager {
   async fullBackupInfoDump() {
     const backupNames = await this.listBackups();
     
-    const backupInfo = backupNames.map(
-      async backupName => [
-        backupName,
-        await this.singleBackupInfoDump(backupName),
-      ]
+    const backupInfo = await Promise.all(
+      backupNames.map(
+        async backupName => [
+          backupName,
+          await this.singleBackupInfoDump(backupName),
+        ]
+      )
     );
     
     let filesTotal = 0,
