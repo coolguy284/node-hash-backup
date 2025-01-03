@@ -33,7 +33,7 @@ export class AdvancedPrng {
   constructor({
     cacheSize = DEFAULT_CACHE_SIZE,
     seedString = DEFAULT_SEED_STRING,
-  }) {
+  } = {}) {
     if (!Number.isSafeInteger(cacheSize) || cacheSize < 0) {
       throw new Error(`cacheSize not nonnegative integer: ${cacheSize}`);
     }
@@ -41,7 +41,7 @@ export class AdvancedPrng {
     this.#prng = sfc32FromString(seedString);
     
     // setup random cache with current index for fresh bytes
-    this.#randomCache = Buffer.alloc(CACHE_SIZE);
+    this.#randomCache = Buffer.alloc(cacheSize);
     this.#randomCacheIndex = 0;
     
     // fills the random cache
@@ -75,14 +75,14 @@ export class AdvancedPrng {
     let start = this.#randomCacheIndex;
     let end = this.#randomCacheIndex + numBytes;
     
-    if (end < CACHE_SIZE) {
+    if (end < this.#randomCache.length) {
       this.#randomCacheIndex += numBytes;
       
       return {
         buf: this.#randomCache.subarray(start, end),
         raw: true,
       };
-    } else if (end == CACHE_SIZE) {
+    } else if (end == this.#randomCache.length) {
       let returnBuf = Buffer.from(this.#randomCache.subarray(start, end));
       
       this.#fillRandomCache();
@@ -93,16 +93,16 @@ export class AdvancedPrng {
         buf: returnBuf,
         raw: false,
       };
-    } else if (numBytes < CACHE_SIZE) {
+    } else if (numBytes < this.#randomCache.length) {
       let returnBuf = Buffer.allocUnsafe(numBytes);
       
-      this.#randomCache.copy(returnBuf, 0, start, CACHE_SIZE);
+      this.#randomCache.copy(returnBuf, 0, start, this.#randomCache.length);
       
       this.#fillRandomCache();
       
-      this.#randomCache.copy(returnBuf, CACHE_SIZE - start, 0, numBytes - (CACHE_SIZE - start));
+      this.#randomCache.copy(returnBuf, this.#randomCache.length - start, 0, numBytes - (this.#randomCache.length - start));
       
-      this.#randomCacheIndex = (this.#randomCacheIndex + numBytes) % CACHE_SIZE;
+      this.#randomCacheIndex = (this.#randomCacheIndex + numBytes) % this.#randomCache.length;
       
       return {
         buf: returnBuf,

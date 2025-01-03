@@ -12,8 +12,8 @@ export class Xmur3 {
     
     let i, h;
     
-    for (i = 0, h = 1779033703 ^ str.length; i < str.length; i++) {
-      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    for (i = 0, h = 1779033703 ^ string.length; i < string.length; i++) {
+      h = Math.imul(h ^ string.charCodeAt(i), 3432918353);
       h = h << 13 | h >>> 19;
     }
     
@@ -21,9 +21,9 @@ export class Xmur3 {
   }
   
   generate() {
-    h = Math.imul(h ^ h >>> 16, 2246822507);
-    h = Math.imul(h ^ h >>> 13, 3266489909);
-    return (h ^= h >>> 16) >>> 0;
+    this.#h = Math.imul(this.#h ^ this.#h >>> 16, 2246822507);
+    this.#h = Math.imul(this.#h ^ this.#h >>> 13, 3266489909);
+    return (this.#h ^= this.#h >>> 16) >>> 0;
   }
   
   getState() {
@@ -87,13 +87,13 @@ export class Sfc32 {
   fillWithRandomBytes(buffer) {
     let i;
     
-    for (i = 0; i + 4 < bytes; i += 4) {
+    for (i = 0; i + 4 < buffer.length; i += 4) {
       buffer.writeUInt32BE(this.generateUInt32(), i);
     }
     
-    if (i < bytes) {
-      let val = obj.uint32();
-      for (; i < bytes; i++, val <<= 8) buffer[i] = val >> 24;
+    if (i < buffer.length) {
+      let val = this.generateUInt32();
+      for (; i < buffer.length; i++, val <<= 8) buffer[i] = val >> 24;
     }
   }
   

@@ -20,7 +20,7 @@ import {
   performRestore,
 } from '../src/backup_manager/backup_helper_funcs.mjs';
 
-import { getFilesAndMetaInDir } from './lib/fs.js'; 
+import { getFilesAndMetaInDir } from './lib/fs.mjs'; 
 import { AdvancedPrng } from './lib/prng_extended.mjs';
 
 export const DEFAULT_TEST_RANDOM_NAME = false;
@@ -370,8 +370,8 @@ const BackupTestFuncs = {
 
 export async function performTest({
   // "test" random name and content functions by printing to console their results 10x
-  testRandomName = DEFAULT_TEST_RANDOM_NAME,
-  testGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
+  testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
+  testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
   // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
   // mtime change ignored when doing verification after modification since folders will get modified
   testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
@@ -379,7 +379,7 @@ export async function performTest({
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
   logger = console.log,
   logFile = null, // TODO: set properly
-}) {
+} = {}) {
   let advancedPrng = new AdvancedPrng();
   
   let logLines = [];
@@ -395,15 +395,13 @@ export async function performTest({
   process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
   process.stderr.write = c => { loggingFile.write(c); oldProcStderrWrite(c) };
   
-  if (testRandomName) {
+  if (testOnlyRandomName) {
     await timestampLog(logger, logLines, [
       new Array(10).fill().map(() => randomName()),
       new Array(10).fill().map(() => randomContent().toString()),
     ]);
     return;
-  }
-  
-  if (testGetFilesAndMetaDir) {
+  } else if (testOnlyGetFilesAndMetaDir) {
     await timestampLog(logger, logLines, await getFilesAndMetaInDir('src'));
     return;
   }
