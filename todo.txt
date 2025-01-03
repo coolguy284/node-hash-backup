@@ -1,5 +1,3 @@
-make tests more fully deterministic by creating random folders sequentially in order
-
 add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes
 function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another

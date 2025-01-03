@@ -164,38 +164,29 @@ class TestManager {
     this.timestampLog(`starting random1 ${basePath}`);
     
     await mkdir(basePath);
-    let fsOps = [];
     for (let i = 0; i < 5; i++) {
       let dirNameJ = this.randomName();
-      fsOps.push((async () => {
-        await mkdir(join(basePath, dirNameJ));
-        let zeroFoldersJ = advancedPrng.getRandomInteger(2);
-        let numFoldersJ = zeroFoldersJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
-        let zeroFilesJ = advancedPrng.getRandomInteger(2);
-        let numFilesJ = zeroFilesJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
-        let fsOpsJ = [];
-        for (let j = 0; j < numFoldersJ; j++) {
-          let dirNameK = this.randomName();
-          fsOpsJ.push((async () => {
-            await mkdir(join(basePath, dirNameJ, dirNameK));
-            let zeroFilesK = advancedPrng.getRandomInteger(2);
-            let numFilesK = zeroFilesK ? 0 : advancedPrng.getRandomInteger(5) + 1;
-            let fsOpsK = [];
-            for (let j = 0; j < numFilesK; j++) {
-              fsOpsK.push(writeFile(join(basePath, dirNameJ, dirNameK, this.randomName()), Buffer.from(this.randomContent())));
-            }
-          })());
+      await mkdir(join(basePath, dirNameJ));
+      let zeroFoldersJ = advancedPrng.getRandomInteger(2);
+      let numFoldersJ = zeroFoldersJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
+      let zeroFilesJ = advancedPrng.getRandomInteger(2);
+      let numFilesJ = zeroFilesJ ? 0 : advancedPrng.getRandomInteger(5) + 1;
+      for (let j = 0; j < numFoldersJ; j++) {
+        let dirNameK = this.randomName();
+        await mkdir(join(basePath, dirNameJ, dirNameK));
+        let zeroFilesK = advancedPrng.getRandomInteger(2);
+        let numFilesK = zeroFilesK ? 0 : advancedPrng.getRandomInteger(5) + 1;
+        for (let j = 0; j < numFilesK; j++) {
+          await writeFile(join(basePath, dirNameJ, dirNameK, this.randomName()), Buffer.from(this.randomContent()));
         }
-        for (let j = 0; j < numFilesJ; j++) {
-          fsOpsJ.push(writeFile(join(basePath, dirNameJ, this.randomName()), Buffer.from(this.randomContent())));
-        }
-        await Promise.all(fsOpsJ);
-      })());
+      }
+      for (let j = 0; j < numFilesJ; j++) {
+        await writeFile(join(basePath, dirNameJ, this.randomName()), Buffer.from(this.randomContent()));
+      }
     }
     for (let i = 0; i < 5; i++) {
-      fsOps.push(writeFile(join(basePath, this.randomName()), Buffer.from(this.randomContent())));
+      await writeFile(join(basePath, this.randomName()), Buffer.from(this.randomContent()))
     }
-    await Promise.all(fsOps);
     
     this.timestampLog(`finished random1 ${basePath}`);
   }
@@ -210,11 +201,9 @@ class TestManager {
     
     let fileChoices = advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = advancedPrng.getRandomInteger(5);
     
-    await Promise.all([
-      writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.randomContent()),
-      rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.randomName())),
-      rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, this.randomName())),
-    ]);
+    await writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.randomContent());
+    await rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.randomName()));
+    await rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, this.randomName()));
     
     this.timestampLog(`finished modif ${basePath}`);
   }
@@ -447,23 +436,19 @@ export async function performTest({
           testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
           (async () => {
             await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'randomconstant'));
-            let fsOps = [];
             for (let i = 0; i < 10; i++) {
-              fsOps.push(testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i)));
+              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i))
+            }
+            
+            let fsOps = [];
+            for (let i2 = 0; i2 < 10; i2++) {
+              fsOps.push(cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
             }
             await Promise.all(fsOps);
             
-            let fsOps2 = [];
-            for (let i2 = 0; i2 < 10; i2++) {
-              fsOps2.push(cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
-            }
-            await Promise.all(fsOps2);
-            
-            let fsOps3 = [];
             for (let i3 = 0; i3 < 10; i3++) {
-              fsOps3.push(testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1')));
+              await testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1'));
             }
-            await Promise.all(fsOps3);
           })(),
         ]);
       })(),
