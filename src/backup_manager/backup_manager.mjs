@@ -2,6 +2,7 @@ import {
   createReadStream,
   createWriteStream,
 } from 'fs';
+import { constants } from 'fs';
 import {
   copyFile,
   lstat,
@@ -174,7 +175,11 @@ class BackupManager {
     await errorIfPathNotDir(backupDirPath);
     
     // create lock file
-    this.#lockFile = await open(join(backupDirPath, EDIT_LOCK_FILE), 'r+');
+    this.#lockFile = await open(
+      join(backupDirPath, EDIT_LOCK_FILE),
+      // https://man7.org/linux/man-pages/man2/open.2.html
+      constants.O_CREAT | constants.O_EXCL | constants.O_RDONLY
+    );
     
     try {
       const { bytesRead } = await this.#lockFile.read({
@@ -183,7 +188,7 @@ class BackupManager {
       });
       
       if (bytesRead > 0) {
-        throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it`);
+        throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it, cannot acquire lock`);
       }
       
       this.#backupDirPath = backupDirPath;
@@ -1717,8 +1722,18 @@ class BackupManager {
     this.#allowSingleBackupDestroy = null;
     
     // delete lock file
-    await lockFile[Symbol.asyncDispose]();
+    const { bytesRead } = await this.#lockFile.read({
+      buffer: Buffer.alloc(1),
+      position: 0,
+    });
+    
+    if (bytesRead > 0) {
+      throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it, cannot delete`);
+    }
+    
+    // operating systems allow unlinking files with open read handles, so might as well unlink before closing
     await unlink(join(backupDirPath, EDIT_LOCK_FILE));
+    await lockFile[Symbol.asyncDispose]();
   }
   
   async _getFilesHexInStore(fileHashHexPrefix = '') {
