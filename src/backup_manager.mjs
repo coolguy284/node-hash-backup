@@ -1460,6 +1460,10 @@ class BackupManager {
       throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
     }
     
+    if (symlinkMode == SymlinkModes.PASSTHROUGH) {
+      throw new Error('symlinkMode SymlinkModes.PASSTHROUGH not supported');
+    }
+    
     if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
       throw new Error(`inMemoryCutoffSize not string: ${typeof inMemoryCutoffSize}`);
     }
@@ -1593,15 +1597,17 @@ class BackupManager {
           break;
         
         case 'symbolic link': {
-          const symlinkBuf = Buffer.from(symlinkPath, 'base64');
-          
-          this.#log(logger, `Restoring ${entry.path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
-          
-          if (symlinkType != null) {
-            const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
-            await symlink(symlinkBuf, outputPath, convertedType);
-          } else {
-            await symlink(symlinkBuf, outputPath);
+          if (symlinkMode != SymlinkModes.IGNORE) {
+            const symlinkBuf = Buffer.from(symlinkPath, 'base64');
+            
+            this.#log(logger, `Restoring ${entry.path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
+            
+            if (symlinkType != null) {
+              const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
+              await symlink(symlinkBuf, outputPath, convertedType);
+            } else {
+              await symlink(symlinkBuf, outputPath);
+            }
           }
           break;
         }

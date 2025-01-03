@@ -1,6 +1,5 @@
 make tests more fully deterministic by creating random folders sequentially in order
 
-option to reset access times after finishing backing up a folder
 add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes
 function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
@@ -22,9 +21,6 @@ implement tests
 extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
-support inheritance from another backup entry, specifying only created, updated (incl. modtimes, attributes), or deleted files/folders
-  support linking a backup to another or unlinking it, after backup is created
-add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 support for directory junction / file and directory symlinks
 subcommands and command line options for all facets of the backup dir functions including defaults
   support for specifying parameters for the compression algos
@@ -41,8 +37,6 @@ ensure able to back up single file into hash backup
 createbackupview and importbackup
 then transfer
 add ctrl c lock to certain parts of code (look up good way), to ensure any backup or load or other operation isnt interrupted during write
-on helper funcs, properly try finally the resource after successful creation of backupmanager
-fix symlinkmode on restore
 
 improved data storage:
   support for file attrs like readonly, appendonly, immutable, etc.
@@ -50,6 +44,8 @@ improved data storage:
   explicitly detect hardlinks
 
 low prio:
+add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
+option to reset access times after finishing backing up a folder
 sort metafiles as adding new entries to them
 version 3
   handle duplicate hashes
@@ -59,7 +55,9 @@ version 3
   store compress level and other params in file metadata json, to know if need to compress file more if upgrading archive compress level
   option (maybe true by default?) to write protect all files in archive, and unprotect them when being edited only
   add creationtime to file_meta json files
-  backup categories
+  folders in backup folder for categories
+  support inheritance from another backup entry, specifying only created, updated (incl. modtimes, attributes), or deleted files/folders
+    support linking a backup to another or unlinking it, after backup is created
   low prio:
     add checksums
 add lzma support to node-hash-backup as an optional dependency
