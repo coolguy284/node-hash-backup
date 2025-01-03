@@ -6,7 +6,10 @@ import {
   readFile,
   readlink,
 } from 'fs/promises';
-import { join } from 'path';
+import {
+  join,
+  relative,
+} from 'path';
 import { pipeline } from 'stream/promises';
 import {
   createBrotliCompress,

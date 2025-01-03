@@ -1075,7 +1075,7 @@ class BackupManager {
         break;
     }
     
-    const backupFilePath = path(this.#backupDirPath, 'backups', `${backupName}.json`);
+    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
     
     try {
       await testCreateFile(backupFilePath);
