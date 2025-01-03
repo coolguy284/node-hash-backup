@@ -860,7 +860,7 @@ class BackupManager {
       }
     } else {
       if (compressionParams != null) {
-        throw new Error(`compressionAlgo null but compressionParams not null: ${compressionParams}`);
+        throw new Error(`compressionAlgo null but compressionParams not null: ${JSON.stringify(compressionParams)}`);
       }
     }
     
@@ -955,7 +955,7 @@ class BackupManager {
     await deleteBackupDirInternal({
       backupDirPath: this.#backupDirPath,
       logger,
-      globalLogger,
+      globalLogger: this.#globalLogger,
     });
     
     this.#clearBackupDirVars();
@@ -1235,7 +1235,7 @@ class BackupManager {
     this.#log(logger, `Successfully renamed backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
   }
   
-  async getBackupCreationDate() {
+  async getBackupCreationDate(backupName) {
     this.#ensureBackupDirLive();
     
     if (!(await this.hasBackup(backupName))) {
@@ -1406,13 +1406,13 @@ class BackupManager {
       let slicedPath;
       
       if (backupFolderPath == '.') {
-        slicedPath = path;
+        slicedPath = entry.path;
       } else {
-        if (path.length <= backupFolderPath.length) {
+        if (entry.path.length <= backupFolderPath.length) {
           continue;
         }
         
-        slicedPath = path.slice(backupFolderPath.length + 1);
+        slicedPath = entry.path.slice(backupFolderPath.length + 1);
       }
       
       const folderName = slicedPath.split('/')[0];
@@ -1521,7 +1521,7 @@ class BackupManager {
         throw new Error(`outputFileOrFolderPath (${outputFileOrFolderPath}) is a subfolder of backupDirPath ${this.#backupDirPath}`);
       
       case RelativeStatus.FIRST_IS_SUBPATH_OF_SECOND:
-        throw new Error(`backupDirPath (${backupFilePath}) is a subfolder of outputFileOrFolderPath (${outputFileOrFolderPath})`);
+        throw new Error(`backupDirPath (${backupFileOrFolderPath}) is a subfolder of outputFileOrFolderPath (${outputFileOrFolderPath})`);
     }
     
     this.#log(logger, `Starting restore of ${JSON.stringify(backupName)} into path ${JSON.stringify(outputFileOrFolderPath)}`);
@@ -1586,7 +1586,7 @@ class BackupManager {
       
       switch (type) {
         case 'file': {
-          this.#log(logger, `Restoring ${entry.path} [file ${humanReadableSizeString((await this.#getFileMeta(hash)).size)}]...`);
+          this.#log(logger, `Restoring ${path} [file ${humanReadableSizeString((await this.#getFileMeta(hash)).size)}]...`);
           
           const { size: fileSize } = await this.#getFileMeta(hash);
           
@@ -1610,7 +1610,7 @@ class BackupManager {
         }
         
         case 'directory':
-          this.#log(logger, `Restoring ${entry.path} [directory]...`);
+          this.#log(logger, `Restoring ${path} [directory]...`);
           
           await mkdir(outputPath);
           break;
@@ -1619,7 +1619,7 @@ class BackupManager {
           if (symlinkMode != SymlinkModes.IGNORE) {
             const symlinkBuf = Buffer.from(symlinkPath, 'base64');
             
-            this.#log(logger, `Restoring ${entry.path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
+            this.#log(logger, `Restoring ${path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
             
             if (symlinkType != null) {
               const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
@@ -1664,7 +1664,7 @@ class BackupManager {
       }
     }
     
-    this.#log(logger, `Successfully restored backup ${JSON.stringify(backupName)} to ${JSON.stringify(fileOrFolderPath)}`);
+    this.#log(logger, `Successfully restored backup ${JSON.stringify(backupName)} to ${JSON.stringify(outputFileOrFolderPath)}`);
   }
   
   async pruneUnreferencedFiles({ logger = null }) {
@@ -1700,7 +1700,7 @@ class BackupManager {
     
     for (const fileHex of unreferencedFiles) {
       this.#log(logger, `Pruning file with hash ${fileHex}...`);
-      this.#removeFileFromStore(fileHex, logger);
+      await this.#removeFileFromStore(fileHex, logger);
     }
     
     this.#log(logger, `Finished pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}...`);
@@ -1957,6 +1957,7 @@ class BackupManager {
     Layout of object returned by this function may change over time, beware.
     Current Layout:
     {
+      createdAt,
       files: integer,
       folders: integer,
       symbolicLinks: integer,
@@ -2003,6 +2004,7 @@ class BackupManager {
     }
     
     return {
+      createdAt: await this.getBackupCreationDate(backupName),
       files,
       folders,
       symbolicLinks,
@@ -2224,6 +2226,7 @@ export async function createBackupManager(
 ) {
   // the 'await' call does have an effect, as constructor returns a promise that gets
   // fulfilled with the newly constructed BackupManager object
+  /* eslint-disable-next-line @typescript-eslint/await-thenable */
   return await new BackupManager(
     backupDirPath,
     {
