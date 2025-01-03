@@ -458,7 +458,7 @@ class BackupManager {
     }
   }
   
-  async #getMetaOfFile(fileHashHex) {
+  async #getFileMeta(fileHashHex) {
     if (this.#loadedFileMetasCache.has(fileHashHex)) {
       return this.#loadedFileMetasCache.get(fileHashHex);
     } else {
@@ -482,7 +482,7 @@ class BackupManager {
   
   async #getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
-    const fileMeta = this.#getMetaOfFile(fileHashHex);
+    const fileMeta = this.#getFileMeta(fileHashHex);
     
     const rawFileBytes = await readLargeFile(filePath);
     
@@ -513,7 +513,7 @@ class BackupManager {
   
   async #getFileStreamFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
-    const fileMeta = this.#getMetaOfFile(fileHashHex);
+    const fileMeta = this.#getFileMeta(fileHashHex);
     
     const rawFileStream = createReadStream(filePath);
     
@@ -1481,9 +1481,9 @@ class BackupManager {
       
       switch (type) {
         case 'file': {
-          this.#log(logger, `Restoring ${entry.path} [file ${humanReadableSizeString(this._getFileMeta(hash).size)}]...`);
+          this.#log(logger, `Restoring ${entry.path} [file ${humanReadableSizeString((await this.#getFileMeta(hash)).size)}]...`);
           
-          const { size: fileSize } = await this.#getMetaOfFile(hash);
+          const { size: fileSize } = await this.#getFileMeta(hash);
           
           if (fileSize <= inMemoryCutoffSize) {
             const fileBytes = await this._getFileBytes(hash, {
@@ -1697,7 +1697,7 @@ class BackupManager {
       throw new Error(`file hash not found in store: ${fileHashHex}`);
     }
     
-    return deepObjectClone(this.#getMetaOfFile(fileHashHex));
+    return deepObjectClone(this.#getFileMeta(fileHashHex));
   }
   
   async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true }) {
@@ -1793,7 +1793,7 @@ class BackupManager {
     let totalCompressedSizeBytes = 0;
     
     for (const fileHex of allFileHexes) {
-      const { size, compressedSize } = await this._getFileMeta(fileHex);
+      const { size, compressedSize } = await this.#getFileMeta(fileHex);
       
       totalSizeBytes += size;
       totalCompressedSizeBytes += compressedSize;
