@@ -54,6 +54,7 @@ improved data storage:
   explicitly detect hardlinks
 
 low prio:
+sort metafiles as adding new entries to them
 version 3
   handle duplicate hashes
     //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n'

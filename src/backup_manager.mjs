@@ -323,6 +323,8 @@ class BackupManager {
         } else {
           this.#log(logger, `Not compressed with ${this.#compressionAlgo} (${JSON.stringify(this.#compressionParams)}) as file size increases from ${fileBytes.length} bytes to ${compressedBytes.length} bytes`);
         }
+      } else {
+        this.#log(logger, `File size: ${fileBytes.length} bytes`);
       }
       
       const {
@@ -337,6 +339,7 @@ class BackupManager {
       
       await mkdir(dirname(newFilePath), { recursive: true });
       await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes);
+      await mkdir(dirname(metaFilePath), { recursive: true });
       await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
       
       await setReadOnly(newFilePath);
