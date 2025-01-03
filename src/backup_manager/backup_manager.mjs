@@ -1616,7 +1616,7 @@ class BackupManager {
       
       switch (type) {
         case 'file': {
-          this.#log(logger, `Restoring ${path} [file (${humanReadableSizeString((await this.#getFileMeta(hash)).size)})]...`);
+          this.#log(logger, `Restoring ${JSON.stringify(path)} [file (${humanReadableSizeString((await this.#getFileMeta(hash)).size)})]...`);
           
           const { size: fileSize } = await this.#getFileMeta(hash);
           
@@ -2018,7 +2018,7 @@ class BackupManager {
     for (const { type, hash } of backupInfo) {
       switch (type) {
         case 'file': {
-          const { size, compressedSize } = this._getFileMeta(hash);
+          const { size, compressedSize } = await this._getFileMeta(hash);
           
           files++;
           
