@@ -23,11 +23,11 @@ import {
   errorIfPathNotDir,
   fileOrFolderExists,
   readLargeFile,
-} from './lib/fs.mjs';
-import { callBothLoggers } from './lib/logger.mjs';
-import { ReadOnlyMap } from './lib/read_only_map.mjs';
-import { ReadOnlySet } from './lib/read_only_set.mjs';
-import { unixNSIntToUnixSecString } from './lib/time.mjs';
+} from '../lib/fs.mjs';
+import { callBothLoggers } from '../lib/logger.mjs';
+import { ReadOnlyMap } from '../lib/read_only_map.mjs';
+import { ReadOnlySet } from '../lib/read_only_set.mjs';
+import { unixNSIntToUnixSecString } from '../lib/time.mjs';
 
 export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;

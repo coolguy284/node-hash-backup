@@ -1,4 +1,4 @@
-import { SymlinkModes } from './src/lib/fs.mjs';
+import { SymlinkModes } from '../lib/fs.mjs';
 import {
   createBackupManager,
   DEFAULT_IN_MEMORY_CUTOFF_SIZE,

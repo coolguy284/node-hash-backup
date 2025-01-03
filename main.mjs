@@ -1,17 +1,17 @@
 // primary exports
 
-export { SymlinkModes } from './src/lib/fs.mjs';
-export { createBackupManager } from './src/backup_manager.mjs';
+export { createBackupManager } from './src/backup_manager/backup_manager.mjs';
 export {
   initBackupDir,
   deleteBackupDir,
   performBackup,
   performRestore,
-} from './src/backup_helper_funcs.mjs';
+} from './src/backup_manager/backup_helper_funcs.mjs';
+export { SymlinkModes } from './src/lib/fs.mjs';
 
 // additional exports
 
-export { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from './src/backup_manager.mjs';
+export { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from './src/backup_manager/backup_manager.mjs';
 export {
   BACKUP_PATH_SEP,
   BITS_PER_BYTE,
@@ -25,7 +25,7 @@ export {
   isValidBackupDir,
   MIN_BACKUP_VERSION,
   // VARIABLE_LENGTH_HAHSHES,
-} from './src/lib.mjs';
+} from './src/backup_manager/lib.mjs';
 
 // check for running as main
 

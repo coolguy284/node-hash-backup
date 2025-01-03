@@ -22,7 +22,7 @@ import {
 } from 'path';
 import { pipeline } from 'stream/promises';
 
-import { deepObjectClone } from './lib/deep_clone.mjs';
+import { deepObjectClone } from '../lib/deep_clone.mjs';
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
@@ -38,10 +38,10 @@ import {
   SymlinkModes,
   testCreateFile,
   writeFileReplaceWhenDone,
-} from './lib/fs.mjs';
-import { callBothLoggers } from './lib/logger.mjs';
-import { unixSecStringToUnixNSInt } from './lib/time.mjs';
-import { streamsEqual } from './lib/stream_equality.mjs';
+} from '../lib/fs.mjs';
+import { callBothLoggers } from '../lib/logger.mjs';
+import { unixSecStringToUnixNSInt } from '../lib/time.mjs';
+import { streamsEqual } from '../lib/stream_equality.mjs';
 import {
   backupFileStringify,
   createCompressor,
