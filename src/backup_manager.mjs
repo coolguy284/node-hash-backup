@@ -80,6 +80,7 @@ class BackupManager {
   #compressionAlgo = null;
   #compressionParams = null;
   #hashHexLength = null;
+  #cacheEnabled;
   #loadedBackupsCache = null;
   #loadedFileMetasCache = null;
   #globalLogger;
@@ -147,6 +148,7 @@ class BackupManager {
   async #initManager({
     backupDirPath,
     autoUpgradeDir = false,
+    cacheEnabled = true,
     globalLogger = null,
   }) {
     if (typeof backupDirPath != 'string') {
@@ -157,9 +159,15 @@ class BackupManager {
       throw new Error(`autoUpgradeDir must be boolean, but was: ${typeof autoUpgradeDir}`);
     }
     
+    if (typeof cacheEnabled != 'boolean') {
+      throw new Error(`cacheEnabled must be boolean, but was: ${typeof cacheEnabled}`);
+    }
+    
     if (typeof globalLogger != 'function' && globalLogger != null) {
       throw new Error(`globalLogger must be a function or null, but was: ${typeof globalLogger}`);
     }
+    
+    this.#cacheEnabled = cacheEnabled;
     
     this.#globalLogger = globalLogger ?? null;
     
@@ -465,13 +473,13 @@ class BackupManager {
   }
   
   #addMetaEntryToCache(fileHashHex, metaEntry) {
-    if (!this.#loadedFileMetasCache.has(fileHashHex)) {
+    if (this.#cacheEnabled && !this.#loadedFileMetasCache.has(fileHashHex)) {
       this.#loadedFileMetasCache.set(fileHashHex, BackupManager.#processMetaEntry(metaEntry));
     }
   }
   
   async #getFileMeta(fileHashHex) {
-    if (this.#loadedFileMetasCache.has(fileHashHex)) {
+    if (this.#cacheEnabled && this.#loadedFileMetasCache.has(fileHashHex)) {
       return this.#loadedFileMetasCache.get(fileHashHex);
     } else {
       const metaFilePath = this.#getMetaPathOfFile(fileHashHex);
@@ -482,13 +490,17 @@ class BackupManager {
         throw new Error(`fileHash (${fileHashHex}) not found in meta files`);
       }
       
-      for (const hash in metaJson) {
-        if (!this.#loadedFileMetasCache.has(hash)) {
-          this.#loadedFileMetasCache.set(hash, BackupManager.#processMetaEntry(metaJson[hash]));
+      if (this.#cacheEnabled) {
+        for (const hash in metaJson) {
+          if (!this.#loadedFileMetasCache.has(hash)) {
+            this.#loadedFileMetasCache.set(hash, BackupManager.#processMetaEntry(metaJson[hash]));
+          }
         }
+        
+        return this.#loadedFileMetasCache.get(fileHashHex);
+      } else {
+        return BackupManager.#processMetaEntry(metaJson[fileHashHex]);
       }
-      
-      return this.#loadedFileMetasCache.get(fileHashHex);
     }
   }
   
@@ -677,24 +689,32 @@ class BackupManager {
   }
   
   #setCachedBackupData(backupName, backupData) {
-    this.#loadedBackupsCache.set(backupName, BackupManager.#processBackupData(backupData));
+    if (this.#cacheEnabled) {
+      this.#loadedBackupsCache.set(backupName, BackupManager.#processBackupData(backupData));
+    }
   }
   
   #deleteCachedBackupData(backupName) {
-    this.#loadedBackupsCache.delete(backupName);
+    if (this.#cacheEnabled) {
+      this.#loadedBackupsCache.delete(backupName);
+    }
   }
   
   async #getCachedBackupData(backupName) {
     let backupData;
     
-    if (this.#loadedBackupsCache.has(backupName)) {
+    if (this.#cacheEnabled && this.#loadedBackupsCache.has(backupName)) {
       backupData = this.#loadedBackupsCache.get(backupName);
     } else {
       const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+      
       backupData = BackupManager.#processBackupData(
         JSON.parse((await readLargeFile(backupFilePath)).toString())
       );
-      this.#loadedBackupsCache.set(backupName, backupData);
+      
+      if (this.#cacheEnabled) {
+        this.#loadedBackupsCache.set(backupName, backupData);
+      }
     }
     
     return backupData;
@@ -705,11 +725,13 @@ class BackupManager {
   // This function is async as it calls an async helper and returns the corresponding promise
   constructor(backupDirPath, {
     autoUpgradeDir = false,
+    cacheEnabled = true,
     globalLogger = null,
   }) {
     return this.#initManager({
       backupDirPath,
       autoUpgradeDir,
+      cacheEnabled,
       globalLogger,
     });
   }
@@ -720,6 +742,10 @@ class BackupManager {
   
   isInitialized() {
     return this.#hashAlgo != null;
+  }
+  
+  cacheEnabled() {
+    return this.#cacheEnabled;
   }
   
   getBackupDirPath() {
@@ -1667,6 +1693,7 @@ class BackupManager {
     this.#lockFile = null;
     this.#backupDirPath = null;
     this.#clearBackupDirVars();
+    this.#cacheEnabled = null;
     this.#globalLogger = null;
     this.#allowFullBackupDirDestroy = null;
     this.#allowSingleBackupDestroy = null;
@@ -1813,8 +1840,12 @@ class BackupManager {
   _clearCaches() {
     this.#ensureBackupDirLive();
     
-    this.#loadedBackupsCache.clear();
-    this.#loadedFileMetasCache.clear();
+    if (this.#cacheEnabled) {
+      this.#loadedBackupsCache.clear();
+      this.#loadedFileMetasCache.clear();
+    } else {
+      throw new Error('caches disabled');
+    }
   }
   
   async _getBackupOnlyMetaSize(backupName) {
@@ -2150,6 +2181,7 @@ export async function createBackupManager(
   backupDirPath,
   {
     autoUpgradeDir = false,
+    cacheEnabled = true,
     globalLogger = null,
   }
 ) {
@@ -2159,6 +2191,7 @@ export async function createBackupManager(
     backupDirPath,
     {
       autoUpgradeDir,
+      cacheEnabled,
       globalLogger,
     }
   );

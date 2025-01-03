@@ -1,4 +1,3 @@
-option to disable backupmgr cache
 make tests more fully deterministic by creating random folders sequentially in order
 
 option to reset access times after finishing backing up a folder
