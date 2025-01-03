@@ -552,6 +552,8 @@ export async function performTest({
     // after tests finished, close program on pressing enter
     console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
     await new Promise(r => process.stdin.once('data', r));
+    // stdin gets set into flowing mode by the above
+    process.stdin.pause();
     if (!errorOccurred) {
       await rm(tmpDir, { recursive: true });
     } else {
