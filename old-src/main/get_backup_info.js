@@ -1,39 +1,13 @@
 let fs = require('fs');
 let path = require('path');
 
-let { _checkPathIsDir,
-      _recursiveReaddir } = require('../lib/fs');
+let { _recursiveReaddir } = require('../lib/fs');
 let { _getFileMetaPathFromBackup } = require('../lib/fs_meta');
 
-module.exports = async function getBackupInfo(opts) {
-  if (typeof opts != 'object') opts = {};
-  
-  let performChecks = typeof opts._performChecks == 'boolean' ? opts._performChecks : true;
-  let backupDir = typeof opts.backupDir == 'string' && opts.backupDir != '' ? opts.backupDir : null;
-  let name = typeof opts.name == 'string' && opts.name != '' ? opts.name : null;
-  
-  if (performChecks) {
-    if (backupDir == null) throw new Error('Error: backup dir must be specified.');
-    
-    await _checkPathIsDir(backupDir);
-  }
-  
-  let backupDirInfo = JSON.parse(await fs.promises.readFile(path.join(backupDir, 'info.json')));
-  
-  if (backupDirInfo.folderType != 'coolguy284/node-hash-backup')
-    throw new Error('Error: backup dir is not a hash backup dir.');
-  
-  if (!Number.isSafeInteger(backupDirInfo.version))
-    throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (not an integer).`);
-  
-  if (backupDirInfo.version < 1)
-    throw new Error(`Error: hash backup version ${backupDirInfo.version} invalid (must be at least 1)`);
-  
-  if (backupDirInfo.version == 1)
-    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for an earlier version of this program.`);
-  
-  if (backupDirInfo.version > 2)
-    throw new Error(`Error: hash backup version ${backupDirInfo.version} is for a later version of this program.`);
+module.exports = async function getBackupInfo() {
+  let backupDir;
+  let name;
+  let backupDirInfo;
   
   if (name == null) {
     let backups = await fs.promises.readdir(path.join(backupDir, 'backups')), backupsSize = 0;
@@ -170,33 +144,5 @@ module.exports = async function getBackupInfo(opts) {
         }],
       ],
     };
-  } else {
-    let backupJSONPath = path.join(backupDir, 'backups', name + '.json');
-    
-    let backupObj;
-    try {
-      backupObj = JSON.parse((await fs.promises.readFile(backupJSONPath)).toString());
-    } catch (e) {
-      if (e.code != 'ENOENT') throw e;
-      throw new Error(`Error: backup "${name}" in "${backupDir}" does not exist.`);
-    }
-    
-    let files = 0, folders = 0, items = 0, size = 0, compressedSize = 0;
-    
-    for (let entry of backupObj.entries) {
-      if (entry.type == 'directory') {
-        folders++;
-      } else {
-        let fileMetaPath = path.join(backupDir, _getFileMetaPathFromBackup(backupDirInfo, entry.hash));
-        let fileMeta = JSON.parse((await fs.promises.readFile(fileMetaPath)).toString())[entry.hash];
-        files++;
-        size += fileMeta.size;
-        if ('compressedSize' in fileMeta) compressedSize += fileMeta.compressedSize;
-        else compressedSize += fileMeta.size;
-      }
-      items++;
-    }
-    
-    return { files, folders, items, size, compressedSize };
-  }
+  } else {}
 };

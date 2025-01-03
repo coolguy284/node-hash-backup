@@ -1,3 +1,5 @@
+cache filemeta as well
+option to disable backupmgr cache
 make tests more fully deterministic by creating random folders sequentially in order
 
 add above-compress-cutoff above which no compression at all, and below cutoff for no compression below a certain size (although rarely needed)

@@ -439,7 +439,17 @@ class BackupManager {
       throw new Error(`fileHash (${fileHashHex}) not found in meta files`);
     }
     
-    return metaJson[fileHashHex];
+    const {
+      size,
+      compressedSize,
+      compression = null,
+    } = metaJson[fileHashHex];
+    
+    return {
+      size,
+      compressedSize: compressedSize != null ? compressedSize : size,
+      compression,
+    };
   }
   
   async #getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval) {
@@ -1722,12 +1732,52 @@ class BackupManager {
     this.#loadedBackupsCache.clear();
   }
   
+  async _getBackupOnlyMetaSize(backupName) {
+    if (!(await this.hasBackup(backupName))) {
+      throw new Error(`backup nonexistent: ${backupName}`);
+    }
+    
+    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    
+    return (await lstat(backupFilePath)).size;
+  }
+  
+  async _getTotalFilesMetaSize() {
+    const metaFiles = await recursiveReaddir(join(this.#backupDirPath, 'files_meta'), { includeDirs: false, entries: false });
+    
+    let totalBytes = 0;
+    
+    for (const metaFilePath of metaFiles) {
+      totalBytes += (await lstat(metaFilePath)).size;
+    }
+    
+    return totalBytes;
+  }
+  
+  async _getTotalFilesSize() {
+    const allFileHexes = await this._getFilesHexInStore();
+    
+    let totalSizeBytes = 0;
+    let totalCompressedSizeBytes = 0;
+    
+    for (const fileHex of allFileHexes) {
+      const { size, compressedSize } = await this._getFileMeta(fileHex);
+      
+      totalSizeBytes += size;
+      totalCompressedSizeBytes += compressedSize;
+    }
+    
+    return {
+      fileCount: allFileHexes.length,
+      sizeBytes: totalSizeBytes,
+      compressedSizeBytes: totalCompressedSizeBytes,
+    };
+  }
+  
   // public helper funcs
   
   async getAllFilesOrFoldersInfoFromBackup(backupName) {
-    return await this.getSubtreeInfoFromBackup({
-      backupName,
-    });
+    return await this.getSubtreeInfoFromBackup({ backupName });
   }
   
   // Output can not exist, or can be an empty folder; if restoring file, output must not exist
@@ -1749,10 +1799,186 @@ class BackupManager {
     });
   }
   
-  // Layout of object returned by this function may change over time, beware
+  /*
+    Layout of object returned by this function may change over time, beware.
+    Current Layout:
+    {
+      files: integer,
+      folders: integer,
+      symbolicLinks: integer,
+      items: integer,
+      sizeBytes: integer,
+      compressedSizeBytes: integer,
+      backupOnlyMetaSizeBytes: integer,
+      referencedFileHashes: Set<string>,
+    }
+  */
+  async singleBackupInfoDump(backupName) {
+    let files = 0,
+      folders = 0,
+      symbolicLinks = 0,
+      sizeBytes = 0,
+      compressedSizeBytes = 0;
+    
+    let referencedFileHashes = new Set();
+    
+    const backupInfo = await this.getAllFilesOrFoldersInfoFromBackup(backupName);
+    
+    for (const { type, hash } of backupInfo) {
+      switch (type) {
+        case 'file': {
+          const { size, compressedSize } = this._getFileMeta(hash);
+          
+          files++;
+          
+          sizeBytes += size;
+          compressedSizeBytes += compressedSize;
+          
+          referencedFileHashes.add(hash);
+          break;
+        }
+        
+        case 'directory':
+          folders++;
+          break;
+        
+        case 'symbolic link':
+          symbolicLinks++;
+          break;
+      }
+    }
+    
+    return {
+      files,
+      folders,
+      symbolicLinks,
+      items: files + folders + symbolicLinks,
+      sizeBytes,
+      compressedSizeBytes,
+      backupOnlyMetaSizeBytes: await this._getBackupOnlyMetaSize(backupName),
+      referencedFileHashes,
+    };
+  }
+  
+  /*
+    Layout of object returned by this function may change over time, beware.
+    Current Layout:
+    {
+      backups: [
+        [ backupName, backupData: singleBackupInfoDump ],
+        ...
+      ],
+      naiveSum: {
+        files,
+        folders,
+        symbolicLinks,
+        items,
+        sizeBytes,
+        compressedSizeBytes,
+      },
+      fullBackupInfo: {
+        generic: {
+          backupMetaSizeBytesTotal,
+          fileMetaSizeBytesTotal,
+        },
+        referenced: {
+          fileCount,
+          fileSizeTotal,
+          fileCompressedSizeTotal,
+        },
+        total: {
+          fileCount,
+          fileSizeTotal,
+          fileCompressedSizeTotal,
+        },
+      },
+    }
+  */
   async fullBackupInfoDump() {
-    // TODO
-    // TODO: only call public functions in backupmanager to create the info dump
+    const backupNames = await this.listBackups();
+    
+    const backupInfo = backupNames.map(
+      async backupName => [
+        backupName,
+        await this.singleBackupInfoDump(backupName),
+      ]
+    );
+    
+    let filesTotal = 0,
+      foldersTotal = 0,
+      symbolicLinksTotal = 0,
+      sizeBytesTotal = 0,
+      compressedSizeBytesTotal = 0,
+      backupMetaSizeBytesTotal = 0;
+    
+    let referencedFileHashesTotal = new Set();
+    
+    for (
+      const {
+        files,
+        folders,
+        symbolicLinks,
+        sizeBytes,
+        compressedSizeBytes,
+        backupOnlyMetaSizeBytes,
+        referencedFileHashes,
+      } of backupInfo
+    ) {
+      filesTotal += files;
+      foldersTotal += folders;
+      symbolicLinksTotal += symbolicLinks;
+      sizeBytesTotal += sizeBytes;
+      compressedSizeBytesTotal += compressedSizeBytes;
+      backupMetaSizeBytesTotal += backupOnlyMetaSizeBytes;
+      
+      for (const hash of referencedFileHashes) {
+        referencedFileHashesTotal.add(hash);
+      }
+    }
+    
+    const {
+      fileCount: totalFileCount,
+      sizeBytes: totalSizeBytes,
+      compressedSizeBytes: totalCompressedSizeBytes,
+    } = await this._getTotalFilesSize();
+    
+    let referencedSizeTotal = 0,
+      referencedCompressedSizeTotal = 0;
+    
+    for (const hash of referencedFileHashesTotal) {
+      const { size, compressedSize } = await this._getFileMeta(hash);
+      
+      referencedSizeTotal += size;
+      referencedCompressedSizeTotal += compressedSize;
+    }
+    
+    return {
+      backups: backupInfo,
+      naiveSum: {
+        files: filesTotal,
+        folders: foldersTotal,
+        symbolicLinks: symbolicLinksTotal,
+        items: filesTotal + foldersTotal + symbolicLinksTotal,
+        sizeBytes: sizeBytesTotal,
+        compressedSizeBytes: compressedSizeBytesTotal,
+      },
+      fullBackupInfo: {
+        generic: {
+          backupMetaSizeBytesTotal,
+          fileMetaSizeBytesTotal: await this._getTotalFilesMetaSize(),
+        },
+        referenced: {
+          fileCount: referencedFileHashesTotal.size,
+          fileSizeTotal: referencedSizeTotal,
+          fileCompressedSizeTotal: referencedCompressedSizeTotal,
+        },
+        total: {
+          fileCount: totalFileCount,
+          fileSizeTotal: totalSizeBytes,
+          fileCompressedSizeTotal: totalCompressedSizeBytes,
+        },
+      },
+    };
   }
 }
 

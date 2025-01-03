@@ -111,3 +111,26 @@ export async function performRestore({
     await backupMgr[Symbol.asyncDispose]();
   }
 }
+
+export async function getBackupInfo({
+  backupDir,
+  name = null,
+}) {
+  if (typeof name != 'string' && name != null) {
+    throw new Error(`name not string or null: ${name}`);
+  }
+  
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    if (name == null) {
+      return await backupMgr.fullBackupInfoDump();
+    } else {
+      return await backupMgr.singleBackupInfoDump(name);
+    }
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
