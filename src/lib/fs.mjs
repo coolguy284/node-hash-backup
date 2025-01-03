@@ -166,15 +166,13 @@ async function recursiveReaddirInternal(
           .filter(({ subExcludedFilesOrFolders }) =>
             !subExcludedFilesOrFolders.some(excludePath => excludePath.length == 0)
           )
-          .map(async ({ name, subExcludedFilesOrFolders }) => {
-            await recursiveReaddirInternal(
-              join(fileOrDirPath, name),
-              {
-                excludedFilesOrFolders: subExcludedFilesOrFolders,
-                symlinkMode,
-              }
-            );
-          })
+          .map(async ({ name, subExcludedFilesOrFolders }) => await recursiveReaddirInternal(
+            join(fileOrDirPath, name),
+            {
+              excludedFilesOrFolders: subExcludedFilesOrFolders,
+              symlinkMode,
+            }
+          ))
       ))
       .filter(entry => entry != null)
       .flat();
@@ -193,7 +191,7 @@ export async function recursiveReaddir(
     entries = true,
     symlinkMode = SymlinkModes.PRESERVE,
     sorted = false,
-  }
+  } = {}
 ) {
   if (typeof fileOrDirPath != 'string') {
     throw new Error(`fileOrDirPath not string: ${typeof fileOrDirPath}`);

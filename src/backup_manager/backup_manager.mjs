@@ -253,12 +253,12 @@ class BackupManager {
       hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
     }
     
-    return join(this.#backupDirPath, ...hashSliceParts, fileHashHex);
+    return join(this.#backupDirPath, 'files', ...hashSliceParts, fileHashHex);
   }
   
   #getMetaPathOfFile(fileHashHex) {
     if (this.#hashSlices == 0) {
-      return join(this.#backupDirPath, 'meta.json');
+      return join(this.#backupDirPath, 'files_meta', 'meta.json');
     } else {
       let hashSliceParts = [];
       
@@ -266,7 +266,7 @@ class BackupManager {
         hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
       }
       
-      return join(this.#backupDirPath, ...hashSliceParts.slice(0, -1), `${hashSliceParts.at(-1)}.json`);
+      return join(this.#backupDirPath, 'files_meta', ...hashSliceParts.slice(0, -1), `${hashSliceParts.at(-1)}.json`);
     }
   }
   

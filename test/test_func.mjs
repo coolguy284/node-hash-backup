@@ -27,13 +27,14 @@ export const DEFAULT_TEST_GET_FILES_AND_META_DIR = false;
 export const DEFAULT_TEST_DELIBERATE_MODIFICATION = false;
 export const DEFAULT_VERBOSE_FINAL_VALIDATION_LOG = false;
 export const DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED = true;
+export const DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED = true;
 
 const RANDOM_NAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const RANDOM_CONTENT_CHARS = 'abcdef0123';
 const TEST_DATA_DIR = join(import.meta.dirname, '../test_data');
 const LOGS_DIR = join(TEST_DATA_DIR, 'logs');
 const TESTS_DIR = join(TEST_DATA_DIR, 'tests');
-const FORCE_QUIT_TIMEOUT = 10_000;
+//const FORCE_QUIT_TIMEOUT = 10_000;
 
 async function removeDirIfEmpty(dirPath) {
   if ((await readdir(dirPath)).length == 0) {
@@ -398,6 +399,7 @@ export async function performTest({
   testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
   verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
+  doNotSaveTestDirIfTestPassed = DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED,
   logger = console.log,
   doLogFile = true, // TODO: use properly
   awaitUserInputAtEnd = false,
@@ -428,159 +430,165 @@ export async function performTest({
   //process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
   process.stderr.write = c => { testMgr.timestampLog(c); oldProcStderrWrite(c) };
   
-  // make temp dir for tests
-  const tmpDir = join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`);
-  await mkdir(tmpDir);
-  
-  let errorOccurred = false;
-  
   try {
-    // create filetree
-    await Promise.all([
-      (async () => {
-        await mkdir(join(tmpDir, 'data'));
-        await Promise.all([
-          testMgr.DirectoryCreationFuncs_manual1(join(tmpDir, 'data', 'manual1')),
-          testMgr.DirectoryCreationFuncs_manual2(join(tmpDir, 'data', 'manual2')),
-          testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
-          testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
-          (async () => {
-            await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'randomconstant'));
-            for (let i = 0; i < 10; i++) {
-              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i))
-            }
-            
-            let fsOps = [];
-            for (let i2 = 0; i2 < 10; i2++) {
-              fsOps.push(cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
-            }
-            await Promise.all(fsOps);
-            
-            for (let i3 = 0; i3 < 10; i3++) {
-              await testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1'));
-            }
-          })(),
-        ]);
-      })(),
-      mkdir(join(tmpDir, 'backup')),
-      (async () => {
-        await mkdir(join(tmpDir, 'restore'));
-        let dirArr = ['manual1', 'manual2', 'manual3', 'manual4'];
+    // make temp dir for tests
+    const tmpDir = join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`);
+    await mkdir(tmpDir);
+    
+    let errorOccurred = false;
+    
+    try {
+      // create filetree
+      await Promise.all([
+        (async () => {
+          await mkdir(join(tmpDir, 'data'));
+          await Promise.all([
+            testMgr.DirectoryCreationFuncs_manual1(join(tmpDir, 'data', 'manual1')),
+            testMgr.DirectoryCreationFuncs_manual2(join(tmpDir, 'data', 'manual2')),
+            testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
+            testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
+            (async () => {
+              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'randomconstant'));
+              for (let i = 0; i < 10; i++) {
+                await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i))
+              }
+              
+              let fsOps = [];
+              for (let i2 = 0; i2 < 10; i2++) {
+                fsOps.push(cp(join(tmpDir, 'data', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
+              }
+              await Promise.all(fsOps);
+              
+              for (let i3 = 0; i3 < 10; i3++) {
+                await testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1'));
+              }
+            })(),
+          ]);
+        })(),
+        mkdir(join(tmpDir, 'backup')),
+        (async () => {
+          await mkdir(join(tmpDir, 'restore'));
+          let dirArr = ['manual1', 'manual2', 'manual3', 'manual4'];
+          for (let i = 0; i < 10; i++) {
+            dirArr.push('random' + i);
+            dirArr.push('random' + i + '.1');
+          }
+          await Promise.all(dirArr.map(async x => await mkdir(join(tmpDir, 'restore', x))));
+        })(),
+      ]);
+      
+      let backupDir = join(tmpDir, 'backup');
+      
+      // init backup dir
+      testMgr.timestampLog('starting initbackupdir');
+      await initBackupDir({
+        backupDir,
+        hash: 'sha256',
+        hashSliceLength: 2,
+        hashSlices: 1,
+        compressAlgo: 'brotli',
+        compressParams: { level: 11 },
+        logger: testMgr.getBoundLogger(),
+      });
+      testMgr.timestampLog('finished initbackupdir');
+      
+      let printBackupInfo = async () => {
+        testMgr.timestampLog('starting getbackupinfo');
+        testMgr.timestampLog(await getBackupInfo({ backupDir, logger: testMgr.getBoundLogger() }));
+        testMgr.timestampLog('finished getbackupinfo');
+      };
+      
+      // print empty info
+      await printBackupInfo();
+      
+      let backupOrRestore = async backupOrRestoreFunc => {
+        await backupOrRestoreFunc(tmpDir, backupDir, 'manual1');
+        await backupOrRestoreFunc(tmpDir, backupDir, 'manual2');
+        await backupOrRestoreFunc(tmpDir, backupDir, 'manual3');
+        await backupOrRestoreFunc(tmpDir, backupDir, 'manual4');
         for (let i = 0; i < 10; i++) {
-          dirArr.push('random' + i);
-          dirArr.push('random' + i + '.1');
+          await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i);
+          await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i + '.1');
         }
-        await Promise.all(dirArr.map(async x => await mkdir(join(tmpDir, 'restore', x))));
-      })(),
-    ]);
-    
-    let backupDir = join(tmpDir, 'backup');
-    
-    // init backup dir
-    testMgr.timestampLog('starting initbackupdir');
-    await initBackupDir({
-      backupDir,
-      hash: 'sha256',
-      hashSliceLength: 2,
-      hashSlices: 1,
-      compressAlgo: 'brotli',
-      compressParams: { level: 11 },
-      logger: testMgr.getBoundLogger(),
-    });
-    testMgr.timestampLog('finished initbackupdir');
-    
-    let printBackupInfo = async () => {
-      testMgr.timestampLog('starting getbackupinfo');
-      testMgr.timestampLog(await getBackupInfo({ backupDir, logger: testMgr.getBoundLogger() }));
-      testMgr.timestampLog('finished getbackupinfo');
-    };
-    
-    // print empty info
-    await printBackupInfo();
-    
-    let backupOrRestore = async backupOrRestoreFunc => {
-      await backupOrRestoreFunc(tmpDir, backupDir, 'manual1');
-      await backupOrRestoreFunc(tmpDir, backupDir, 'manual2');
-      await backupOrRestoreFunc(tmpDir, backupDir, 'manual3');
-      await backupOrRestoreFunc(tmpDir, backupDir, 'manual4');
+      };
+      
+      // perform backups
+      await backupOrRestore(testMgr.BackupTestFuncs_performBackupWithArgs.bind(testMgr));
+      
+      // print filled info
+      await printBackupInfo();
+      
+      // perform restores
+      await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
+      
+      // check validity of restores
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i);
-        await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i + '.1');
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
       }
-    };
-    
-    // perform backups
-    await backupOrRestore(testMgr.BackupTestFuncs_performBackupWithArgs.bind(testMgr));
-    
-    // print filled info
-    await printBackupInfo();
-    
-    // perform restores
-    await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
-    
-    // check validity of restores
-    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
-    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
-    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
-    await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
-    for (let i = 0; i < 10; i++) {
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
-    }
-    
-    if (testDeliberateModification) {
-      testMgr.timestampLog('starting deliberate modifs');
       
-      await testMgr.DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
-      await testMgr.DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
-      await testMgr.DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
-      
-      testMgr.timestampLog('finished deliberate modifs');
-      
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
-      for (let i = 0; i < 10; i++) {
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+      if (testDeliberateModification) {
+        testMgr.timestampLog('starting deliberate modifs');
+        
+        await testMgr.DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
+        await testMgr.DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
+        await testMgr.DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
+        
+        testMgr.timestampLog('finished deliberate modifs');
+        
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
+        for (let i = 0; i < 10; i++) {
+          await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+          await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+        }
       }
-    }
-  } catch (err) {
-    testMgr.timestampLog(err);
-    errorOccurred = true;
-  } finally {
-    if (awaitUserInputAtEnd) {
-      // after tests finished, close program on pressing enter
-      console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
-      await new Promise(r => process.stdin.once('data', r));
-      // stdin gets set into flowing mode by the above, must pause after or else process will remain open
-      process.stdin.pause();
-    }
-    
-    if (errorOccurred) {
-      if (doLogFile) {
-        await testMgr.writeLogFile();
+    } catch (err) {
+      testMgr.timestampLog(err);
+      errorOccurred = true;
+    } finally {
+      if (awaitUserInputAtEnd) {
+        // after tests finished, close program on pressing enter
+        console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
+        await new Promise(r => process.stdin.once('data', r));
+        // stdin gets set into flowing mode by the above, must pause after or else process will remain open
+        process.stdin.pause();
       }
-    } else {
-      await rm(tmpDir, { recursive: true });
       
-      if (!doNotSaveLogIfTestPassed) {
+      if (errorOccurred) {
         if (doLogFile) {
           await testMgr.writeLogFile();
         }
+      } else {
+        if (doNotSaveTestDirIfTestPassed) {
+          await rm(tmpDir, { recursive: true });
+        }
+        
+        if (!doNotSaveLogIfTestPassed) {
+          if (doLogFile) {
+            await testMgr.writeLogFile();
+          }
+        }
       }
+      
+      await removeDirIfEmpty(LOGS_DIR);
+      await removeDirIfEmpty(TESTS_DIR);
+      await removeDirIfEmpty(TEST_DATA_DIR);
+      
+      logger('Done');
+      
+      // setTimeout(() => {
+      //   logger(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
+      //   process.exit();
+      // }, FORCE_QUIT_TIMEOUT).unref();
     }
-    
-    await removeDirIfEmpty(LOGS_DIR);
-    await removeDirIfEmpty(TESTS_DIR);
-    await removeDirIfEmpty(TEST_DATA_DIR);
-    
-    logger('Done');
-    
-    // setTimeout(() => {
-    //   logger(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
-    //   process.exit();
-    // }, FORCE_QUIT_TIMEOUT).unref();
+  } finally {
+    process.stderr.write = oldProcStderrWrite;
   }
 }
