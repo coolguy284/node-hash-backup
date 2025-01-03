@@ -2,7 +2,6 @@ import {
   cp,
   mkdir,
   mkdtemp,
-  open,
   readdir,
   readFile,
   rename,
@@ -380,6 +379,13 @@ class TestManager {
       this.timestampLog('restore\n', restoreObj);
     }
   }
+  
+  async writeLogFile() {
+    await writeFile(
+      join(LOGS_DIR, `${new Date().toISOString().replaceAll(':', '-')}.log`),
+      this.#logLines.join('\n') + '\n'
+    );
+  }
 }
 
 export async function performTest({
@@ -415,7 +421,6 @@ export async function performTest({
   await mkdir(TESTS_DIR, { recursive: true });
   
   // open logging file and redirect stdout and stderr
-  let loggingFile = await open(join(LOGS_DIR, `${new Date().toISOString().replaceAll(':', '-')}.log`), 'a');
   //let oldProcStdoutWrite = process.stdout.write.bind(process.stdout);
   let oldProcStderrWrite = process.stderr.write.bind(process.stderr);
   //process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
@@ -423,6 +428,8 @@ export async function performTest({
   
   // make temp dir for tests
   const tmpDir = await mkdtemp(join(TESTS_DIR, 'nodehash-'));
+  
+  let errorOccurred = false;
   
   try {
     // create filetree
@@ -538,13 +545,15 @@ export async function performTest({
     }
   } catch (err) {
     testMgr.timestampLog(err);
-    testMgr.setErrorOccurred();
+    errorOccurred = true;
   } finally {
     // after tests finished, close program on pressing enter
     console.log('Press enter to continue (dirs will be deleted)');
     await new Promise(r => process.stdin.once('data', r));
-    if (!testMgr.errorOccurred()) {
+    if (!errorOccurred) {
       await rm(tmpDir, { recursive: true });
+    } else {
+      await testMgr.writeLogFile();
     }
     await removeDirIfEmpty(LOGS_DIR);
     await removeDirIfEmpty(TESTS_DIR);
