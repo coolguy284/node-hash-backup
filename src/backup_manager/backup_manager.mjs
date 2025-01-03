@@ -9,7 +9,6 @@ import {
   mkdir,
   open,
   readdir,
-  readFile,
   rename,
   rm,
   rmdir,
@@ -279,6 +278,7 @@ class BackupManager {
   
   async #getAndAddFileToMeta({
     fileHashHex,
+    size,
     compressionUsed,
     compressedSize,
   }) {
@@ -295,7 +295,7 @@ class BackupManager {
     }
     
     const metaEntry = {
-      size: fileBytes.length,
+      size,
       ...(
         compressionUsed ?
           {
@@ -362,6 +362,7 @@ class BackupManager {
         metaJson,
       } = await this.#getAndAddFileToMeta({
         fileHashHex,
+        size: fileBytes.length,
         compressionUsed,
         compressedSize: compressedBytes.length,
       });
@@ -395,7 +396,7 @@ class BackupManager {
         if (checkForDuplicateHashes) {
           const storeFileStream = await this.#getFileStreamFromStore(fileHashHex);
           
-          if (!(await streamsEqual([fileStream, storeFileStream]))) {
+          if (!(await streamsEqual([fileHandle.createReadStream(), storeFileStream]))) {
             throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
           }
         }
@@ -445,6 +446,7 @@ class BackupManager {
               metaJson,
             } = await this.#getAndAddFileToMeta({
               fileHashHex,
+              size: fileSize,
               compressionUsed,
               compressedSize,
             });
@@ -463,6 +465,25 @@ class BackupManager {
               await rmdir(tmpDirPath);
             }
           }
+        } else {
+          this.#log(logger, `File size: ${fileSize} bytes`);
+          
+          const {
+            newFilePath,
+            metaFilePath,
+            metaJson,
+          } = await this.#getAndAddFileToMeta({
+            fileHashHex,
+            size: fileSize,
+            compressionUsed: false,
+            compressedSize: null,
+          });
+            
+          await mkdir(dirname(newFilePath), { recursive: true });
+          await copyFile(filePath, newFilePath);
+          await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
+          
+          await setReadOnly(newFilePath);
         }
       }
       
