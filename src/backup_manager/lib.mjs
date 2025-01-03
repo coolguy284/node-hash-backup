@@ -168,7 +168,7 @@ export async function compressBytes(bytes, compressionAlgo, compressionParams) {
     
     compressor.on('end', () => r(Buffer.concat(outputChunks)));
     
-    compressor.write(bytes);
+    compressor.end(bytes);
   });
 }
 
@@ -211,7 +211,7 @@ export async function decompressBytes(compressedBytes, compressionAlgo, compress
     
     decompressor.on('end', () => r(Buffer.concat(outputChunks)));
     
-    decompressor.write(compressedBytes);
+    decompressor.end(compressedBytes);
   });
 }
 
@@ -255,7 +255,7 @@ export async function hashBytes(bytes, hashAlgo) {
     
     hasher.on('end', () => r(Buffer.concat(outputChunks)));
     
-    hasher.write(bytes);
+    hasher.end(bytes);
   });
 }
 
