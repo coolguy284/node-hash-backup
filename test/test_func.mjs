@@ -495,7 +495,7 @@ export async function performTest({
     };
     
     // print empty info
-    printBackupInfo();
+    await printBackupInfo();
     
     let backupOrRestore = async backupOrRestoreFunc => {
       await backupOrRestoreFunc(tmpDir, backupDir, 'manual1');
