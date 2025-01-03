@@ -257,7 +257,7 @@ class TestManager {
     this.timestampLog(`starting copythenmodif ${basePathCopy}`);
     
     await cp(basePathOrig, basePathCopy, { recursive: true });
-    await DirectoryModificationFuncs_modif(basePathCopy);
+    await this.DirectoryModificationFuncs_modif(basePathCopy);
     
     this.timestampLog(`finished copythenmodif ${basePathCopy}`);
   }
@@ -548,7 +548,7 @@ export async function performTest({
     errorOccurred = true;
   } finally {
     // after tests finished, close program on pressing enter
-    console.log('Press enter to continue (dirs will be deleted)');
+    console.log(`Press enter to continue${errorOccurred ? '' : ' (dirs will be deleted)'}`);
     await new Promise(r => process.stdin.once('data', r));
     if (!errorOccurred) {
       await rm(tmpDir, { recursive: true });
@@ -558,5 +558,6 @@ export async function performTest({
     await removeDirIfEmpty(LOGS_DIR);
     await removeDirIfEmpty(TESTS_DIR);
     await removeDirIfEmpty(TEST_DATA_DIR);
+    console.log('Done');
   }
 }
