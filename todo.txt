@@ -4,7 +4,6 @@ add reverse search by hash for what backups and filenames in the backup have the
 internal backup dir command to store file by repeatable stream func or by bytes
 function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
   with in memory cutoff like usual, only if the cutoff is even needed
-add option to backup for checkForDuplicateHashes, default true
 add option to restore for verifyExportedFileHashes, default true
 
 delete backup and delete backup dir must have confirm=yes

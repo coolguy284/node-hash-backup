@@ -316,6 +316,7 @@ class BackupManager {
   
   async #addFileBytesToStore({
     fileBytes,
+    checkForDuplicateHashes,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
     logger,
@@ -325,10 +326,12 @@ class BackupManager {
     this.#log(logger, `Hash: ${fileHashHex}`);
     
     if (await this.#fileIsInStore(fileHashHex)) {
-      const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
-      
-      if (!fileBytes.equals(storeFileBytes)) {
-        throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+      if (checkForDuplicateHashes) {
+        const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
+        
+        if (!fileBytes.equals(storeFileBytes)) {
+          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+        }
       }
     } else {
       let compressionUsed = false;
@@ -370,6 +373,7 @@ class BackupManager {
   
   async #addFilePathStreamToStore({
     filePath,
+    checkForDuplicateHashes,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
     logger,
@@ -382,10 +386,12 @@ class BackupManager {
       this.#log(logger, `Hash: ${fileHashHex}`);
       
       if (await this.#fileIsInStore(fileHashHex)) {
-        const storeFileStream = await this.#getFileStreamFromStore(fileHashHex);
-        
-        if (!(await streamsEqual([fileStream, storeFileStream]))) {
-          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+        if (checkForDuplicateHashes) {
+          const storeFileStream = await this.#getFileStreamFromStore(fileHashHex);
+          
+          if (!(await streamsEqual([fileStream, storeFileStream]))) {
+            throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+          }
         }
       } else {
         let compressionUsed = false;
@@ -647,6 +653,7 @@ class BackupManager {
     inMemoryCutoffSize,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
+    checkForDuplicateHashes,
     logger,
   }) {
     const backupEntry = await getAndAddBackupEntry({
@@ -660,6 +667,7 @@ class BackupManager {
           const fileBytes = await readLargeFile(subFileOrFolderPath);
           return await this.#addFileBytesToStore({
             fileBytes,
+            checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
             logger,
@@ -667,6 +675,7 @@ class BackupManager {
         } else {
           return await this.#addFilePathStreamToStore({
             fileBytes: subFileOrFolderPath,
+            checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
             logger,
@@ -974,6 +983,7 @@ class BackupManager {
     inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     compressionMinimumSizeThreshold = -1,
     compressionMaximumSizeThreshold = Infinity,
+    checkForDuplicateHashes = true,
     ignoreErrors = false,
     logger = null,
   }) {
@@ -1090,6 +1100,7 @@ class BackupManager {
               inMemoryCutoffSize,
               compressionMinimumSizeThreshold,
               compressionMaximumSizeThreshold,
+              checkForDuplicateHashes,
               logger,
             })
           );
@@ -1105,6 +1116,7 @@ class BackupManager {
             inMemoryCutoffSize,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
+            checkForDuplicateHashes,
             logger,
           })
         );

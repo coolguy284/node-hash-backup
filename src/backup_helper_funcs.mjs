@@ -56,6 +56,7 @@ export async function performBackup({
   inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
   compressionMinimumSizeThreshold = -1,
   compressionMaximumSizeThreshold = Infinity,
+  checkForDuplicateHashes = true,
   ignoreErrors = false,
   logger = console.log,
 }) {
@@ -73,6 +74,7 @@ export async function performBackup({
       inMemoryCutoffSize,
       compressionMinimumSizeThreshold,
       compressionMaximumSizeThreshold,
+      checkForDuplicateHashes,
       ignoreErrors,
     });
   } finally {
