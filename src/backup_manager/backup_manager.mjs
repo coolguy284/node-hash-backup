@@ -337,7 +337,7 @@ class BackupManager {
         const storeFileBytes = await this.#getFileBytesFromStore(fileHashHex);
         
         if (!fileBytes.equals(storeFileBytes)) {
-          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes (path ${filePath}) have same ${this.#hashAlgo} hash: ${fileHashHex}`);
+          throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes (path ${JSON.stringify(filePath)}) have same ${this.#hashAlgo} hash: ${fileHashHex}`);
         }
       }
     } else {
@@ -540,7 +540,7 @@ class BackupManager {
   
   async #getFileBytesFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
-    const fileMeta = this.#getFileMeta(fileHashHex);
+    const fileMeta = await this.#getFileMeta(fileHashHex);
     
     const rawFileBytes = await readLargeFile(filePath);
     
@@ -571,7 +571,7 @@ class BackupManager {
   
   async #getFileStreamFromStore(fileHashHex, verifyFileHashOnRetrieval) {
     const filePath = this.#getPathOfFile(fileHashHex);
-    const fileMeta = this.#getFileMeta(fileHashHex);
+    const fileMeta = await this.#getFileMeta(fileHashHex);
     
     const rawFileStream = createReadStream(filePath);
     
@@ -1843,7 +1843,7 @@ class BackupManager {
       throw new Error(`file hash not found in store: ${fileHashHex}`);
     }
     
-    return deepObjectClone(this.#getFileMeta(fileHashHex));
+    return deepObjectClone(await this.#getFileMeta(fileHashHex));
   }
   
   async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true }) {
