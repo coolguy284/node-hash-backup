@@ -340,7 +340,11 @@ class BackupManager {
           throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and fileBytes (path ${JSON.stringify(filePath)}) have same ${this.#hashAlgo} hash: ${fileHashHex}`);
         }
       }
+      
+      this.#log(logger, `File already in backup dir`);
     } else {
+      this.#log(logger, `File not in backup dir, adding`);
+      
       let compressionUsed = false;
       let compressedBytes;
       
@@ -401,7 +405,11 @@ class BackupManager {
             throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
           }
         }
+      
+        this.#log(logger, `File already in backup dir`);
       } else {
+        this.#log(logger, `File not in backup dir, adding`);
+        
         let compressionUsed = false;
         
         const { size: fileSize } = await fileHandle.stat();
@@ -1608,7 +1616,7 @@ class BackupManager {
       
       switch (type) {
         case 'file': {
-          this.#log(logger, `Restoring ${path} [file ${humanReadableSizeString((await this.#getFileMeta(hash)).size)}]...`);
+          this.#log(logger, `Restoring ${path} [file (${humanReadableSizeString((await this.#getFileMeta(hash)).size)})]...`);
           
           const { size: fileSize } = await this.#getFileMeta(hash);
           
@@ -1641,7 +1649,7 @@ class BackupManager {
           if (symlinkMode != SymlinkModes.IGNORE) {
             const symlinkBuf = Buffer.from(symlinkPath, 'base64');
             
-            this.#log(logger, `Restoring ${path} [symbolic link (${JSON.stringify(symlinkBuf.toString())})]...`);
+            this.#log(logger, `Restoring ${path} [symbolic link (points to: ${JSON.stringify(symlinkBuf.toString())})]...`);
             
             if (symlinkType != null) {
               const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
@@ -1996,7 +2004,7 @@ class BackupManager {
       referencedFileHashes: Set<string>,
     }
   */
-  async singleBackupInfoDump(backupName) {
+  async singleBackupInfoDump(backupName, { summary = true } = {}) {
     let files = 0,
       folders = 0,
       symbolicLinks = 0,
@@ -2040,7 +2048,14 @@ class BackupManager {
       sizeBytes,
       compressedSizeBytes,
       backupOnlyMetaSizeBytes: await this._getBackupOnlyMetaSize(backupName),
-      referencedFileHashes,
+      referencedFileCount: referencedFileHashes.size,
+      ...(
+        summary ?
+          {} :
+          {
+            referencedFileHashes,
+          }
+      ),
     };
   }
   
@@ -2131,7 +2146,7 @@ class BackupManager {
       backupNames.map(
         async backupName => [
           backupName,
-          await this.singleBackupInfoDump(backupName),
+          await this.singleBackupInfoDump(backupName, { summary: false }),
         ]
       )
     );
@@ -2194,7 +2209,18 @@ class BackupManager {
     
     return {
       individualBackupsInfo: {
-        backups: backupInfo,
+        backups:
+          backupInfo
+            .map(([ backupName, backupInfo ]) => [
+              backupName,
+              Object.fromEntries(
+                Object.entries(backupInfo)
+                  .filter(
+                    ([ backupInfoKey, _ ]) =>
+                      backupInfoKey != 'referencedFileHashes'
+                  )
+              )
+            ]),
         naiveSum: {
           files: filesTotal,
           folders: foldersTotal,
