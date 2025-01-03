@@ -576,11 +576,11 @@ export async function performTest({
     await removeDirIfEmpty(TESTS_DIR);
     await removeDirIfEmpty(TEST_DATA_DIR);
     
-    console.log('Done');
+    logger('Done');
     
-    setTimeout(() => {
-      console.log(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
-      process.exit();
-    }, FORCE_QUIT_TIMEOUT).unref();
+    // setTimeout(() => {
+    //   logger(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
+    //   process.exit();
+    // }, FORCE_QUIT_TIMEOUT).unref();
   }
 }

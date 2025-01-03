@@ -10,10 +10,10 @@ export async function getFilesAndMetaInDir(basePath, excludedDirs) {
         sorted: true,
       }
     ))
-      .map(async ({ path, stats }) => {
-        await getAndAddBackupEntry({
+      .map(async ({ filePath, stats }) => {
+        return await getAndAddBackupEntry({
           baseFileOrFolderPath: basePath,
-          subFileOrFolderPath: path,
+          subFileOrFolderPath: filePath,
           stats,
           includeBytes: true,
         });

@@ -37,8 +37,8 @@ export async function callProcess({
     }
   }
   
-  if (!(stdin instanceof Uint8Array)) {
-    throw new Error(`stdin not Uint8Array: ${stdin}`);
+  if (!(stdin instanceof Uint8Array) && typeof stdin != 'string') {
+    throw new Error(`stdin not Uint8Array or string: ${stdin}`);
   }
   
   if (!Number.isFinite(timeout) || timeout < 0 && timeout != null) {

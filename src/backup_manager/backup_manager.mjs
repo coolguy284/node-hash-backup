@@ -743,7 +743,6 @@ class BackupManager {
       backupData = this.#loadedBackupsCache.get(backupName);
     } else {
       const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
-      //console.log([backupFilePath, await readLargeFile(backupFilePath), await readFile(backupFilePath)]);
       
       backupData = BackupManager.#processBackupData(
         JSON.parse((await readLargeFile(backupFilePath)).toString())
@@ -1659,12 +1658,14 @@ class BackupManager {
         const reverseIndexEnd = backupData.length - forwardIndex;
         const reverseIndexStart = Math.max(reverseIndexEnd - FILE_TIMES_SET_CHUNK_SIZE, 0);
         
+        const forwardIndexEnd = Math.min(forwardIndex + FILE_TIMES_SET_CHUNK_SIZE, backupData.length);
+        
         this.#log(
           logger,
           'Setting timestamps of entries: ' +
-            `${forwardIndex}-${forwardIndex + FILE_TIMES_SET_CHUNK_SIZE - 1}` +
+            `${forwardIndex}-${forwardIndexEnd}` +
             `/${backupData.length} ` +
-            `(${((forwardIndex + FILE_TIMES_SET_CHUNK_SIZE) / backupData.length * 100).toFixed(3)}%)`
+            `(${(forwardIndexEnd / backupData.length * 100).toFixed(3)}%)`
         );
         
         await setFileTimes(
@@ -1675,12 +1676,16 @@ class BackupManager {
               atime,
               mtime,
               birthtime,
-            }) => ({
-              filePath: path,
-              accessTimeUnixNSInt: unixSecStringToUnixNSInt(atime),
-              modifyTimeUnixNSInt: unixSecStringToUnixNSInt(mtime),
-              createTimeUnixNSInt: unixSecStringToUnixNSInt(birthtime),
-            }))
+            }) => {
+              const outputPath = join(outputFileOrFolderPath, path);
+              
+              return {
+                filePath: outputPath,
+                accessTimeUnixNSInt: unixSecStringToUnixNSInt(atime),
+                modifyTimeUnixNSInt: unixSecStringToUnixNSInt(mtime),
+                createTimeUnixNSInt: unixSecStringToUnixNSInt(birthtime),
+              };
+            })
         );
       }
     }
@@ -2139,15 +2144,18 @@ class BackupManager {
     let referencedFileHashesTotal = new Set();
     
     for (
-      const {
-        files,
-        folders,
-        symbolicLinks,
-        sizeBytes,
-        compressedSizeBytes,
-        backupOnlyMetaSizeBytes,
-        referencedFileHashes,
-      } of backupInfo
+      const [
+        _,
+        {
+          files,
+          folders,
+          symbolicLinks,
+          sizeBytes,
+          compressedSizeBytes,
+          backupOnlyMetaSizeBytes,
+          referencedFileHashes,
+        },
+      ] of backupInfo
     ) {
       filesTotal += files;
       foldersTotal += folders;

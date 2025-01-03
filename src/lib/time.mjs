@@ -19,7 +19,7 @@ export function unixSecStringToUnixNSInt(unixSecString) {
   
   let match;
   
-  if ((match = /^(-)?(\d+)(?:\.(\d+))?/.test(unixSecString)) != null) {
+  if ((match = /^(-)?(\d+)(?:\.(\d+))?/.exec(unixSecString)) != null) {
     const [ sign, integer, fractional ] = match.slice(1);
     
     return (sign != null ? -1n : 1n) * (BigInt(integer) * 1_000_000_000n + BigInt(fractional));
