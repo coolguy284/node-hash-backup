@@ -44,41 +44,8 @@ async function removeDirIfEmpty(dirPath) {
 
 class RestoreInaccurateError extends Error {}
 
-class TestManager {
-  // class vars
-  
-  #logger;
-  #boundLogger;
-  #logLines = [];
-  #advancedPrng = new AdvancedPrng();;
-  
-  // public funcs
-  
-  constructor(logger = console.log) {
-    this.#logger = logger;
-    this.#boundLogger = this.timestampLog.bind(this);
-  }
-  
-  getBoundLogger() {
-    return this.#boundLogger;
-  }
-  
-  timestampLog(...vals) {
-    let logLine = utilFormatWithOptions(
-      {
-        depth: Infinity,
-        colors: true,
-        maxArrayLength: Infinity,
-        maxStringLength: Infinity,
-        numericSeparator: true,
-      },
-      `[${new Date().toISOString()}]`,
-      ...vals
-    );
-    
-    this.#logger(logLine);
-    this.#logLines.push(logLine);
-  }
+class RandomManager {
+  #advancedPrng = new AdvancedPrng();
   
   randomName() {
     let numSections = this.#advancedPrng.getRandomInteger(3) + 1;
@@ -115,6 +82,52 @@ class TestManager {
           .join('')
       );
     }
+  }
+  
+  getPrng() {
+    return this.#advancedPrng;
+  }
+}
+
+class TestManager {
+  // class vars
+  
+  #logger;
+  #boundLogger;
+  #logLines = [];
+  #randomMgr = new RandomManager();
+  #inMemoryCutoffSize;
+  
+  // public funcs
+  
+  constructor({
+    logger = console.log,
+    inMemoryCutoffSize = Infinity,
+  } = {}) {
+    this.#logger = logger;
+    this.#boundLogger = this.timestampLog.bind(this);
+    this.#inMemoryCutoffSize = inMemoryCutoffSize;
+  }
+  
+  getBoundLogger() {
+    return this.#boundLogger;
+  }
+  
+  timestampLog(...vals) {
+    let logLine = utilFormatWithOptions(
+      {
+        depth: Infinity,
+        colors: true,
+        maxArrayLength: Infinity,
+        maxStringLength: Infinity,
+        numericSeparator: true,
+      },
+      `[${new Date().toISOString()}]`,
+      ...vals
+    );
+    
+    this.#logger(logLine);
+    this.#logLines.push(logLine);
   }
   
   async DirectoryCreationFuncs_manual1(basePath) {
@@ -168,27 +181,27 @@ class TestManager {
     
     await mkdir(basePath);
     for (let i = 0; i < 5; i++) {
-      let dirNameJ = this.randomName();
+      let dirNameJ = this.#randomMgr.randomName();
       await mkdir(join(basePath, dirNameJ));
-      let zeroFoldersJ = this.#advancedPrng.getRandomInteger(2);
-      let numFoldersJ = zeroFoldersJ ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
-      let zeroFilesJ = this.#advancedPrng.getRandomInteger(2);
-      let numFilesJ = zeroFilesJ ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
+      let zeroFoldersJ = this.#randomMgr.getPrng().getRandomInteger(2);
+      let numFoldersJ = zeroFoldersJ ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
+      let zeroFilesJ = this.#randomMgr.getPrng().getRandomInteger(2);
+      let numFilesJ = zeroFilesJ ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
       for (let j = 0; j < numFoldersJ; j++) {
-        let dirNameK = this.randomName();
+        let dirNameK = this.#randomMgr.randomName();
         await mkdir(join(basePath, dirNameJ, dirNameK));
-        let zeroFilesK = this.#advancedPrng.getRandomInteger(2);
-        let numFilesK = zeroFilesK ? 0 : this.#advancedPrng.getRandomInteger(5) + 1;
+        let zeroFilesK = this.#randomMgr.getPrng().getRandomInteger(2);
+        let numFilesK = zeroFilesK ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
         for (let j = 0; j < numFilesK; j++) {
-          await writeFile(join(basePath, dirNameJ, dirNameK, this.randomName()), Buffer.from(this.randomContent()));
+          await writeFile(join(basePath, dirNameJ, dirNameK, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()));
         }
       }
       for (let j = 0; j < numFilesJ; j++) {
-        await writeFile(join(basePath, dirNameJ, this.randomName()), Buffer.from(this.randomContent()));
+        await writeFile(join(basePath, dirNameJ, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()));
       }
     }
     for (let i = 0; i < 5; i++) {
-      await writeFile(join(basePath, this.randomName()), Buffer.from(this.randomContent()))
+      await writeFile(join(basePath, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()))
     }
     
     this.timestampLog(`finished random1 ${basePath}`);
@@ -202,11 +215,11 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoices = this.#advancedPrng.getRandomArrayOfUniqueIntegers(5, 2), folderChoice = this.#advancedPrng.getRandomInteger(5);
+    let fileChoices = this.#randomMgr.getPrng().getRandomArrayOfUniqueIntegers(5, 2), folderChoice = this.#randomMgr.getPrng().getRandomInteger(5);
     
-    await writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.randomContent());
-    await rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.randomName()));
-    await rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, this.randomName()));
+    await writeFile(join(basePath, dirContentsFiles[fileChoices[0]]), this.#randomMgr.randomContent());
+    await rename(join(basePath, dirContentsFiles[fileChoices[1]]), join(basePath, this.#randomMgr.randomName()));
+    await rename(join(basePath, dirContentsFolders[folderChoice]), join(basePath, this.#randomMgr.randomName()));
     
     this.timestampLog(`finished modif ${basePath}`);
   }
@@ -219,13 +232,13 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoice = this.#advancedPrng.getRandomInteger(5);
+    let fileChoice = this.#randomMgr.getPrng().getRandomInteger(5);
     
     let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
     let fileToModifBuf = await readFile(fileToModif);
     
-    fileToModifBuf = Buffer.concat([fileToModifBuf, Buffer.from([this.#advancedPrng.getRandomInteger(256)])]);
+    fileToModifBuf = Buffer.concat([fileToModifBuf, Buffer.from([this.#randomMgr.getPrng().getRandomInteger(256)])]);
     
     await writeFile(fileToModif, fileToModifBuf);
     
@@ -240,7 +253,7 @@ class TestManager {
     let dirContentsFiles = [], dirContentsFolders = [];
     dirContents.forEach(x => x.isDirectory() ? dirContentsFolders.push(x.name) : dirContentsFiles.push(x.name));
     
-    let fileChoice = this.#advancedPrng.getRandomInteger(5);
+    let fileChoice = this.#randomMgr.getPrng().getRandomInteger(5);
     
     let fileToModif = join(basePath, dirContentsFiles[fileChoice]);
     
@@ -248,7 +261,7 @@ class TestManager {
     
     if (fileToModifBuf.length == 0) throw new Error('Error: attempt to modify empty file.');
     
-    let fileToModifBufIndex = this.#advancedPrng.getRandomInteger(fileToModifBuf.length);
+    let fileToModifBufIndex = this.#randomMgr.getPrng().getRandomInteger(fileToModifBuf.length);
     
     fileToModifBuf[fileToModifBufIndex] = (fileToModifBuf[fileToModifBufIndex] + 127) % 256;
     
@@ -273,6 +286,7 @@ class TestManager {
       basePath: join(tmpDir, 'data', name),
       backupDir,
       name,
+      inMemoryCutoffSize: this.#inMemoryCutoffSize,
       logger: this.#boundLogger,
     });
     
@@ -288,6 +302,7 @@ class TestManager {
       backupDir,
       basePath: join(tmpDir, 'restore', name),
       name,
+      inMemoryCutoffSize: this.#inMemoryCutoffSize,
       logger: this.#boundLogger,
     });
     
@@ -401,35 +416,22 @@ class TestManager {
   }
 }
 
-export async function performTest({
-  // "test" random name and content functions by printing to console their results 10x
-  testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
-  testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
-  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
-  // mtime change ignored when doing verification after modification since folders will get modified
-  testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
-  verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
-  doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
-  doNotSaveTestDirIfTestPassed = DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED,
-  logger = console.log,
-  doLogFile = true, // TODO: use properly
-  awaitUserInputAtEnd = false,
-} = {}) {
-  let testMgr = new TestManager(logger);
+async function performSubTest({
+  testDeliberateModification,
+  verboseFinalValidationLog,
+  doNotSaveLogIfTestPassed,
+  doNotSaveTestDirIfTestPassed,
+  logger,
+  doLogFile,
+  awaitUserInputAtEnd,
+  inMemoryCutoffSize,
+}) {
+  let testMgr = new TestManager({
+    logger,
+    inMemoryCutoffSize,
+  });
   
-  // TODO: check to ensure getFilesAndMetaInDir reversed is not an issue
-  // TODO: check all imported funcs function, including getFilesAndMetaInDir
-  
-  if (testOnlyRandomName) {
-    testMgr.timestampLog([
-      new Array(10).fill().map(() => testMgr.randomName()),
-      new Array(10).fill().map(() => testMgr.randomContent().toString()),
-    ]);
-    return;
-  } else if (testOnlyGetFilesAndMetaDir) {
-    testMgr.timestampLog(await getFilesAndMetaInDir('src'));
-    return;
-  }
+  testMgr.timestampLog(`inMemoryCutoffSize: ${inMemoryCutoffSize}`);
   
   // create dirs
   await mkdir(LOGS_DIR, { recursive: true });
@@ -624,4 +626,54 @@ export async function performTest({
   } finally {
     process.stderr.write = oldProcStderrWrite;
   }
+}
+
+export async function performTest({
+  // "test" random name and content functions by printing to console their results 10x
+  testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
+  testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
+  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
+  // mtime change ignored when doing verification after modification since folders will get modified
+  testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
+  verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
+  doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
+  doNotSaveTestDirIfTestPassed = DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED,
+  logger = console.log,
+  doLogFile = true,
+  awaitUserInputAtEnd = false,
+} = {}) {
+  if (testOnlyRandomName) {
+    let randomMgr = new RandomManager();
+    
+    logger([
+      new Array(10).fill().map(() => randomMgr.randomName()),
+      new Array(10).fill().map(() => randomMgr.randomContent().toString()),
+    ]);
+    return;
+  } else if (testOnlyGetFilesAndMetaDir) {
+    logger(await getFilesAndMetaInDir('src'));
+    return;
+  }
+  
+  await performSubTest({
+    testDeliberateModification,
+    verboseFinalValidationLog,
+    doNotSaveLogIfTestPassed,
+    doNotSaveTestDirIfTestPassed,
+    logger,
+    doLogFile,
+    awaitUserInputAtEnd,
+    inMemoryCutoffSize: Infinity,
+  });
+  
+  await performSubTest({
+    testDeliberateModification,
+    verboseFinalValidationLog,
+    doNotSaveLogIfTestPassed,
+    doNotSaveTestDirIfTestPassed,
+    logger,
+    doLogFile,
+    awaitUserInputAtEnd,
+    inMemoryCutoffSize: -1,
+  });
 }

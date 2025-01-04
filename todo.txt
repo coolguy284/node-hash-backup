@@ -42,6 +42,7 @@ improved data storage:
   explicitly detect hardlinks
 
 low prio:
+test symlink support
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 option to reset access times after finishing backing up a folder
 sort metafiles as adding new entries to them
