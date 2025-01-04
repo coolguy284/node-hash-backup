@@ -1647,7 +1647,7 @@ class BackupManager {
         }
         
         case 'directory':
-          this.#log(logger, `Restoring ${path} [directory]...`);
+          this.#log(logger, `Restoring ${JSON.stringify(path)} [directory]...`);
           
           await mkdir(outputPath);
           break;
@@ -1656,7 +1656,7 @@ class BackupManager {
           if (symlinkMode != SymlinkModes.IGNORE) {
             const symlinkBuf = Buffer.from(symlinkPath, 'base64');
             
-            this.#log(logger, `Restoring ${path} [symbolic link (points to: ${JSON.stringify(symlinkBuf.toString())})]...`);
+            this.#log(logger, `Restoring ${JSON.stringify(path)} [symbolic link (points to: ${JSON.stringify(symlinkBuf.toString())})]...`);
             
             if (symlinkType != null) {
               const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
@@ -1703,6 +1703,7 @@ class BackupManager {
                 createTimeUnixNSInt: unixSecStringToUnixNSInt(birthtime),
               };
             })
+            .reverse()
         );
       }
     }

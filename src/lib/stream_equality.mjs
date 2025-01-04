@@ -39,9 +39,18 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
       }
     };
     
-    const onErrorListener = err => {
+    const callResolve = val => {
+      r(val);
+      closeEverything();
+    };
+    
+    const callReject = err => {
       j(err);
       closeEverything();
+    };
+    
+    const onErrorListener = err => {
+      callReject(err);
     };
     
     let streamsData = new Map(
@@ -60,7 +69,7 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
     
     const onReadableListener = () => {
       for (const stream of streams) {
-        if (stream.readableLength <= 0) {
+        if (!stream.readable) {
           continue;
         }
         
@@ -99,8 +108,7 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
             otherStreamData.totalBytesRead > streamData.totalBytesRead ||
             otherStream.readableEnded && otherStreamData.totalBytesRead < streamData.totalBytesRead
           ) {
-            r(false);
-            closeEverything();
+            callResolve(false);
             return;
           } else if (otherStream.readableEnded) {
             readableEndedCount++;
@@ -154,8 +162,7 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
             prevConsumeSlice = consumeSlice;
           } else {
             if (!consumeSlice.equals(prevConsumeSlice)) {
-              r(false);
-              closeEverything();
+              callResolve(false);
               return;
             }
           }
@@ -165,14 +172,13 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
       if (final) {
         for (let streamData of streamsData.values()) {
           if (streamData.bufferLength != 0) {
-            r(false);
-            closeEverything();
+            callResolve(false);
             return;
           }
         }
         
-        r(true);
-        closeEverything();
+        callResolve(true);
+        return;
       }
     };
     
