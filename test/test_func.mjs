@@ -641,6 +641,8 @@ export async function performTest({
   logger = console.log,
   doLogFile = true,
   awaitUserInputAtEnd = false,
+  memoryOnlySubTest = true,
+  streamOnlySubTest = true,
 } = {}) {
   if (testOnlyRandomName) {
     let randomMgr = new RandomManager();
@@ -655,25 +657,29 @@ export async function performTest({
     return;
   }
   
-  await performSubTest({
-    testDeliberateModification,
-    verboseFinalValidationLog,
-    doNotSaveLogIfTestPassed,
-    doNotSaveTestDirIfTestPassed,
-    logger,
-    doLogFile,
-    awaitUserInputAtEnd,
-    inMemoryCutoffSize: Infinity,
-  });
+  if (memoryOnlySubTest) {
+    await performSubTest({
+      testDeliberateModification,
+      verboseFinalValidationLog,
+      doNotSaveLogIfTestPassed,
+      doNotSaveTestDirIfTestPassed,
+      logger,
+      doLogFile,
+      awaitUserInputAtEnd,
+      inMemoryCutoffSize: Infinity,
+    });
+  }
   
-  await performSubTest({
-    testDeliberateModification,
-    verboseFinalValidationLog,
-    doNotSaveLogIfTestPassed,
-    doNotSaveTestDirIfTestPassed,
-    logger,
-    doLogFile,
-    awaitUserInputAtEnd,
-    inMemoryCutoffSize: -1,
-  });
+  if (streamOnlySubTest) {
+    await performSubTest({
+      testDeliberateModification,
+      verboseFinalValidationLog,
+      doNotSaveLogIfTestPassed,
+      doNotSaveTestDirIfTestPassed,
+      logger,
+      doLogFile,
+      awaitUserInputAtEnd,
+      inMemoryCutoffSize: -1,
+    });
+  }
 }
