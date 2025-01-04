@@ -383,6 +383,13 @@ class BackupManager {
     return fileHashHex;
   }
   
+  static #reusablyGetReadStream(fileHandle) {
+    return fileHandle.createReadStream({
+      autoClose: false,
+      start: 0,
+    });
+  }
+  
   async #addFilePathStreamToStore({
     filePath,
     checkForDuplicateHashes,
@@ -393,7 +400,7 @@ class BackupManager {
     const fileHandle = await open(filePath);
     
     try {
-      const fileHashHex = (await this.#hashStream(fileHandle.createReadStream())).toString('hex');
+      const fileHashHex = (await this.#hashStream(BackupManager.#reusablyGetReadStream(fileHandle))).toString('hex');
       
       this.#log(logger, `Hash: ${fileHashHex}`);
       
@@ -401,7 +408,7 @@ class BackupManager {
         if (checkForDuplicateHashes) {
           const storeFileStream = await this.#getFileStreamFromStore(fileHashHex);
           
-          if (!(await streamsEqual([fileHandle.createReadStream(), storeFileStream]))) {
+          if (!(await streamsEqual([BackupManager.#reusablyGetReadStream(fileHandle), storeFileStream]))) {
             throw new Error(`Hash Collision Found: ${JSON.stringify(this.#getPathOfFile(fileHashHex))} and ${JSON.stringify(filePath)} have same ${this.#hashAlgo} hash: ${fileHashHex}`);
           }
         }
@@ -420,7 +427,7 @@ class BackupManager {
           
           try {
             const compressedFilePath = join(tmpDirPath, fileHashHex);
-            const fileStream = fileHandle.createReadStream();
+            const fileStream = BackupManager.#reusablyGetReadStream(fileHandle);
             const compressor = createCompressor(this.#compressionAlgo, this.#compressionParams);
             const compressedFile = createWriteStream(compressedFilePath);
             
