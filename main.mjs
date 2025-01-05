@@ -26,6 +26,11 @@ export {
   MIN_BACKUP_VERSION,
   // VARIABLE_LENGTH_HAHSHES,
 } from './src/backup_manager/lib.mjs';
+export { getProgramVersion } from './src/backup_manager/version.mjs';
+export {
+  executeCommandLine,
+  printHelp,
+} from './src/command_line/command_line.mjs';
 
 // check for running as main
 

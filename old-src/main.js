@@ -12,59 +12,7 @@ let performRestore = require('./main/perform_restore');
 async function runIfMain() {
   let argvSliced = process.argv.slice(2);
   
-  if (argvSliced.length == 0 || argvSliced[0] == '--help') {
-    console.log(
-      'Node Hash Backup Tool\n' +
-      '\n' +
-      'Usage: node hash_backup.js [command] [options]\n' +
-      '\n' +
-      'Command `init`:\n' +
-      '  Initalizes empty hash backup in backup dir.\n' +
-      '  \n' +
-      '  Options:\n' +
-      '    --to <backupDir> (required): The hash backup dir to initialize.\n' +
-      '    --hash <algorithm> (default `sha384`): The hash algorithm to use on the files.\n' +
-      '    --hash-slice-length (default `2`): The length of the hash slice used to split files into folders.\n' +
-      '    --hash-slices (default `2`): The number of nested subfolders of hash slices each file should be under.\n' +
-      '    --compress-algo (default `brotli`): The algorithm to compress files (`none` for no algo).\n' +
-      '    --compress-level (default 6): The amount to compress files (valid is 1 through 9).\n' +
-      '\n' +
-      'Command `delete`:\n' +
-      '  Removes all files at hash backup dir.\n' +
-      '  \n' +
-      '  Options:\n' +
-      '    --to <backupDir> (required): The hash backup dir to remove contents of.\n' +
-      '    --confirm=yes (required): Must be set to allow deletion.\n' +
-      '\n' +
-      'Command `list`:\n' +
-      '  Lists the backups in a given hash backup folder.\n' +
-      '  \n' +
-      '  Options:\n' +
-      '    --to <backupDir> (required): The hash backup folder to use.\n' +
-      '    --name <name> (optional): The name of the backup to show information about specifically.\n' +
-      '\n' +
-      'Command `backup`:\n' +
-      '  Backs up a folder to the hash backup.\n' +
-      '  \n' +
-      '  Options:\n' +
-      '    --from <basePath> (required): The directory to backup.\n' +
-      '    --to <backupDir> (required): The hash backup folder to use.\n' +
-      '    --name <name> (required): The name of the backup.\n' +
-      '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks will be ignored. If \'passthrough\', symlinks will be copied over as regular files (and the modtime of the destination file will be used). If \'true\', symlinks will be added to the backup as-is, storing their path.\n' +
-      '    --in-memory <value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.\n' +
-      '\n' +
-      'Command `restore`:\n' +
-      '  Restores a folder from the hash backup.\n' +
-      '  \n' +
-      '  Options:\n' +
-      '    --from <backupDir> (required): The hash backup folder to use.\n' +
-      '    --to <basePath> (required): The directory to restore to.\n' +
-      '    --name <name> (required): The name of the backup.\n' +
-      '    --symlink-handling <value> (default \'\'): If \'ignore\', symlinks in backup will not be copied. If \'passthrough\', symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If \'true\', symlinks will be added to the backup as-is, including their path.\n' +
-      '    --setFileTimes <boolean> (default true): If true, file access, modification, and create times will be set at end of restore.\n'+
-      '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.'
-    );
-  } else {
+  if (argvSliced.length == 0 || argvSliced[0] == '--help') {} else {
     let commandArgsRaw = argvSliced.slice(1);
     
     let commandArgs = new Map();
