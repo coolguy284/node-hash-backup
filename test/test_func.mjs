@@ -176,6 +176,14 @@ class TestManager {
     this.timestampLog(`finished manual4 ${basePath}`);
   }
   
+  async DirectoryCreationFuncs_manual5(basePath) {
+    this.timestampLog(`starting manual5 ${basePath}`);
+    
+    await writeFile(basePath, Buffer.from('Test raw file exists.'));
+    
+    this.timestampLog(`finished manual5 ${basePath}`);
+  }
+  
   async DirectoryCreationFuncs_random1(basePath) {
     this.timestampLog(`starting random1 ${basePath}`);
     
@@ -463,6 +471,7 @@ async function performSubTest({
             testMgr.DirectoryCreationFuncs_manual2(join(tmpDir, 'data', 'manual2')),
             testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
             testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
+            testMgr.DirectoryCreationFuncs_manual5(join(tmpDir, 'data', 'manual5')),
             (async () => {
               await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data-build', 'randomconstant'));
               for (let i = 0; i < 10; i++) {
