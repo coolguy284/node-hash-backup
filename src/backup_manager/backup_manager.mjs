@@ -1682,7 +1682,7 @@ class BackupManager {
           'Setting timestamps of entries: ' +
             `${forwardIndex}-${forwardIndexEnd}` +
             `/${backupData.length} ` +
-            `(${(forwardIndexEnd / backupData.length * 100).toFixed(3)}%)`
+            `(${(forwardIndexEnd / backupData.length * 100).toFixed(3)}%)...`
         );
         
         await setFileTimes(
