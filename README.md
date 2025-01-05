@@ -65,3 +65,6 @@ Command `remove`:
     --name <name> (required): The name of the backup.
     --auto-purge (default true): If true, automatically purge files no longer referenced by any backup. (false not implemented yet)
 ```
+
+## Warning
+Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set.

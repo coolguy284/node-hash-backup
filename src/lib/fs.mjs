@@ -2,6 +2,7 @@ import {
   access,
   chmod,
   lstat,
+  lutimes,
   open,
   readdir,
   rename,
@@ -17,7 +18,10 @@ import {
 
 import { Enum } from './enum.mjs';
 import { callProcess } from './process.mjs';
-import { unixNSIntToUTCTimeString } from './time.mjs';
+import {
+  unixNSIntToUnixSecString,
+  unixNSIntToUTCTimeString,
+} from './time.mjs';
 
 const TEMP_NEW_FILE_SUFFIX = '_new';
 const LARGE_FILE_CHUNK_SIZE = 4 * 2 ** 20;
@@ -300,11 +304,53 @@ export async function setFileTimes(fileTimeEntries) {
   }
   
   if (process.platform == 'win32') {
+    let fileTimeEntriesRegular = [],
+      fileTimeEntriesSymbolicLink = [];
+    
+    await Promise.all(
+      fileTimeEntries
+        .map(async entry => {
+          const fileStats = await lstat(entry.filePath, { bigint: true });
+          if (fileStats.isSymbolicLink()) {
+            fileTimeEntriesSymbolicLink.push({
+              ...entry,
+              atimeNs: fileStats.atimeNs,
+              mtimeNs: fileStats.mtimeNs,
+            });
+          } else {
+            fileTimeEntriesRegular.push(entry);
+          }
+        })
+    );
+    
+    // powershell cannot set timestamps of symbolic links, must use utimes and accept inaccuracy
+    for (let {
+      filePath,
+      accessTimeUnixNSInt = null,
+      modifyTimeUnixNSInt = null,
+      atimeNs,
+      mtimeNs,
+    } of fileTimeEntriesSymbolicLink) {
+      if (accessTimeUnixNSInt == null) {
+        accessTimeUnixNSInt = atimeNs;
+      }
+      
+      if (modifyTimeUnixNSInt == null) {
+        modifyTimeUnixNSInt = mtimeNs;
+      }
+      
+      await lutimes(
+        filePath,
+        unixNSIntToUnixSecString(accessTimeUnixNSInt),
+        unixNSIntToUnixSecString(modifyTimeUnixNSInt)
+      );
+    }
+    
     let environmentVars = {};
     
     const commandString =
       '$ErrorActionPreference = "Stop"\n' +
-      fileTimeEntries
+      fileTimeEntriesRegular
         .map(({
           filePath,
           accessTimeUnixNSInt = null,

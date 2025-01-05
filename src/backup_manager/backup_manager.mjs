@@ -1623,7 +1623,7 @@ class BackupManager {
       
       switch (type) {
         case 'file': {
-          this.#log(logger, `Restoring ${JSON.stringify(path)} [file (${humanReadableSizeString((await this.#getFileMeta(hash)).size)})]...`);
+          this.#log(logger, `Restoring ${JSON.stringify(outputPath)} [file (${humanReadableSizeString((await this.#getFileMeta(hash)).size)})]...`);
           
           const { size: fileSize } = await this.#getFileMeta(hash);
           
@@ -1647,7 +1647,7 @@ class BackupManager {
         }
         
         case 'directory':
-          this.#log(logger, `Restoring ${JSON.stringify(path)} [directory]...`);
+          this.#log(logger, `Restoring ${JSON.stringify(outputPath)} [directory]...`);
           
           await mkdir(outputPath);
           break;
@@ -1656,7 +1656,7 @@ class BackupManager {
           if (symlinkMode != SymlinkModes.IGNORE) {
             const symlinkBuf = Buffer.from(symlinkPath, 'base64');
             
-            this.#log(logger, `Restoring ${JSON.stringify(path)} [symbolic link (points to: ${JSON.stringify(symlinkBuf.toString())})]...`);
+            this.#log(logger, `Restoring ${JSON.stringify(outputPath)} [symbolic link (points to: ${JSON.stringify(symlinkBuf.toString())})]...`);
             
             if (symlinkType != null) {
               const convertedType = BackupManager.#SYMLINK_TYPE_CONVERSION.get(symlinkType);
