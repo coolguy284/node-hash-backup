@@ -7,6 +7,7 @@ import {
   rename,
   rm,
   rmdir,
+  symlink,
   writeFile,
 } from 'fs/promises';
 import { join } from 'path';
@@ -97,16 +98,19 @@ class TestManager {
   #logLines = [];
   #randomMgr = new RandomManager();
   #inMemoryCutoffSize;
+  #testSymlink;
   
   // public funcs
   
   constructor({
     logger = console.log,
     inMemoryCutoffSize = Infinity,
+    testSymlink = false,
   } = {}) {
     this.#logger = logger;
     this.#boundLogger = this.timestampLog.bind(this);
     this.#inMemoryCutoffSize = inMemoryCutoffSize;
+    this.#testSymlink = testSymlink;
   }
   
   getBoundLogger() {
@@ -172,6 +176,11 @@ class TestManager {
       await writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
     await writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.'));
+    
+    if (this.#testSymlink) {
+      await symlink(join(basePath, 'folder', 'file.txt'), join(basePath, 'file-symlink-absolute.txt'));
+      await symlink('./folder/file.txt', join(basePath, 'file-symlink-relative.txt'));
+    }
     
     this.timestampLog(`finished manual4 ${basePath}`);
   }
@@ -429,6 +438,7 @@ async function performSubTest({
   verboseFinalValidationLog,
   doNotSaveLogIfTestPassed,
   doNotSaveTestDirIfTestPassed,
+  testSymlink,
   logger,
   doLogFile,
   awaitUserInputAtEnd,
@@ -437,6 +447,7 @@ async function performSubTest({
   let testMgr = new TestManager({
     logger,
     inMemoryCutoffSize,
+    testSymlink,
   });
   
   testMgr.timestampLog(`inMemoryCutoffSize: ${inMemoryCutoffSize}`);
@@ -457,6 +468,7 @@ async function performSubTest({
     await mkdir(tmpDir);
     
     let errorOccurred = false;
+    let errorValue;
     
     try {
       // create filetree
@@ -596,6 +608,7 @@ async function performSubTest({
     } catch (err) {
       testMgr.timestampLog(err);
       errorOccurred = true;
+      errorValue = err;
     } finally {
       if (awaitUserInputAtEnd) {
         // after tests finished, close program on pressing enter
@@ -632,6 +645,10 @@ async function performSubTest({
       //   process.exit();
       // }, FORCE_QUIT_TIMEOUT).unref();
     }
+      
+    if (errorOccurred) {
+      throw errorValue;
+    }
   } finally {
     process.stderr.write = oldProcStderrWrite;
   }
@@ -647,6 +664,7 @@ export async function performTest({
   verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
   doNotSaveTestDirIfTestPassed = DEFAULT_DO_NOT_SAVE_TEST_DIR_IF_TEST_PASSED,
+  testSymlink = process.platform != 'win32' ? true : false,
   logger = console.log,
   doLogFile = true,
   awaitUserInputAtEnd = false,
@@ -672,6 +690,7 @@ export async function performTest({
       verboseFinalValidationLog,
       doNotSaveLogIfTestPassed,
       doNotSaveTestDirIfTestPassed,
+      testSymlink,
       logger,
       doLogFile,
       awaitUserInputAtEnd,
@@ -685,6 +704,7 @@ export async function performTest({
       verboseFinalValidationLog,
       doNotSaveLogIfTestPassed,
       doNotSaveTestDirIfTestPassed,
+      testSymlink,
       logger,
       doLogFile,
       awaitUserInputAtEnd,
