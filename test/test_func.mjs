@@ -658,7 +658,6 @@ export async function performTest({
   // "test" random name and content functions by printing to console their results 10x
   testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
   testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
-  // do a deliberate modification and check validity again (TODO: check that this means the validity should fail here, if it doesnt there is issues)
   // mtime change ignored when doing verification after modification since folders will get modified
   testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
   verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,

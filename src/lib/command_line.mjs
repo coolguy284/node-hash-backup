@@ -1,3 +1,5 @@
+export const DEFAULT_APPROXIMATE_MAX_LINE_LENGTH = 90;
+
 /*
   returned format:
   {
@@ -70,4 +72,9 @@ export function parseArgs(args) {
     presentOnlyArgs,
     allPresentArgs,
   };
+}
+
+export function splitLongLinesByWord(output, approximateMaxLineLength = DEFAULT_APPROXIMATE_MAX_LINE_LENGTH) {
+  // TODO
+  return output;
 }

@@ -67,4 +67,4 @@ Command `remove`:
 ```
 
 ## Warning
-Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set.
+Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set. Additionally, on Windows, symbolic link type is not stored (i.e. file vs directory vs junction).
