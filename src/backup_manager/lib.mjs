@@ -308,7 +308,7 @@ export async function getAndAddBackupEntry({
   const birthtime = unixNSIntToUnixSecString(stats.birthtimeNs);
   
   if (stats.isDirectory()) {
-    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [directory]`);
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [directory]`);
     
     return {
       path: relativeFilePath,
@@ -319,9 +319,9 @@ export async function getAndAddBackupEntry({
       birthtime,
     };
   } else if (stats.isSymbolicLink()) {
-    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [symbolic link]`);
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [symbolic link]`);
     
-    const linkPathBuf = await readlink(baseFileOrFolderPath, { encoding: 'buffer' });
+    const linkPathBuf = await readlink(subFileOrFolderPath, { encoding: 'buffer' });
     const linkPathBase64 =
       linkPathBuf
       .toString('base64');
@@ -340,7 +340,7 @@ export async function getAndAddBackupEntry({
   } else {
     // file, or something else that will be attempted to be read as a file
     
-    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(baseFileOrFolderPath)} [file]`);
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [file]`);
     
     return {
       path: relativeFilePath,
