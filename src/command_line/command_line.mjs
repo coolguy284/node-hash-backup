@@ -2,8 +2,10 @@ import {
   parseArgs,
   splitLongLinesByWord,
 } from '../lib/command_line.mjs';
+import { integerToStringWithSeparator } from '../lib/number.mjs';
 import { ReadOnlyMap } from '../lib/read_only_map.mjs';
 import { getProgramVersion } from '../backup_manager/version.mjs';
+import { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from '../backup_manager/backup_manager.mjs';
 
 const commandsHelpText = new ReadOnlyMap([
   [
@@ -56,6 +58,44 @@ const commandsHelpText = new ReadOnlyMap([
       '    --backupDir=<backupDir> (required): The hash backup folder to get data from.',
       '        aliases: --backup-dir, --to',
       '    --name=<name> (optional): If present, only show information about one backup.',
+    ].join('\n'))
+  ],
+  
+  [
+    'backup',
+    
+    splitLongLinesByWord([
+      'Command `backup`:',
+      '  Backs up a folder to the hash backup.',
+      '  ',
+      '  Options:',
+      '    --backupPath=<basePath> (required): The directory to backup.',
+      '        aliases: --backup-path, --basePath, --base-path, --from',
+      '    --name=<name> (required): The name of the backup.',
+      '    --backupDir=<backupDir> (required): The hash backup folder to use.',
+      '        aliases: --backup-dir, --to',
+      '    --symlink-handling=<value> (default "preserve"):',
+      '        If "ignore", symlinks will be ignored.',
+      '        If "passthrough", symlinks will be copied over as regular files (and the modtime of the destination file will be used).',
+      '        If "preserve", symlinks will be added to the backup as-is, storing their path.',
+      `    --in-memory-cutoff=<integer >= -1 | Infinity> (default ${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.`,
+    ].join('\n'))
+  ],
+  
+  [
+    'restore',
+    
+    splitLongLinesByWord([
+      'Command `restore`:',
+      '  Restores a folder from the hash backup.',
+      '  ',
+      '  Options:',
+      '    --from=<backupDir> (required): The hash backup folder to use.',
+      '    --to=<basePath> (required): The directory to restore to.',
+      '    --name <name> (required): The name of the backup.',
+      '    --symlink-handling <value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
+      '    --setFileTimes <boolean> (default true): If true, file access, modification, and create times will be set at end of restore.',
+      '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.',
     ].join('\n'))
   ],
   
@@ -121,26 +161,9 @@ const mainHelpText = splitLongLinesByWord([
   '',
   commandsHelpText.get('list'),
   '',
-  'Command `backup`:',
-  '  Backs up a folder to the hash backup.',
-  '  ',
-  '  Options:',
-  '    --from=<basePath> (required): The directory to backup.',
-  '    --to=<backupDir> (required): The hash backup folder to use.',
-  '    --name=<name> (required): The name of the backup.',
-  '    --symlink-handling=<value> (default "preserve"): If "ignore", symlinks will be ignored. If "passthrough", symlinks will be copied over as regular files (and the modtime of the destination file will be used). If "preserve", symlinks will be added to the backup as-is, storing their path.',
-  '    --in-memory=<value> (default true): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.',
+  commandsHelpText.get('backup'),
   '',
-  'Command `restore`:',
-  '  Restores a folder from the hash backup.',
-  '  ',
-  '  Options:',
-  '    --from=<backupDir> (required): The hash backup folder to use.',
-  '    --to=<basePath> (required): The directory to restore to.',
-  '    --name <name> (required): The name of the backup.',
-  '    --symlink-handling <value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
-  '    --setFileTimes <boolean> (default true): If true, file access, modification, and create times will be set at end of restore.',
-  '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.',
+  commandsHelpText.get('restore'),
   '',
   commandsHelpText.get('help'),
   '',
@@ -153,7 +176,15 @@ export function printHelp({
   logger = console.log,
   subCommand = null,
 } = {}) {
-  logger(mainHelpText.join('\n'));
+  if (subCommand == null) {
+    logger(mainHelpText);
+  } else {
+    if (commandsHelpText.has(subCommand)) {
+      logger(commandsHelpText.get(subCommand));
+    } else {
+      throw new Error(`subcommand unknown: ${JSON.stringify(subCommand)}`);
+    }
+  }
 }
 
 export async function executeCommandLine({
@@ -161,6 +192,7 @@ export async function executeCommandLine({
   logger = console.log,
 } = {}) {
   // TODO: add newline at start and end
+  // TODO: for parsing integers, strip _,. characters
   
   const {
     subCommands,
