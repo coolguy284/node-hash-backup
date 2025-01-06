@@ -51,7 +51,7 @@ export async function performBackup({
   name,
   basePath,
   excludedFilesOrFolders = [],
-  allowBackupDirSubPathOfFileOrFolderPath = true,
+  allowBackupDirSubPathOfFileOrFolderPath = false,
   symlinkMode = SymlinkModes.PRESERVE,
   inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
   compressionMinimumSizeThreshold = -1,

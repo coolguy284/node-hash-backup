@@ -74,11 +74,24 @@ const commandsHelpText = new ReadOnlyMap([
       '    --name=<name> (required): The name of the backup.',
       '    --backupDir=<backupDir> (required): The hash backup folder to use.',
       '        aliases: --backup-dir, --to',
+      '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
+      '        aliases: --excluded-items',
+      '    --allowBackupDirSubPathOfFileOrFolderPath (default false): If true, backup folder can be subpath of the folder you are taking a backup of.',
+      '        aliases: --allow-backup-dir-sub-path-of-file-or-folder-path',
       '    --symlink-handling=<value> (default "preserve"):',
       '        If "ignore", symlinks will be ignored.',
       '        If "passthrough", symlinks will be copied over as regular files (and the modtime of the destination file will be used).',
       '        If "preserve", symlinks will be added to the backup as-is, storing their path.',
-      `    --in-memory-cutoff=<integer >= -1 | Infinity> (default ${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}): Read file into memory and store hash and compressed forms into memory. Minimizes hard drive reads/writes. Turn off for files too large to fit in memory.`,
+      `    --inMemoryCutoff=<integer >= -1 | Infinity> (default \`${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}\`): Below the cutoff, read file into memory and calculate hash and compressed forms in memory, to minimize hard drive reads/writes.`,
+      '        aliases: --in-memory-cutoff',
+      '    --compressionMinimumSizeThreshold (default -1): The file size must be greater than or equal to this for compression to activate.',
+      '        aliases: --compression-minimum-size-threshold',
+      '    --compressionMaximumSizeThreshold (default -1): The file size must be greater than or equal to this for compression to activate.',
+      '        aliases: --compression-maximum-size-threshold',
+      '    --checkDuplicateHashes (default true): If true, if a file\'s hash already exists in the backup dir, the file in the backup dir will be compared against the file to be added to be backup to see if they are not the same, in which case a hash collision occurred.',
+      '        aliases: --check-duplicate-hashes',
+      '    --ignoreErrors (default false): If true, errors when adding a file to the backup will be ignored and the file will not be added to the backup.',
+      '        aliases: --ignore-errors',
     ].join('\n'))
   ],
   
@@ -90,12 +103,25 @@ const commandsHelpText = new ReadOnlyMap([
       '  Restores a folder from the hash backup.',
       '  ',
       '  Options:',
-      '    --from=<backupDir> (required): The hash backup folder to use.',
-      '    --to=<basePath> (required): The directory to restore to.',
-      '    --name <name> (required): The name of the backup.',
-      '    --symlink-handling <value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
-      '    --setFileTimes <boolean> (default true): If true, file access, modification, and create times will be set at end of restore.',
-      '    --verify <value> (default true): If true, file checksums will be verified as they are copied out.',
+      '    --backupDir=<backupDir> (required): The hash backup folder to use.',
+      '        aliases: --backup-dir, --from',
+      '    --name=<name> (required): The name of the backup.',
+      '    --backupPath=<basePath> (required): The directory to restore to.',
+      '        aliases: --backup-path, --basePath, --base-path, --to',
+      '    --backupInternalPath=<relativePath> (default `.`): The directory inside the backup to restore to the given folder.',
+      '        aliases: --backup-internal-path',
+      '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
+      '        aliases: --excluded-items',
+      '    --symlink-handling=<value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
+      `    --inMemoryCutoff=<integer >= -1 | Infinity> (default \`${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}\`): Below the cutoff, read file into memory and calculate hash and decompressed forms in memory, to minimize hard drive reads/writes.`,
+      '        aliases: --in-memory-cutoff',
+      '    --setFileTimes=<boolean> (default true): If true, file access, modification, and creation times (creation time only on supported systems) will be set at end of restore.',
+      '        aliases: --set-file-times',
+      '    --createParentFolders=<boolean> (default false): If true, the parent folders of the restore folder will be created.',
+      '        aliases: --create-parent-folders',
+      '    --overwriteExisting=<boolean> (default false): If true, overwrite the existing restore location with the restore contents.',
+      '        aliases: --overwrite-existing',
+      '    --verify=<value> (default true): If true, file checksums will be verified as files are copied out.',
     ].join('\n'))
   ],
   
@@ -133,15 +159,6 @@ const commandsHelpText = new ReadOnlyMap([
       '    --help (mutually exclusive with --version): Prints this help message.',
       '    --version (mutually exclusive with --help): Prints the version of the hash backup program.',
       '    No option passed: Prints this help message.',
-    ].join('\n'))
-  ],
-  
-  // TODO: remove
-  [
-    '',
-    
-    splitLongLinesByWord([
-      
     ].join('\n'))
   ],
 ]);
@@ -193,6 +210,7 @@ export async function executeCommandLine({
 } = {}) {
   // TODO: add newline at start and end
   // TODO: for parsing integers, strip _,. characters
+  // TODO: pass logger to subcommand
   
   const {
     subCommands,

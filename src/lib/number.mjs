@@ -31,7 +31,7 @@ export function integerToStringWithSeparator(integer, {
   }
   
   if (typeof separatorCharacter != 'string') {
-    throw new Error(`separatorCharacter not string: ${separatorCharacter}`);
+    throw new Error(`separatorCharacter not string: ${typeof separatorCharacter}`);
   }
   
   if (integer < 0) {
@@ -51,7 +51,7 @@ function decimalStringToStringWithSeparator(decimalString, {
   }
   
   if (typeof separatorCharacter != 'string') {
-    throw new Error(`separatorCharacter not string: ${separatorCharacter}`);
+    throw new Error(`separatorCharacter not string: ${typeof separatorCharacter}`);
   }
   
   let digitChunks = [];
@@ -79,7 +79,7 @@ export function numberToStringWithSeparator(number, {
   }
   
   if (typeof integerSeparatorCharacter != 'string') {
-    throw new Error(`integerSeparatorCharacter not string: ${integerSeparatorCharacter}`);
+    throw new Error(`integerSeparatorCharacter not string: ${typeof integerSeparatorCharacter}`);
   }
   
   if (!Number.isSafeInteger(decimalSeparatorInterval) || decimalSeparatorInterval <= 0) {
@@ -87,7 +87,7 @@ export function numberToStringWithSeparator(number, {
   }
   
   if (typeof decimalSeparatorCharacter != 'string') {
-    throw new Error(`decimalSeparatorCharacter not string: ${decimalSeparatorCharacter}`);
+    throw new Error(`decimalSeparatorCharacter not string: ${typeof decimalSeparatorCharacter}`);
   }
   
   if (number < 0) {
@@ -129,5 +129,11 @@ export function numberToStringWithSeparator(number, {
 }
 
 export function numberStringToNumber(numString) {
+  if (typeof numString != 'string') {
+    throw new Error(`numString not string: ${typeof numString}`);
+  }
   
+  numString = numString.replaceAll('_', '');
+  
+  return Number(numString);
 }

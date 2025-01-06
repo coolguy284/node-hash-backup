@@ -42,6 +42,8 @@ improved data storage:
   add alternate stream support on windows, straightforwardly by storing paths with ':'
   explicitly detect hardlinks
 
+check excluded files are relative or absolute
+
 low prio:
 test symlink support
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
