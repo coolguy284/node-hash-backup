@@ -5,6 +5,15 @@ import {
   getVersionString,
   mainHelpText,
 } from './help_info.mjs';
+import { initBackupDir } from '../backup_manager/backup_helper_funcs.mjs';
+
+function convertArgIfNeeded(argValue, conversionFunc) {
+  if (conversionFunc != null) {
+    return conversionFunc(argValue);
+  } else {
+    return argValue;
+  }
+}
 
 function validateCommandArgCall({
   commandArgs,
@@ -26,6 +35,7 @@ function validateCommandArgCall({
       presenceOnly,
       required,
       defaultValue,
+      conversion,
     } = commandArgs.get(argName);
     
     if (handledArgNames.has(originalName)) {
@@ -46,13 +56,13 @@ function validateCommandArgCall({
       }
       
       if (keyedArgs.has(argName)) {
-        parsedKeyedArgs.set(originalName, keyedArgs.get(argName));
+        parsedKeyedArgs.set(originalName, convertArgIfNeeded(keyedArgs.get(argName), conversion));
       } else {
         if (required) {
           throw new Error(`argument ${JSON.stringify(argName)} | ${JSON.stringify(originalName)} is a required key-value argument`);
         } else {
           if (defaultValue != null) {
-            parsedKeyedArgs.set(originalName, defaultValue);
+            parsedKeyedArgs.set(originalName, convertArgIfNeeded(defaultValue, conversion));
           }
         }
       }
@@ -150,8 +160,8 @@ function validateAndExtendedParseCommandCall({
 }
 
 function printHelp({
-  logger = console.log,
   subCommand = null,
+  logger = console.log,
 } = {}) {
   if (subCommand == null) {
     logger(mainHelpText);
@@ -176,8 +186,6 @@ export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
 } = {}) {
-  // TODO: for parsing integers, strip _,. characters
-  
   const {
     commandName,
     subCommand,
@@ -208,7 +216,7 @@ export async function executeCommandLine({
       
       case 'help':
         if (subCommand != null) {
-          printHelp({ logger, subCommand });
+          printHelp({ subCommand, logger });
         } else if (keyedArgs.has('command')) {
           printHelp({
             logger,
@@ -219,7 +227,50 @@ export async function executeCommandLine({
         }
         break;
       
-      // TODO
+      case 'init': {
+        const compressAlgo = keyedArgs.get('compressAlgo');
+        
+        let compressParams;
+        
+        if (keyedArgs.has('compressParams')) {
+          compressParams = keyedArgs.get('compressParams');
+        }
+        
+        if (keyedArgs.has('compressLevel')) {
+          if (compressParams == null) {
+            compressParams = {};
+          }
+          
+          compressParams.level = keyedArgs.get('compressLevel');
+        }
+        
+        await initBackupDir({
+          backupDir: keyedArgs.get('backupDir'),
+          hash: keyedArgs.get('hashAlgo'),
+          hashSlices: keyedArgs.get('hashSlices'),
+          hashSliceLength: keyedArgs.get('hashSliceLength'),
+          compressAlgo: compressAlgo == 'none' ? null : compressAlgo,
+          compressParams,
+          logger,
+        });
+        break;
+      }
+      
+      case 'deleteAll':
+        // TODO
+        break;
+      
+      case 'backup':
+        // TODO
+        break;
+      
+      case 'restore':
+        // TODO
+        break;
+      
+      case 'info':
+        // TODO
+        break;
       
       default:
         throw new Error(`support for command ${JSON.stringify(commandName)} not implemented`);

@@ -2,12 +2,118 @@ import { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from '../backup_manager/backup_manager.
 import { splitLongLinesByWord } from '../lib/command_line.mjs';
 import { integerToStringWithSeparator } from '../lib/number.mjs';
 
+function toInteger(value) {
+  let cleanedValue = value.replaceAll(/[_,.]/g, '');
+  
+  if (!/^\d+$/.test(cleanedValue)) {
+    throw new Error(`value not valid integer: ${value}`);
+  }
+  
+  return parseInt(value);
+}
+
+function toJSONObject(value) {
+  let jsonValue;
+  
+  try {
+    jsonValue = JSON.parse(value);
+  } catch {
+    throw new Error(`value not valid JSON: ${JSON.stringify(value)}`);
+  }
+  
+  if (typeof jsonValue != 'object' || jsonValue == null) {
+    throw new Error(`value not a JSON object: ${jsonValue}`);
+  }
+  
+  return jsonValue;
+}
+
 export const COMMANDS = new Map(
   [
     [
       'init',
       
       {
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'to'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'hashAlgo',
+            
+            {
+              aliases: ['hash-algo', 'hash'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'sha256',
+            },
+          ],
+          
+          [
+            'hashSlices',
+            
+            {
+              aliases: ['hash-slices'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '1',
+              conversion: toInteger,
+            },
+          ],
+          
+          [
+            'hashSliceLength',
+            
+            {
+              aliases: ['hash-slice-length'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '2',
+              conversion: toInteger,
+            },
+          ],
+          
+          [
+            'compressAlgo',
+            
+            {
+              aliases: ['compress-algo'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'brotli',
+            },
+          ],
+          
+          [
+            'compressParams',
+            
+            {
+              aliases: ['compress-params'],
+              presenceOnly: false,
+              required: false,
+              conversion: toJSONObject,
+            },
+          ],
+          
+          [
+            'compressLevel',
+            
+            {
+              aliases: ['compress-level'],
+              presenceOnly: false,
+              required: false,
+              conversion: toInteger,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `init`:',
           '  Initalizes an empty hash backup in backup dir.',
@@ -21,11 +127,11 @@ export const COMMANDS = new Map(
           '        aliases: --hash-slices',
           '    --hashSliceLength=<number> (default `2`): The length of the hash slice used to split files into folders.',
           '        aliases: --hash-slice-length',
-          '    --compressAlgo=<string> (default `brotli`): The algorithm to compress files (`none` for no algo).',
+          '    --compressAlgo=<string> (default `brotli`): The algorithm to compress files (`none` for no compression).',
           '        aliases: --compress-algo',
           '    --compressParams=<JSON object, i.e. "{level:9}"> (default `{}`): Parameters for the compressor.',
           '        aliases: --compress-params',
-          '    --compressLevel=<integer> (default `6` if compression algorthm is `deflate-raw`, `deflate`, `gzip`, or `brotli`, and --compress-params is left at default (but not if explicitly set to "{}"), unspecified otherwise): The amount to compress files (valid is 1 through 9). Overwrites --compress-params\'s level parameter.',
+          '    --compressLevel=<integer> (default `6` if compression algorthm is `deflate-raw`, `deflate`, `gzip`, or `brotli`, and --compress-params is left at default (but not if explicitly set to "{}"); unspecified otherwise): The amount to compress files (valid is 1 through 9). Overwrites --compress-params\'s level parameter.',
           '        aliases: --compress-level',
         ].join('\n'),
       },
@@ -57,6 +163,27 @@ export const COMMANDS = new Map(
       
       {
         aliases: ['list'],
+        
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: false,
+            },
+          ],
+        ],
         
         helpMsg: [
           'Command `info`:',
@@ -311,6 +438,7 @@ function convertCommandArgs(args) {
             presenceOnly,
             required,
             defaultValue = null,
+            conversion = null,
           },
         ]
       ) => {
@@ -321,6 +449,7 @@ function convertCommandArgs(args) {
           presenceOnly,
           required,
           defaultValue,
+          conversion,
         };
         
         return argNames.map(aliasArgName => [aliasArgName, argParams]);
