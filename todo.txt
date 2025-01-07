@@ -1,4 +1,6 @@
-fix graceful close of test script
+add file, dir, junction to test; set to ignore symlinkType for now
+show exact bytes option for output of backup and restore and other funcs
+show exact bytes for getSubtree and other func
 create native module to do what powershell cannot
 
 add reverse search by hash for what backups and filenames in the backup have the file

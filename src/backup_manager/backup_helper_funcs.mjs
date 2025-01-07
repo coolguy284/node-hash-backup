@@ -82,6 +82,53 @@ export async function performBackup({
   }
 }
 
+export async function deleteBackup({
+  backupDir,
+  name,
+  pruneReferencedFilesAfter = true,
+  confirm = false,
+  logger = console.log,
+}) {
+  if (!confirm) {
+    throw new Error(`Confirm must be true to perform backup deletion`);
+  }
+  
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    backupMgr.updateAllowSingleBackupDestroyStatus_Danger(true);
+    
+    await backupMgr.destroyBackup({
+      backupName: name,
+      pruneReferencedFilesAfter,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
+export async function renameBackup({
+  backupDir,
+  oldName,
+  newName,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    await backupMgr.renameBackup({
+      oldBackupName: oldName,
+      newBackupName: newName,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
 export async function performRestore({
   backupDir,
   name,
@@ -124,7 +171,7 @@ export async function getBackupInfo({
   logger = console.log,
 }) {
   if (typeof name != 'string' && name != null) {
-    throw new Error(`name not string or null: ${name}`);
+    throw new Error(`name not string or null: ${typeof name}`);
   }
   
   let backupMgr = await createBackupManager(backupDir, {
@@ -141,3 +188,10 @@ export async function getBackupInfo({
     await backupMgr[Symbol.asyncDispose]();
   }
 }
+
+// TODO: getEntryInfo
+// TODO: getSubtree
+// TODO: getFolderContents
+// TODO: getFileStreamByBackupPath
+// TODO: getFileStreamByHex
+// TODO: pruneUnreferencedFiles
