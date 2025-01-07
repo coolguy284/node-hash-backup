@@ -75,7 +75,6 @@ export const COMMANDS = new Map(
               aliases: ['hash-slice-length'],
               presenceOnly: false,
               required: false,
-              defaultValue: '2',
               conversion: toInteger,
             },
           ],
@@ -129,7 +128,7 @@ export const COMMANDS = new Map(
           '        aliases: --hash-slice-length',
           '    --compressAlgo=<string> (default `brotli`): The algorithm to compress files (`none` for no compression).',
           '        aliases: --compress-algo',
-          '    --compressParams=<JSON object, i.e. "{level:9}"> (default `{}`): Parameters for the compressor.',
+          '    --compressParams=<JSON object, i.e. \'{"level":9}\'> (default `{}`): Parameters for the compressor.',
           '        aliases: --compress-params',
           '    --compressLevel=<integer> (default `6` if compression algorthm is `deflate-raw`, `deflate`, `gzip`, or `brotli`, and --compress-params is left at default (but not if explicitly set to "{}"); unspecified otherwise): The amount to compress files (valid is 1 through 9). Overwrites --compress-params\'s level parameter.',
           '        aliases: --compress-level',
@@ -428,7 +427,9 @@ export const COMMANDS = new Map(
 );
 
 function convertCommandArgs(args) {
-  return new Map(
+  let keyedArgs = new Set();
+  
+  const argData = new Map(
     args
       .flatMap((
         [
@@ -452,7 +453,16 @@ function convertCommandArgs(args) {
           conversion,
         };
         
+        if (!presenceOnly) {
+          keyedArgs.add(argName);
+        }
+        
         return argNames.map(aliasArgName => [aliasArgName, argParams]);
       })
   );
+  
+  return {
+    data: argData,
+    keyedArgs,
+  };
 }

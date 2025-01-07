@@ -825,12 +825,14 @@ class BackupManager {
     return deepObjectClone(this.#compressionParams);
   }
   
+  static #DEFAULT_LEVEL_COMPRESS_ALGOS = new Set(['deflate-raw', 'deflate', 'gzip', 'brotli']);
+  
   async initBackupDir({
     hashAlgo = 'sha256',
     hashSlices = 1,
     hashSliceLength = null,
     compressionAlgo = 'brotli',
-    compressionParams = { level: 6 },
+    compressionParams = null,
     logger = null,
   }) {
     if (this.#disposed) {
@@ -887,6 +889,10 @@ class BackupManager {
       if (compressionParams != null) {
         if ('algorithm' in compressionParams) {
           throw new Error(`compressionParams contains disallowed key "algorithm": ${JSON.stringify(compressionParams)}`);
+        }
+      } else {
+        if (BackupManager.#DEFAULT_LEVEL_COMPRESS_ALGOS.has(compressionAlgo)) {
+          compressionParams = { level: 6 };
         }
       }
       
@@ -2287,7 +2293,7 @@ export async function createBackupManager(
     autoUpgradeDir = false,
     cacheEnabled = true,
     globalLogger = null,
-  }
+  } = {}
 ) {
   // the 'await' call does have an effect, as constructor returns a promise that gets
   // fulfilled with the newly constructed BackupManager object

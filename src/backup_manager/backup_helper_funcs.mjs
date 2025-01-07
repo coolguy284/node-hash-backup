@@ -11,7 +11,7 @@ export async function initBackupDir({
   hashSlices = 1,
   hashSliceLength = null,
   compressAlgo = 'brotli',
-  compressParams = { level: 6 },
+  compressParams = null,
   logger = console.log,
 }) {
   let backupMgr = await createBackupManager(backupDir, {

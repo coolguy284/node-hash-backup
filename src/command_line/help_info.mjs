@@ -17,7 +17,7 @@ export const mainHelpText = splitLongLinesByWord([
   '',
   COMMANDS.get('init').helpMsg,
   '',
-  COMMANDS.get('delete').helpMsg,
+  COMMANDS.get('deleteAll').helpMsg,
   '',
   COMMANDS.get('info').helpMsg,
   '',
@@ -35,5 +35,5 @@ export const mainHelpText = splitLongLinesByWord([
   '',
   COMMANDS.get('version').helpMsg,
   '',
-  COMMANDS.get('none').helpMsg,
+  COMMANDS.get(null).helpMsg,
 ].join('\n'));

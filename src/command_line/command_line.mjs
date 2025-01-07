@@ -26,17 +26,15 @@ function validateCommandArgCall({
   let parsedPresentOnlyArgs = new Set();
   
   for (const argName of allPresentArgs) {
-    if (!commandArgs.has(argName)) {
+    if (!commandArgs.data.has(argName)) {
       throw new Error(`unrecognized argument: --${argName}`);
     }
     
     const {
       originalName,
       presenceOnly,
-      required,
-      defaultValue,
       conversion,
-    } = commandArgs.get(argName);
+    } = commandArgs.data.get(argName);
     
     if (handledArgNames.has(originalName)) {
       throw new Error(`duplicate aliases of argument ${JSON.stringify(originalName)}`);
@@ -55,15 +53,25 @@ function validateCommandArgCall({
         throw new Error(`argument ${JSON.stringify(argName)} is a key-value argument`);
       }
       
-      if (keyedArgs.has(argName)) {
-        parsedKeyedArgs.set(originalName, convertArgIfNeeded(keyedArgs.get(argName), conversion));
+      // keyedArgs must have argName property here
+      
+      parsedKeyedArgs.set(originalName, convertArgIfNeeded(keyedArgs.get(argName), conversion));
+    }
+  }
+  
+  for (const keyedArgName of commandArgs.keyedArgs) {
+    if (!parsedKeyedArgs.has(keyedArgName)) {
+      const {
+        required,
+        defaultValue,
+        conversion,
+      } = commandArgs.data.get(keyedArgName);
+      
+      if (required) {
+        throw new Error(`argument ${JSON.stringify(keyedArgName)} is a required key-value argument`);
       } else {
-        if (required) {
-          throw new Error(`argument ${JSON.stringify(argName)} | ${JSON.stringify(originalName)} is a required key-value argument`);
-        } else {
-          if (defaultValue != null) {
-            parsedKeyedArgs.set(originalName, convertArgIfNeeded(defaultValue, conversion));
-          }
+        if (defaultValue != null) {
+          parsedKeyedArgs.set(keyedArgName, convertArgIfNeeded(defaultValue, conversion));
         }
       }
     }
@@ -87,7 +95,21 @@ function validateAndExtendedParseCommandCall({
   let parsedPresentOnlyArgs;
   
   if (subCommands.length == 0) {
+    const { args } = COMMANDS.get(null);
+    
     commandName = null;
+    
+    (
+      {
+        parsedKeyedArgs,
+        parsedPresentOnlyArgs,
+      } = validateCommandArgCall({
+        commandArgs: args,
+        allPresentArgs,
+        keyedArgs,
+        presentOnlyArgs,
+      })
+    );
   } else {
     if (COMMANDS.has(subCommands[0])) {
       const {
@@ -99,7 +121,7 @@ function validateAndExtendedParseCommandCall({
       commandName = originalName;
       
       if (commandName == 'help') {
-        if (subCommands.length == 0) {
+        if (subCommands.length == 1) {
           (
             {
               parsedKeyedArgs,
@@ -111,8 +133,8 @@ function validateAndExtendedParseCommandCall({
               presentOnlyArgs,
             })
           );
-        } else if (subCommands.length == 1) {
-          subCommand = subCommands[0];
+        } else if (subCommands.length == 2) {
+          subCommand = subCommands[1];
           
           (
             {
@@ -129,8 +151,7 @@ function validateAndExtendedParseCommandCall({
           throw new Error(`unrecognized command: ${JSON.stringify(subCommands)}`);
         }
       } else {
-        if (subCommands.length == 0) {
-          
+        if (subCommands.length == 1) {
           (
             {
               parsedKeyedArgs,
