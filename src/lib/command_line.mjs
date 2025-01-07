@@ -11,7 +11,7 @@ export const DEFAULT_APPROXIMATE_MAX_LINE_LENGTH = 90;
 */
 export function parseArgs(args) {
   let subCommands = [];
-  let remainingArgs;
+  let remainingArgs = null;
   
   for (let i = 0; i < args.length; i++) {
     const currentArg = args[i];
@@ -23,6 +23,8 @@ export function parseArgs(args) {
       break;
     }
   }
+  
+  remainingArgs = remainingArgs ?? [];
   
   let keyedArgs = new Map();
   let presentOnlyArgs = new Set();

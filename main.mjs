@@ -35,7 +35,7 @@ import { realpath } from 'fs/promises';
 
 import { executeCommandLine } from './src/command_line/command_line.mjs';
 
-if (process.argv[0] == await realpath(import.meta.filename)) {
+if (process.argv[1] == await realpath(import.meta.filename)) {
   // execute main cli code
   await executeCommandLine();
 }
