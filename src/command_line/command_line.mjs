@@ -1,10 +1,153 @@
 import { parseArgs } from '../lib/command_line.mjs';
 
+import { COMMANDS } from './command_info.mjs';
 import {
-  commandsHelpText,
   getVersionString,
   mainHelpText,
 } from './help_info.mjs';
+
+function validateCommandArgCall({
+  commandArgs,
+  allPresentArgs,
+  keyedArgs,
+  presentOnlyArgs,
+}) {
+  let handledArgNames = new Set();
+  let parsedKeyedArgs = new Map();
+  let parsedPresentOnlyArgs = new Set();
+  
+  for (const argName of allPresentArgs) {
+    if (!commandArgs.has(argName)) {
+      throw new Error(`unrecognized argument: --${argName}`);
+    }
+    
+    const {
+      originalName,
+      presenceOnly,
+      required,
+      defaultValue,
+    } = commandArgs.get(argName);
+    
+    if (handledArgNames.has(originalName)) {
+      throw new Error(`duplicate aliases of argument ${JSON.stringify(originalName)}`);
+    }
+    
+    handledArgNames.add(originalName);
+    
+    if (presenceOnly) {
+      if (keyedArgs.has(argName)) {
+        throw new Error(`argument ${JSON.stringify(argName)} is a presence-only argument`);
+      }
+      
+      parsedPresentOnlyArgs.add(originalName);
+    } else {
+      if (presentOnlyArgs.has(argName)) {
+        throw new Error(`argument ${JSON.stringify(argName)} is a key-value argument`);
+      }
+      
+      if (keyedArgs.has(argName)) {
+        parsedKeyedArgs.set(originalName, keyedArgs.get(argName));
+      } else {
+        if (required) {
+          throw new Error(`argument ${JSON.stringify(argName)} | ${JSON.stringify(originalName)} is a required key-value argument`);
+        } else {
+          if (defaultValue != null) {
+            parsedKeyedArgs.set(originalName, defaultValue);
+          }
+        }
+      }
+    }
+  }
+  
+  return {
+    parsedKeyedArgs,
+    parsedPresentOnlyArgs,
+  };
+}
+
+function validateAndExtendedParseCommandCall({
+  subCommands,
+  allPresentArgs,
+  keyedArgs,
+  presentOnlyArgs,
+}) {
+  let commandName;
+  let subCommand = null;
+  let parsedKeyedArgs;
+  let parsedPresentOnlyArgs;
+  
+  if (subCommands.length == 0) {
+    commandName = null;
+  } else {
+    if (COMMANDS.has(subCommands[0])) {
+      const {
+        originalName,
+        args,
+        subCommandArgs,
+      } = COMMANDS.get(subCommands[0]);
+      
+      commandName = originalName;
+      
+      if (commandName == 'help') {
+        if (subCommands.length == 0) {
+          (
+            {
+              parsedKeyedArgs,
+              parsedPresentOnlyArgs,
+            } = validateCommandArgCall({
+              commandArgs: args,
+              allPresentArgs,
+              keyedArgs,
+              presentOnlyArgs,
+            })
+          );
+        } else if (subCommands.length == 1) {
+          subCommand = subCommands[0];
+          
+          (
+            {
+              parsedKeyedArgs,
+              parsedPresentOnlyArgs,
+            } = validateCommandArgCall({
+              commandArgs: subCommandArgs,
+              allPresentArgs,
+              keyedArgs,
+              presentOnlyArgs,
+            })
+          );
+        } else {
+          throw new Error(`unrecognized command: ${JSON.stringify(subCommands)}`);
+        }
+      } else {
+        if (subCommands.length == 0) {
+          
+          (
+            {
+              parsedKeyedArgs,
+              parsedPresentOnlyArgs,
+            } = validateCommandArgCall({
+              commandArgs: args,
+              allPresentArgs,
+              keyedArgs,
+              presentOnlyArgs,
+            })
+          );
+        } else {
+          throw new Error(`unrecognized command: ${JSON.stringify(subCommands)}`);
+        }
+      }
+    } else {
+      throw new Error(`unrecognized command: ${JSON.stringify(subCommands)}`);
+    }
+  }
+  
+  return {
+    commandName,
+    subCommand,
+    keyedArgs: parsedKeyedArgs,
+    presentOnlyArgs: parsedPresentOnlyArgs,
+  };
+}
 
 function printHelp({
   logger = console.log,
@@ -13,10 +156,14 @@ function printHelp({
   if (subCommand == null) {
     logger(mainHelpText);
   } else {
-    if (commandsHelpText.has(subCommand)) {
-      logger(commandsHelpText.get(subCommand));
+    if (subCommand == 'none') {
+      subCommand = null;
+    }
+    
+    if (COMMANDS.has(subCommand)) {
+      logger(COMMANDS.get(subCommand).helpMsg);
     } else {
-      throw new Error(`subcommand unknown: ${JSON.stringify(subCommand)}`);
+      throw new Error(`help lookup error: command unknown: ${JSON.stringify(subCommand)}`);
     }
   }
 }
@@ -32,31 +179,19 @@ export async function executeCommandLine({
   // TODO: for parsing integers, strip _,. characters
   
   const {
-    subCommands,
+    commandName,
+    subCommand,
     keyedArgs,
     presentOnlyArgs,
-    allPresentArgs,
-  } = parseArgs(args);
+  } = validateAndExtendedParseCommandCall(parseArgs(args));
   
   logger();
   
-  if (subCommands.length == 0) {
+  if (commandName == null) {
     // called without a command
     
-    const recognizedArgs = new Set(['help', 'version']);
-    
-    for (const argName in allPresentArgs) {
-      if (!recognizedArgs.has(argName)) {
-        throw new Error(`unrecognized argument: --${argName}`);
-      }
-    }
-    
-    if (allPresentArgs.size == 2) {
+    if (presentOnlyArgs.size == 2) {
       throw new Error('cannot have both --help and --version present');
-    }
-    
-    if (keyedArgs.size != 0) {
-      throw new Error(`argument --${keyedArgs.keys().next().value} cannot have value`);
     }
     
     if (presentOnlyArgs.size == 0 || presentOnlyArgs.has('help')) {
@@ -65,18 +200,30 @@ export async function executeCommandLine({
       // --version arg
       printVersion({ logger });
     }
-  } else if (subCommands.length == 1) {
-    const subCommand = subCommands[0];
-    
-    switch (subCommand) {
+  } else {
+    switch (commandName) {
+      case 'version':
+        printVersion({ logger });
+        break;
+      
+      case 'help':
+        if (subCommand != null) {
+          printHelp({ logger, subCommand });
+        } else if (keyedArgs.has('command')) {
+          printHelp({
+            logger,
+            subCommand: keyedArgs.get('command'),
+          });
+        } else {
+          printHelp({ logger });
+        }
+        break;
+      
       // TODO
-      // TODO: get aliases using helper func that errors out if more than one of a given alias group
       
       default:
-        throw new Error(`unrecognized subcommand: ${JSON.stringify(subCommands)}`);
+        throw new Error(`support for command ${JSON.stringify(commandName)} not implemented`);
     }
-  } else {
-    throw new Error(`unrecognized subcommand: ${JSON.stringify(subCommands)}`);
   }
   
   logger();
