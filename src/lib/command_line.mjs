@@ -77,6 +77,40 @@ export function parseArgs(args) {
 }
 
 export function splitLongLinesByWord(output, approximateMaxLineLength = DEFAULT_APPROXIMATE_MAX_LINE_LENGTH) {
-  // TODO
-  return output;
+  return output
+    .split('\n')
+    .flatMap(line => {
+      if (line.length > approximateMaxLineLength) {
+        let startingSpaces;
+        
+        for (startingSpaces = 0; startingSpaces < line.length; startingSpaces++) {
+          if (line[startingSpaces] != ' ') {
+            break;
+          }
+        }
+        
+        const workingMaxLineLength = approximateMaxLineLength - startingSpaces;
+        
+        const words = line.slice(startingSpaces).split(' ');
+        
+        let lines = [];
+        
+        for (const word of words) {
+          if (lines.length == 0) {
+            lines.push(word);
+          } else {
+            if (lines.at(-1).length < workingMaxLineLength) {
+              lines[lines.length - 1] = lines.at(-1) + ' ' + word;
+            } else {
+              lines.push(word);
+            }
+          }
+        }
+        
+        return lines.map(subLine => ' '.repeat(startingSpaces) + subLine);
+      } else {
+        return [line];
+      }
+    })
+    .join('\n');
 }

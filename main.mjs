@@ -32,10 +32,14 @@ export { executeCommandLine } from './src/command_line/command_line.mjs';
 // check for running as main
 
 import { realpath } from 'fs/promises';
+import { dirname } from 'path';
 
 import { executeCommandLine } from './src/command_line/command_line.mjs';
 
-if (process.argv[1] == await realpath(import.meta.filename)) {
+const nodeCalledFilePath = process.argv[1];
+const thisFilePath = await realpath(import.meta.filename);
+
+if (nodeCalledFilePath == thisFilePath || nodeCalledFilePath == dirname(thisFilePath)) {
   // execute main cli code
   await executeCommandLine();
 }
