@@ -270,7 +270,7 @@ export const COMMANDS = new Map(
           '    --name=<name> (required): The name of the backup.',
           '    --backupPath=<basePath> (required): The directory to restore to.',
           '        aliases: --backup-path, --basePath, --base-path, --to',
-          '    --pathToEntry=<relativePath> (default `.`): The path inside the hash backup of the file or folder to be restored.',
+          '    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder to be restored.',
           '        aliases: --path-to-entry',
           '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
           '        aliases: --excluded-items',
@@ -284,6 +284,50 @@ export const COMMANDS = new Map(
           '    --overwriteExisting=<boolean> (default false): If true, overwrite the existing restore location with the restore contents.',
           '        aliases: --overwrite-existing',
           '    --verify=<value> (default true): If true, file checksums will be verified as files are copied out.',
+        ].join('\n'),
+      },
+    ],
+    
+    [
+      'deleteBackup',
+      
+      {
+        aliases: ['delete-backup'],
+        
+        helpMsg: [
+          'Command `deleteBackup`:',
+          '  Deletes a given backup from the backup dir.',
+          '  ',
+          '  Aliases:',
+          '    delete-backup',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to delete the backup from.',
+          '        aliases: --backup-dir, --to',
+          '    --name=<name> (required): The name of the backup to delete.',
+          '    --confirm=yes (required): Must be set to allow deletion.',
+        ].join('\n'),
+      },
+    ],
+    
+    [
+      'renameBackup',
+      
+      {
+        aliases: ['rename-backup', 'rename'],
+        
+        helpMsg: [
+          'Command `renameBackup`:',
+          '  Renames a given backup in the backup dir.',
+          '  ',
+          '  Aliases:',
+          '    rename-backup, rename',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
+          '        aliases: --backup-dir, --from',
+          '    --oldName=<name> (required): The current name of the backup.',
+          '    --newName=<name> (required): The new name of the backup.',
         ].join('\n'),
       },
     ],
@@ -304,8 +348,8 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
           '        aliases: --backup-dir, --from',
-          '    --name=<name> (required): The name of the hash backup to get the file from.',
-          '    --pathToFolder=<relativePath> (required): The path inside the hash backup of the folder to get the contents of.',
+          '    --name=<name> (required): The name of the backup to get the file from.',
+          '    --pathToFolder=<relativePath> (required): The path inside the backup of the folder to get the contents of.',
           '        aliases: path-to-folder',
         ].join('\n'),
       },
@@ -327,8 +371,8 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
           '        aliases: --backup-dir, --from',
-          '    --name=<name> (required): The name of the hash backup to get the file from.',
-          '    --pathToEntry=<relativePath> (required): The path inside the hash backup of the item to get information from.',
+          '    --name=<name> (required): The name of the backup to get the file from.',
+          '    --pathToEntry=<relativePath> (required): The path inside the backup of the item to get information from.',
           '        aliases: path-to-entry',
         ].join('\n'),
       },
@@ -350,8 +394,8 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
           '        aliases: --backup-dir, --from',
-          '    --name=<name> (required): The name of the hash backup to get the file from.',
-          '    --pathToEntry=<relativePath> (default `.`): The path inside the hash backup of the file or folder to get information from.',
+          '    --name=<name> (required): The name of the backup to get the file from.',
+          '    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder to get information from.',
           '        aliases: path-to-entry',
         ].join('\n'),
       },
@@ -373,8 +417,8 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to prune.',
           '        aliases: --backup-dir, --to',
-          '    --name=<name> (required): The name of the hash backup to get the file from.',
-          '    --pathToFile=<relativePath> (required): The path inside the hash backup of the file to access.',
+          '    --name=<name> (required): The name of the backup to get the file from.',
+          '    --pathToFile=<relativePath> (required): The path inside the backup of the file to access.',
           '        aliases: path-to-file',
           '    --verify=<value> (default true): If true, file checksum will be verified before the file is output.',
         ],
@@ -397,6 +441,23 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to prune.',
           '        aliases: --backup-dir, --to',
+        ],
+      },
+    ],
+    
+    [
+      'interactive',
+      
+      {
+        helpMsg: [
+          'Command `interactive`:',
+          '  Opens an interactive NodeJS REPL with all exported hash backup functions in the global scope. If a hash backup location is provided, a "hb" variable will be set to a BackupManager initialized to the backup dir. If the custom parameter is set, a variable called "data" will be set to the value of the custom parameter.',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir>: The hash backup folder to open as a BackupManager object bound to the variable "hb".',
+          '        aliases: --backup-dir, --to',
+          '    --custom=<anything>: Custom data to pass to the NodeJS REPL.',
+          // TODO: clean up hb normally even if program end (asyncdispose?)
         ],
       },
     ],

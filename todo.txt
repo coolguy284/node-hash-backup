@@ -3,18 +3,13 @@ save readonly, hidden, system flags
 prune backup dir should report space freed
 show both raw bytes and human readable version
 add file, dir, junction to test; set to ignore symlinkType for now
-show exact bytes option for output of backup and restore and other funcs
-show exact bytes for getSubtree and other func
+detect alternate file streams on windows
+  add alternate stream support on windows, straightforwardly by storing paths with ':'
 create native module to do what powershell cannot
 
-add reverse search by hash for what backups and filenames in the backup have the file
 internal backup dir command to store file by repeatable stream func or by bytes
 function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
   with in memory cutoff like usual, only if the cutoff is even needed
-
-delete backup and delete backup dir must have confirm=yes
-fix inconsistent periods at the end of console logged messages
-use custom error type when throwing, and print custom errors differently (without the traceback)
 
 update readme.md and help output to match true commands
   particularly add 'remove' command '--setFileTimes' option
@@ -22,7 +17,6 @@ update readme.md and help output to match true commands
 create command line access for each command in backup manager class within reason
 clear TODO from codebase
 implement proper async operation read/write locking in backup manager class
-implement tests
 extra command line arg for interactive mode that opens a node shell with hb as the var name of the BackupManager
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
@@ -37,20 +31,17 @@ subcommands and command line options for all facets of the backup dir functions 
   backup command should autocomplete new backup name with optional discriminatior (like first_backup_type); only enable this behavior if flag set to true
 configurable lockfile behavior, either error out or just wait until lockfile is deleted using watchfile
 optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
-ensure able to back up single file into hash backup
 
 createbackupview and importbackup
 then transfer
 add ctrl c lock to certain parts of code (look up good way), to ensure any backup or load or other operation isnt interrupted during write
 
-improved data storage:
-  support for file attrs like readonly, appendonly, immutable, etc.
-  add alternate stream support on windows, straightforwardly by storing paths with ':'
-  explicitly detect hardlinks
-
 check excluded files are relative or absolute
 
 low prio:
+improved data storage:
+  explicitly detect hardlinks
+add reverse search by hash for what backups and filenames in the backup have the file
 more options to define backup granularity:
   store file times?
   store file attributes?
@@ -70,6 +61,7 @@ version 3
   folders in backup folder for categories
   support inheritance from another backup entry, specifying only created, updated (incl. modtimes, attributes), or deleted files/folders
     support linking a backup to another or unlinking it, after backup is created
+  store immutable, appendonly attributes on linux
   low prio:
     add checksums
 add lzma support to node-hash-backup as an optional dependency
@@ -123,6 +115,9 @@ more plumbing-related commands and helper funcs, like:
   getFileStreamByHex
   getFilesWithHexPrefix
   getCountOfFilesWithHexPrefix
+fix inconsistent periods at the end of console logged messages
+use custom error type when throwing, and print custom errors differently (without the traceback)
+function to delete certain files in a backup instead of whole backup
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited
