@@ -1,5 +1,4 @@
 fix main and exports in package json, shouldnt need main
-set edit mode of edit.lock to be read only during creation
 save readonly, hidden, system flags
 prune backup dir should report space freed
 show both raw bytes and human readable version

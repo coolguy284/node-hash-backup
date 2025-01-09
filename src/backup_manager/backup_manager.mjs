@@ -178,7 +178,8 @@ class BackupManager {
     this.#lockFile = await open(
       join(backupDirPath, EDIT_LOCK_FILE),
       // https://man7.org/linux/man-pages/man2/open.2.html
-      constants.O_CREAT | constants.O_EXCL | constants.O_RDONLY
+      constants.O_CREAT | constants.O_EXCL | constants.O_RDONLY,
+      0o444,
     );
     
     try {
