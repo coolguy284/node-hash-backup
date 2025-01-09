@@ -1,6 +1,5 @@
 fix main and exports in package json, shouldnt need main
 save readonly, hidden, system flags
-prune backup dir should report space freed
 show both raw bytes and human readable version
 add file, dir, junction to test; set to ignore symlinkType for now
 detect alternate file streams on windows

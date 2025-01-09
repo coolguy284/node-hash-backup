@@ -17,6 +17,10 @@ import {
 } from 'path';
 
 import { Enum } from './enum.mjs';
+import {
+  decimalStringToStringWithSeparator,
+  integerToStringWithSeparator,
+} from './number.mjs';
 import { callProcess } from './process.mjs';
 import {
   unixNSIntToUnixSecString,
@@ -483,17 +487,17 @@ export function humanReadableSizeString(bytes) {
   if (bytes < 0) {
     return `-${humanReadableSizeString(-bytes)}`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 10) {
-    return `${bytes} bytes`;
+    return `${integerToStringWithSeparator(bytes)} bytes`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 20) {
-    return `${(bytes / 2 ** 10).toFixed(3)} KiB`;
+    return `${decimalStringToStringWithSeparator((bytes / 2 ** 10).toFixed(3))} KiB; ${integerToStringWithSeparator(bytes)} bytes`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 30) {
-    return `${(bytes / 2 ** 20).toFixed(3)} MiB`;
+    return `${decimalStringToStringWithSeparator((bytes / 2 ** 20).toFixed(3))} MiB; ${integerToStringWithSeparator(bytes)} bytes`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 40) {
-    return `${(bytes / 2 ** 30).toFixed(3)} GiB`;
+    return `${decimalStringToStringWithSeparator((bytes / 2 ** 30).toFixed(3))} GiB; ${integerToStringWithSeparator(bytes)} bytes`;
   } else if (bytes < HUMAN_READABLE_THRESHOLD * 2 ** 50) {
-    return `${(bytes / 2 ** 40).toFixed(3)} TiB`;
+    return `${decimalStringToStringWithSeparator((bytes / 2 ** 40).toFixed(3))} TiB; ${integerToStringWithSeparator(bytes)} bytes`;
   } else {
-    return `${(bytes / 2 ** 50).toFixed(3)} PiB`;
+    return `${decimalStringToStringWithSeparator((bytes / 2 ** 50).toFixed(3))} PiB; ${integerToStringWithSeparator(bytes)} bytes`;
   }
 }
 

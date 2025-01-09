@@ -7,6 +7,7 @@ import {
 } from './help_info.mjs';
 import {
   deleteBackupDir,
+  getBackupInfo,
   initBackupDir,
 } from '../backup_manager/backup_helper_funcs.mjs';
 
@@ -292,15 +293,21 @@ export async function executeCommandLine({
         });
         break;
       
+      case 'info': {
+        const info = await getBackupInfo({
+          backupDir: keyedArgs.get('backupDir'),
+          name: keyedArgs.get('name'),
+        });
+        
+        // TODO
+        break;
+      }
+      
       case 'backup':
         // TODO
         break;
       
       case 'restore':
-        // TODO
-        break;
-      
-      case 'info':
         // TODO
         break;
       

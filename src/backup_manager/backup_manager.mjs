@@ -1749,12 +1749,18 @@ class BackupManager {
     
     this.#log(logger, `Pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}...`);
     
+    let totalPrunedUncompressedBytes = 0;
+    let totalPrunedCompressedBytes = 0;
+    
     for (const fileHex of unreferencedFiles) {
       this.#log(logger, `Pruning file with hash ${fileHex}...`);
+      const { size, compressedSize } = await this.#getFileMeta(fileHex);
+      totalPrunedUncompressedBytes += size;
+      totalPrunedCompressedBytes += compressedSize;
       await this.#removeFileFromStore(fileHex, logger);
     }
     
-    this.#log(logger, `Finished pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}...`);
+    this.#log(logger, `Finished pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}, freed ${humanReadableSizeString(totalPrunedCompressedBytes)} compressed bytes, ${humanReadableSizeString(totalPrunedUncompressedBytes)} uncompressed bytes`);
   }
   
   async [Symbol.asyncDispose]() {

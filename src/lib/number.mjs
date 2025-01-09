@@ -42,10 +42,22 @@ export function integerToStringWithSeparator(integer, {
   }
 }
 
-function decimalStringToStringWithSeparator(decimalString, {
+export function decimalStringToStringWithSeparator(decimalString, {
   separatorInterval = DEFAULT_DECIMAL_SEPARATOR_INTERVAL,
   separatorCharacter = DEFAULT_DECIMAL_SEPARATOR_CHARACTER,
 }) {
+  if (typeof decimalString != 'string') {
+    throw new Error(`decimalString not string: ${typeof decimalString}`);
+  }
+  
+  if (decimalString != 'Infinity' && decimalString != 'NaN' && !/^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.test(decimalString)) {
+    throw new Error(`decimalString invalid format: ${decimalString}`);
+  }
+  
+  if (decimalString == 'Infinity' || decimalString == 'NaN') {
+    return decimalString;
+  }
+  
   if (!Number.isSafeInteger(separatorInterval) || separatorInterval <= 0) {
     throw new Error(`separatorInterval not positive integer: ${separatorInterval}`);
   }
