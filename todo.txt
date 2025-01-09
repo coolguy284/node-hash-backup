@@ -1,3 +1,8 @@
+fix main and exports in package json, shouldnt need main
+set edit mode of edit.lock to be read only during creation
+save readonly, hidden, system flags
+prune backup dir should report space freed
+show both raw bytes and human readable version
 add file, dir, junction to test; set to ignore symlinkType for now
 show exact bytes option for output of backup and restore and other funcs
 show exact bytes for getSubtree and other func
@@ -47,6 +52,10 @@ improved data storage:
 check excluded files are relative or absolute
 
 low prio:
+more options to define backup granularity:
+  store file times?
+  store file attributes?
+  etc.
 test symlink support
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 option to reset access times after finishing backing up a folder
@@ -111,6 +120,10 @@ pendingoperations in info.json or pending_ops.json that stores current operation
 restore function will have 3 modes, normal mode, and hardlink and symlink modes that create hardlinks or symlinks instead, and they link to a cache folder in the archive dir that has files_uncompressed in it that has uncompressed versions of each file (or hardlinks to the file in the normal place if it is already uncompressed)
   option to always create copy of file in cached folder, therefore deleting the cache folder (when mode set to hardlink) will "seperate" the restored files from any new restores done (otherwise 2 files with same contents in the different restores will be linked)
   warning with hardlink and symlink modes that any alteration of the files might alter files in the backup (and thus corrupt it), if option to always create copy not set; if option to always create copy set or copy made anyway due to compression, still possibility of modifying one file causing files in the cache, in other restores, and in the same restore with the same content to be modified as well
+more plumbing-related commands and helper funcs, like:
+  getFileStreamByHex
+  getFilesWithHexPrefix
+  getCountOfFilesWithHexPrefix
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

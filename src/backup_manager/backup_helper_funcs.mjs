@@ -193,5 +193,4 @@ export async function getBackupInfo({
 // TODO: getSubtree
 // TODO: getFolderContents
 // TODO: getFileStreamByBackupPath
-// TODO: getFileStreamByHex
 // TODO: pruneUnreferencedFiles

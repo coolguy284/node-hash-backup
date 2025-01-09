@@ -1,2 +1,5 @@
 Can choose to follow either ISC or Unlicense; ISC made available in case
 Unlicense does not legally apply in your jurisdiction.
+
+test/lib/prng_base.mjs consists of code from elsewhere and thus the MIT + Unlicense
+does not apply to that file.

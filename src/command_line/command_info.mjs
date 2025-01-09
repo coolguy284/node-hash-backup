@@ -142,6 +142,27 @@ export const COMMANDS = new Map(
       {
         aliases: ['delete-all'],
         
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'to'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'confirm',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `delete`:',
           '  Removes all files in hash backup dir.',
@@ -249,8 +270,8 @@ export const COMMANDS = new Map(
           '    --name=<name> (required): The name of the backup.',
           '    --backupPath=<basePath> (required): The directory to restore to.',
           '        aliases: --backup-path, --basePath, --base-path, --to',
-          '    --backupInternalPath=<relativePath> (default `.`): The directory inside the backup to restore to the given folder.',
-          '        aliases: --backup-internal-path',
+          '    --pathToEntry=<relativePath> (default `.`): The path inside the hash backup of the file or folder to be restored.',
+          '        aliases: --path-to-entry',
           '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
           '        aliases: --excluded-items',
           '    --symlink-handling=<value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
@@ -263,27 +284,6 @@ export const COMMANDS = new Map(
           '    --overwriteExisting=<boolean> (default false): If true, overwrite the existing restore location with the restore contents.',
           '        aliases: --overwrite-existing',
           '    --verify=<value> (default true): If true, file checksums will be verified as files are copied out.',
-        ].join('\n'),
-      },
-    ],
-    
-    [
-      'getSubtree',
-      
-      {
-        aliases: ['get-subtree'],
-        
-        helpMsg: [
-          'Command `getSubtree`:',
-          '  Gets a listing of the files in a given subtree of the backup.',
-          '  ',
-          '  Aliases:',
-          '    get-subtree',
-          '  ',
-          '  Options:',
-          '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
-          '        aliases: --backup-dir, --from',
-          // TODO
         ].join('\n'),
       },
     ],
@@ -304,7 +304,9 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
           '        aliases: --backup-dir, --from',
-          // TODO
+          '    --name=<name> (required): The name of the hash backup to get the file from.',
+          '    --pathToFolder=<relativePath> (required): The path inside the hash backup of the folder to get the contents of.',
+          '        aliases: path-to-folder',
         ].join('\n'),
       },
     ],
@@ -325,8 +327,77 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
           '        aliases: --backup-dir, --from',
-          // TODO
+          '    --name=<name> (required): The name of the hash backup to get the file from.',
+          '    --pathToEntry=<relativePath> (required): The path inside the hash backup of the item to get information from.',
+          '        aliases: path-to-entry',
         ].join('\n'),
+      },
+    ],
+    
+    [
+      'getSubtree',
+      
+      {
+        aliases: ['get-subtree'],
+        
+        helpMsg: [
+          'Command `getSubtree`:',
+          '  Gets a listing of the files in a given subtree of the backup.',
+          '  ',
+          '  Aliases:',
+          '    get-subtree',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
+          '        aliases: --backup-dir, --from',
+          '    --name=<name> (required): The name of the hash backup to get the file from.',
+          '    --pathToEntry=<relativePath> (default `.`): The path inside the hash backup of the file or folder to get information from.',
+          '        aliases: path-to-entry',
+        ].join('\n'),
+      },
+    ],
+    
+    [
+      'getRawFileContents',
+      
+      {
+        aliases: ['get-raw-file-contents'],
+        
+        helpMsg: [
+          'Command `getRawFileContents`:',
+          '  Directly prints the contents of a file to console.',
+          '  ',
+          '  Aliases:',
+          '    get-raw-file-contents',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to prune.',
+          '        aliases: --backup-dir, --to',
+          '    --name=<name> (required): The name of the hash backup to get the file from.',
+          '    --pathToFile=<relativePath> (required): The path inside the hash backup of the file to access.',
+          '        aliases: path-to-file',
+          '    --verify=<value> (default true): If true, file checksum will be verified before the file is output.',
+        ],
+      },
+    ],
+    
+    [
+      'pruneBackupDir',
+      
+      {
+        aliases: ['prune-backup-dir'],
+        
+        helpMsg: [
+          'Command `pruneBackupDir`:',
+          '  Removes unreferenced files from the backup dir.',
+          '  ',
+          '  Aliases:',
+          '    prune-backup-dir',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to prune.',
+          '        aliases: --backup-dir, --to',
+        ],
       },
     ],
     

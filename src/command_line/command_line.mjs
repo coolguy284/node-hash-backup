@@ -5,7 +5,10 @@ import {
   getVersionString,
   mainHelpText,
 } from './help_info.mjs';
-import { initBackupDir } from '../backup_manager/backup_helper_funcs.mjs';
+import {
+  deleteBackupDir,
+  initBackupDir,
+} from '../backup_manager/backup_helper_funcs.mjs';
 
 function convertArgIfNeeded(argValue, conversionFunc) {
   if (conversionFunc != null) {
@@ -278,7 +281,15 @@ export async function executeCommandLine({
       }
       
       case 'deleteAll':
-        // TODO
+        if (keyedArgs.get('confirm') != 'yes') {
+          throw new Error(`confirm must be set to "yes" to allow backup dir deletion, but was: ${JSON.stringify(keyedArgs.get('confirm'))}`);
+        }
+        
+        await deleteBackupDir({
+          backupDir: keyedArgs.get('backupDir'),
+          confirm: true,
+          logger,
+        });
         break;
       
       case 'backup':
@@ -290,6 +301,26 @@ export async function executeCommandLine({
         break;
       
       case 'info':
+        // TODO
+        break;
+      
+      case 'getFolderContents':
+        // TODO
+        break;
+      
+      case 'getEntryInfo':
+        // TODO
+        break;
+      
+      case 'getSubtree':
+        // TODO
+        break;
+      
+      case 'getRawFileContents':
+        // TODO
+        break;
+      
+      case 'pruneBackupDir':
         // TODO
         break;
       
