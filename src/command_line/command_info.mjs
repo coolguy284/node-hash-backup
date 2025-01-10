@@ -224,6 +224,125 @@ export const COMMANDS = new Map(
       'backup',
       
       {
+        args: [
+          [
+            'backupPath',
+            
+            {
+              aliases: ['backup-path'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'excludedItems',
+            
+            {
+              aliases: ['excluded-items'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '[]',
+            },
+          ],
+          
+          [
+            'allowBackupDirSubPathOfFileOrFolderPath',
+            
+            {
+              aliases: ['allow-backup-dir-sub-path-of-file-or-folder-path'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'false',
+            },
+          ],
+          
+          [
+            'symlinkHandling',
+            
+            {
+              aliases: ['symlink-handling'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'preserve',
+            },
+          ],
+          
+          [
+            'inMemoryCutoff',
+            
+            {
+              aliases: ['in-memory-cutoff'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: DEFAULT_IN_MEMORY_CUTOFF_SIZE + '',
+            },
+          ],
+          
+          [
+            'compressionMinimumSizeThreshold',
+            
+            {
+              aliases: ['compression-minimum-size-threshold'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '-1',
+            },
+          ],
+          
+          [
+            'compressionMaximumSizeThreshold',
+            
+            {
+              aliases: ['compression-maximum-size-threshold'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'Infinity',
+            },
+          ],
+          
+          [
+            'checkDuplicateHashes',
+            
+            {
+              aliases: ['check-duplicate-hashes'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'true',
+            },
+          ],
+          
+          [
+            'ignoreErrors',
+            
+            {
+              aliases: ['ignore-errors'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'false',
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `backup`:',
           '  Backs up a folder to the hash backup.',
@@ -238,7 +357,8 @@ export const COMMANDS = new Map(
           '        aliases: --excluded-items',
           '    --allowBackupDirSubPathOfFileOrFolderPath (default false): If true, backup folder can be subpath of the folder you are taking a backup of.',
           '        aliases: --allow-backup-dir-sub-path-of-file-or-folder-path',
-          '    --symlink-handling=<value> (default "preserve"):',
+          '    --symlinkHandling=<value> (default "preserve"):',
+          '        aliases: --symlink-handling',
           '        If "ignore", symlinks will be ignored.',
           '        If "passthrough", symlinks will be copied over as regular files (and the modtime of the destination file will be used).',
           '        If "preserve", symlinks will be added to the backup as-is, storing their path.',
@@ -246,7 +366,7 @@ export const COMMANDS = new Map(
           '        aliases: --in-memory-cutoff',
           '    --compressionMinimumSizeThreshold (default -1): The file size must be greater than or equal to this for compression to activate.',
           '        aliases: --compression-minimum-size-threshold',
-          '    --compressionMaximumSizeThreshold (default -1): The file size must be greater than or equal to this for compression to activate.',
+          '    --compressionMaximumSizeThreshold (default Infinity): The file size must be greater than or equal to this for compression to activate.',
           '        aliases: --compression-maximum-size-threshold',
           '    --checkDuplicateHashes (default true): If true, if a file\'s hash already exists in the backup dir, the file in the backup dir will be compared against the file to be added to be backup to see if they are not the same, in which case a hash collision occurred.',
           '        aliases: --check-duplicate-hashes',
@@ -260,6 +380,124 @@ export const COMMANDS = new Map(
       'restore',
       
       {
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'restorePath',
+            
+            {
+              aliases: ['backup-path'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'pathToEntry',
+            
+            {
+              aliases: ['path-to-entry'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '.',
+            },
+          ],
+          
+          [
+            'excludedItems',
+            
+            {
+              aliases: ['excluded-items'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '[]',
+            },
+          ],
+          
+          [
+            'symlinkHandling',
+            
+            {
+              aliases: ['symlink-handling'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'preserve',
+            },
+          ],
+          
+          [
+            'inMemoryCutoff',
+            
+            {
+              aliases: ['in-memory-cutoff'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: DEFAULT_IN_MEMORY_CUTOFF_SIZE + '',
+            },
+          ],
+          
+          [
+            'setFileTimes',
+            
+            {
+              aliases: ['set-file-times'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'true',
+            },
+          ],
+          
+          [
+            'createParentFolders',
+            
+            {
+              aliases: ['create-parent-folders'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'false',
+            },
+          ],
+          
+          [
+            'overwriteExisting',
+            
+            {
+              aliases: ['overwrite-existing'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'false',
+            },
+          ],
+          
+          [
+            'verify',
+            
+            {
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'true',
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `restore`:',
           '  Restores a folder from the hash backup.',
@@ -268,13 +506,17 @@ export const COMMANDS = new Map(
           '    --backupDir=<backupDir> (required): The hash backup folder to use.',
           '        aliases: --backup-dir, --from',
           '    --name=<name> (required): The name of the backup.',
-          '    --backupPath=<basePath> (required): The directory to restore to.',
+          '    --restorePath=<basePath> (required): The directory to restore to.',
           '        aliases: --backup-path, --basePath, --base-path, --to',
           '    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder to be restored.',
           '        aliases: --path-to-entry',
           '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
           '        aliases: --excluded-items',
-          '    --symlink-handling=<value> (default "preserve"): If "ignore", symlinks in backup will not be copied. If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set). If "preserve", symlinks will be added to the backup as-is, including their path.',
+          '    --symlinkHandling=<value> (default "preserve"):',
+          '        aliases: --symlink-handling',
+          '        If "ignore", symlinks in backup will not be copied.',
+          '        If "passthrough", symlinks will be created as regular files, copying in their contents (and the modtime of the destination file will be set).',
+          '        If "preserve", symlinks will be added to the backup as-is, including their path.',
           `    --inMemoryCutoff=<integer >= -1 | Infinity> (default \`${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}\`): Below the cutoff, read file into memory and calculate hash and decompressed forms in memory, to minimize hard drive reads/writes.`,
           '        aliases: --in-memory-cutoff',
           '    --setFileTimes=<boolean> (default true): If true, file access, modification, and creation times (creation time only on supported systems) will be set at end of restore.',
@@ -293,6 +535,36 @@ export const COMMANDS = new Map(
       
       {
         aliases: ['delete-backup'],
+        
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'confirm',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
         
         helpMsg: [
           'Command `deleteBackup`:',
@@ -316,6 +588,38 @@ export const COMMANDS = new Map(
       {
         aliases: ['rename-backup', 'rename'],
         
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'oldName',
+            
+            {
+              aliases: ['old-name'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'newName',
+            
+            {
+              aliases: ['new-name'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `renameBackup`:',
           '  Renames a given backup in the backup dir.',
@@ -337,6 +641,37 @@ export const COMMANDS = new Map(
       
       {
         aliases: ['get-folder-contents'],
+        
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'pathToFolder',
+            
+            {
+              aliases: ['path-to-folder'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
         
         helpMsg: [
           'Command `getFolderContents`:',
@@ -361,6 +696,37 @@ export const COMMANDS = new Map(
       {
         aliases: ['get-entry-info'],
         
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'pathToEntry',
+            
+            {
+              aliases: ['path-to-entry'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `getEntryInfo`:',
           '  Gets detailed information about an entry of the backup.',
@@ -384,6 +750,38 @@ export const COMMANDS = new Map(
       {
         aliases: ['get-subtree'],
         
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'pathToEntry',
+            
+            {
+              aliases: ['path-to-entry'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: '.',
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `getSubtree`:',
           '  Gets a listing of the files in a given subtree of the backup.',
@@ -406,6 +804,47 @@ export const COMMANDS = new Map(
       
       {
         aliases: ['get-raw-file-contents'],
+        
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'from'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'name',
+            
+            {
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'pathToFile',
+            
+            {
+              aliases: ['path-to-file'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+          
+          [
+            'verify',
+            
+            {
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'true',
+            },
+          ],
+        ],
         
         helpMsg: [
           'Command `getRawFileContents`:',
@@ -431,6 +870,18 @@ export const COMMANDS = new Map(
       {
         aliases: ['prune-backup-dir'],
         
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'to'],
+              presenceOnly: false,
+              required: true,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `pruneBackupDir`:',
           '  Removes unreferenced files from the backup dir.',
@@ -449,6 +900,27 @@ export const COMMANDS = new Map(
       'interactive',
       
       {
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'to'],
+              presenceOnly: false,
+              required: false,
+            },
+          ],
+          
+          [
+            'custom',
+            
+            {
+              presenceOnly: false,
+              required: false,
+            },
+          ],
+        ],
+        
         helpMsg: [
           'Command `interactive`:',
           '  Opens an interactive NodeJS REPL with all exported hash backup functions in the global scope. If a hash backup location is provided, a "hb" variable will be set to a BackupManager initialized to the backup dir. If the custom parameter is set, a variable called "data" will be set to the value of the custom parameter.',

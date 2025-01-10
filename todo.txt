@@ -1,4 +1,4 @@
-fix main and exports in package json, shouldnt need main
+convert presenceOnly to default true
 save readonly, hidden, system flags
 show both raw bytes and human readable version
 add file, dir, junction to test; set to ignore symlinkType for now
@@ -117,6 +117,7 @@ more plumbing-related commands and helper funcs, like:
 fix inconsistent periods at the end of console logged messages
 use custom error type when throwing, and print custom errors differently (without the traceback)
 function to delete certain files in a backup instead of whole backup
+fix main and exports in package json, shouldnt need main
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

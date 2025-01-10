@@ -189,8 +189,97 @@ export async function getBackupInfo({
   }
 }
 
-// TODO: getEntryInfo
-// TODO: getSubtree
-// TODO: getFolderContents
-// TODO: getFileStreamByBackupPath
-// TODO: pruneUnreferencedFiles
+export async function getFolderContents({
+  backupDir,
+  name,
+  pathToFolder,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    await backupMgr.getFolderFilenamesFromBackup({
+      backupName: name,
+      backupFolderPath: pathToFolder,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
+export async function getEntryInfo({
+  backupDir,
+  name,
+  pathToEntry,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    await backupMgr.getFileOrFolderInfoFromBackup({
+      backupName: name,
+      backupFileOrFolderPath: pathToEntry,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
+export async function getSubtree({
+  backupDir,
+  name,
+  pathToEntry = '.',
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    return await backupMgr.getSubtreeInfoFromBackup({
+      backupName: name,
+      backupFileOrFolderPath: pathToEntry,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
+export async function getFileStreamByBackupPath({
+  backupDir,
+  name,
+  pathToFile,
+  logger = console.error,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    return await backupMgr.getFileStreamFromBackup({
+      backupName: name,
+      backupFilePath: pathToFile,
+    });
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
+export async function pruneUnreferencedFiles({
+  backupDir,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    await backupMgr.pruneUnreferencedFiles();
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
