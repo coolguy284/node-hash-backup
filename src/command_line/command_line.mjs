@@ -8,7 +8,15 @@ import {
 import {
   deleteBackupDir,
   getBackupInfo,
+  getEntryInfo,
+  getFolderContents,
+  getSubtree,
+  getFileStreamByBackupPath,
   initBackupDir,
+  performBackup,
+  performRestore,
+  pruneUnreferencedFiles,
+  startInteractiveSession,
 } from '../backup_manager/backup_helper_funcs.mjs';
 
 function convertArgIfNeeded(argValue, conversionFunc) {
@@ -299,7 +307,13 @@ export async function executeCommandLine({
           name: keyedArgs.get('name'),
         });
         
-        // TODO
+        if (keyedArgs.has('name')) {
+          // single backup info
+          // TODO
+        } else {
+          // full backup dir info
+          // TODO
+        }
         break;
       }
       
@@ -328,6 +342,10 @@ export async function executeCommandLine({
         break;
       
       case 'pruneBackupDir':
+        // TODO
+        break;
+      
+      case 'interactive':
         // TODO
         break;
       

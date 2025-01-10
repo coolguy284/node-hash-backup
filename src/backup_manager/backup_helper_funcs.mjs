@@ -283,3 +283,11 @@ export async function pruneUnreferencedFiles({
     await backupMgr[Symbol.asyncDispose]();
   }
 }
+
+export async function startInteractiveSession({
+  backupDir = null,
+  custom = null,
+  logger = console.error,
+}) {
+  
+}
