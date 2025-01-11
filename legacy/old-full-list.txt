@@ -1,4 +1,4 @@
-Info for backups in "backup":
+Info for backups in "<backupDirPath>":
 Name           Files  Folders  Items  Size (B)   Compressed Size (B)
 manual1        2      2        4      30         30                 
 manual2        1      2        3      10         10                 
