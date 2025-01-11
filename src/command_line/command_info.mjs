@@ -828,7 +828,7 @@ export const COMMANDS = new Map(
           '    --pathToFile=<relativePath> (required): The path inside the backup of the file to access.',
           '        aliases: path-to-file',
           '    --verify=<value> (default true): If true, file checksum will be verified before the file is output.',
-        ],
+        ].join('\n'),
       },
     ],
     
@@ -859,7 +859,7 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to prune.',
           '        aliases: --backup-dir, --to',
-        ],
+        ].join('\n'),
       },
     ],
     
@@ -892,7 +892,7 @@ export const COMMANDS = new Map(
           '        aliases: --backup-dir, --to',
           '    --custom=<anything>: Custom data to pass to the NodeJS REPL.',
           // TODO: clean up hb normally even if program end (asyncdispose?)
-        ],
+        ].join('\n'),
       },
     ],
     

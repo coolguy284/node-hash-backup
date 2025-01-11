@@ -77,6 +77,10 @@ export function parseArgs(args) {
 }
 
 export function splitLongLinesByWord(output, approximateMaxLineLength = DEFAULT_APPROXIMATE_MAX_LINE_LENGTH) {
+  if (typeof output != 'string') {
+    throw new Error(`output not string: ${typeof output}`);
+  }
+  
   return output
     .split('\n')
     .flatMap(line => {
