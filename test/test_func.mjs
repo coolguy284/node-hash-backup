@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
+import { deepStrictEqual } from 'assert'; 
 import {
   cp,
   mkdir,
@@ -22,6 +22,7 @@ import {
   performBackup,
   performRestore,
 } from '../src/backup_manager/backup_helper_funcs.mjs';
+import { parseArgs } from '../src/lib/command_line.mjs';
 
 import { getFilesAndMetaInDir } from './lib/fs.mjs'; 
 import { AdvancedPrng } from './lib/prng_extended.mjs';
@@ -52,11 +53,13 @@ class RandomManager {
   #advancedPrng = new AdvancedPrng();
   
   randomName() {
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
     let numSections = this.#advancedPrng.getRandomInteger(3) + 1;
     
     let sectionLengths = [];
     
     for (let i = 0; i < numSections; i++) {
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       sectionLengths.push(this.#advancedPrng.getRandomInteger(11) + 5);
     }
     
@@ -211,13 +214,16 @@ class TestManager {
       let dirNameJ = this.#randomMgr.randomName();
       await mkdir(join(basePath, dirNameJ));
       let zeroFoldersJ = this.#randomMgr.getPrng().getRandomInteger(2);
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       let numFoldersJ = zeroFoldersJ ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
       let zeroFilesJ = this.#randomMgr.getPrng().getRandomInteger(2);
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       let numFilesJ = zeroFilesJ ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
       for (let j = 0; j < numFoldersJ; j++) {
         let dirNameK = this.#randomMgr.randomName();
         await mkdir(join(basePath, dirNameJ, dirNameK));
         let zeroFilesK = this.#randomMgr.getPrng().getRandomInteger(2);
+        // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
         let numFilesK = zeroFilesK ? 0 : this.#randomMgr.getPrng().getRandomInteger(5) + 1;
         for (let j = 0; j < numFilesK; j++) {
           await writeFile(join(basePath, dirNameJ, dirNameK, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()));
@@ -669,7 +675,7 @@ async function performSubTest({
   }
 }
 
-export async function performTest({
+export async function performMainTest({
   // "test" random name and content functions by printing to console their results 10x
   testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
   testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
@@ -725,4 +731,106 @@ export async function performTest({
       inMemoryCutoffSize: -1,
     });
   }
+}
+
+function arrayParseArgs(args) {
+  const {
+    subCommands,
+    keyedArgs,
+    presentOnlyArgs,
+    allPresentArgs,
+  } = parseArgs(args);
+  
+  return {
+    subCommands,
+    keyedArgs: Array.from(keyedArgs),
+    presentOnlyArgs: Array.from(presentOnlyArgs),
+    allPresentArgs: Array.from(allPresentArgs),
+  };
+}
+
+export function performMinorTests({
+  logger = console.log,
+} = {}) {
+  // test parseArgs
+  
+  deepStrictEqual(
+    arrayParseArgs([]),
+    
+    {
+      subCommands: [],
+      keyedArgs: [],
+      presentOnlyArgs: [],
+      allPresentArgs: [],
+    }
+  );
+  
+  deepStrictEqual(
+    arrayParseArgs(['--to=val']),
+    
+    {
+      subCommands: [],
+      keyedArgs: [
+        ['to', 'val'],
+      ],
+      presentOnlyArgs: [],
+      allPresentArgs: ['to'],
+    }
+  );
+  
+  deepStrictEqual(
+    arrayParseArgs(['--to', 'val']),
+    
+    {
+      subCommands: [],
+      keyedArgs: [
+        ['to', 'val'],
+      ],
+      presentOnlyArgs: [],
+      allPresentArgs: ['to'],
+    }
+  );
+  
+  deepStrictEqual(
+    arrayParseArgs(['--arg1 --to=val']),
+    
+    {
+      subCommands: [],
+      keyedArgs: [
+        ['to', 'val'],
+      ],
+      presentOnlyArgs: ['arg1'],
+      allPresentArgs: ['arg1', 'to'],
+    }
+  );
+  
+  deepStrictEqual(
+    arrayParseArgs(['--to=val --arg1']),
+    
+    {
+      subCommands: [],
+      keyedArgs: [
+        ['to', 'val'],
+      ],
+      presentOnlyArgs: [
+        'arg1',
+      ],
+      allPresentArgs: ['to', 'arg1'],
+    }
+  );
+  
+  deepStrictEqual(
+    arrayParseArgs(['--arg1']),
+    
+    {
+      subCommands: [],
+      keyedArgs: [],
+      presentOnlyArgs: [
+        'arg1',
+      ],
+      allPresentArgs: ['arg1'],
+    }
+  );
+  
+  logger('Parseargs test successful');
 }

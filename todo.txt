@@ -16,8 +16,6 @@ update readme.md and help output to match true commands
 clear TODO from codebase
 delete all of old src
 
-check that "--to=val" and "--to val" and "--arg1 --to=val" and "--arg1" work
-
 low prio:
 create native module to do what powershell cannot
 improved data storage on windows:

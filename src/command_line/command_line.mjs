@@ -220,6 +220,7 @@ function printVersion({ logger = console.log }) {
 export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
+  extraneousLogger = console.error,
 } = {}) {
   const {
     commandName,
@@ -254,8 +255,8 @@ export async function executeCommandLine({
           printHelp({ subCommand, logger });
         } else if (keyedArgs.has('command')) {
           printHelp({
-            logger,
             subCommand: keyedArgs.get('command'),
+            logger,
           });
         } else {
           printHelp({ logger });
@@ -307,6 +308,7 @@ export async function executeCommandLine({
         const info = await getBackupInfo({
           backupDir: keyedArgs.get('backupDir'),
           name: keyedArgs.get('name'),
+          logger: extraneousLogger,
         });
         
         if (keyedArgs.has('name')) {
@@ -372,9 +374,26 @@ export async function executeCommandLine({
         });
         break;
       
-      case 'getFolderContents':
-        // TODO
+      case 'getFolderContents': {
+        const backupDir = keyedArgs.get('backupDir');
+        const name = keyedArgs.get('name');
+        const pathToFolder = keyedArgs.get('pathToFolder');
+        
+        const folderContents = await getFolderContents({
+          backupDir,
+          name,
+          pathToFolder,
+          logger: extraneousLogger,
+        });
+        
+        logger(`Contents of: backup ${JSON.stringify(backupDir)}, name ${JSON.stringify(name)}, path ${JSON.stringify(pathToFolder)}:`);
+        logger(
+          folderContents
+            .map(fileName => JSON.stringify(fileName))
+            .join('\n')
+        );
         break;
+      }
       
       case 'getEntryInfo':
         // TODO

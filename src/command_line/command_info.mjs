@@ -654,7 +654,7 @@ export const COMMANDS = new Map(
         
         helpMsg: [
           'Command `getFolderContents`:',
-          '  Gets a listing of the files in a given folder of the backup.',
+          '  Gets a listing of the files/folders in a given folder of the backup.',
           '  ',
           '  Aliases:',
           '    get-folder-contents',

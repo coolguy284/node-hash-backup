@@ -36,7 +36,7 @@ import { dirname } from 'path';
 
 import { executeCommandLine } from './src/command_line/command_line.mjs';
 
-const nodeCalledFilePath = process.argv[1];
+const nodeCalledFilePath = await realpath(process.argv[1]);
 const thisFilePath = await realpath(import.meta.filename);
 
 if (nodeCalledFilePath == thisFilePath || nodeCalledFilePath == dirname(thisFilePath)) {

@@ -200,7 +200,7 @@ export async function getFolderContents({
   });
   
   try {
-    await backupMgr.getFolderFilenamesFromBackup({
+    return await backupMgr.getFolderFilenamesFromBackup({
       backupName: name,
       backupFolderPath: pathToFolder,
     });
@@ -220,7 +220,7 @@ export async function getEntryInfo({
   });
   
   try {
-    await backupMgr.getFileOrFolderInfoFromBackup({
+    return await backupMgr.getFileOrFolderInfoFromBackup({
       backupName: name,
       backupFileOrFolderPath: pathToEntry,
     });
