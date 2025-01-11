@@ -243,6 +243,10 @@ export async function recursiveReaddir(
     }
   );
   
+  if (symlinkMode == 'IGNORE' && internalResult == null) {
+    throw new Error(`symlinkMode set to "IGNORE" but root directory is a symlink: ${JSON.stringify(fileOrDirPath)}`);
+  }
+  
   if (sorted) {
     internalResult
       .sort(
