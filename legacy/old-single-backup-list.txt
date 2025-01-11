@@ -1,0 +1,2 @@
+Info for backup "random9" in "backup":
+69 files, 29 folders, 98 items, 488,883 bytes (208,175 bytes compressed)

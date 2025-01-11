@@ -1,0 +1,40 @@
+Info for backups in "backup":
+Name           Files  Folders  Items  Size (B)   Compressed Size (B)
+manual1        2      2        4      30         30                 
+manual2        1      2        3      10         10                 
+manual3        0      1        1      0          0                  
+manual4        3      3        6      62         62                 
+random0.1      49     28       77     358,372    152,566            
+random0        49     28       77     370,207    157,587            
+random1.1      59     31       90     474,900    202,110            
+random1        59     31       90     476,821    202,923            
+random2.1      50     24       74     390,469    166,196            
+random2        50     24       74     400,798    170,584            
+random3.1      45     26       71     371,976    158,293            
+random3        45     26       71     373,790    159,061            
+random4.1      58     31       89     508,946    216,559            
+random4        58     31       89     509,785    216,907            
+random5.1      71     34       105    548,111    233,300            
+random5        71     34       105    560,578    238,586            
+random6.1      66     32       98     573,569    244,052            
+random6        66     32       98     577,147    245,567            
+random7.1      59     28       87     498,630    212,182            
+random7        59     28       87     504,307    214,587            
+random8.1      61     31       92     463,290    197,232            
+random8        61     31       92     459,595    195,667            
+random9.1      69     29       98     478,718    203,857            
+random9        69     29       98     488,883    208,175            
+Artifical Sum  1,180  596      1,776  9,388,994  3,996,093          
+
+Totals:
+Status       Files  Size (B)   Compressed Size (B)
+Referenced   340    2,635,195  1,121,697          
+Orphaned     0      0          0                  
+UnData'd     0      0          0                  
+
+Total        340    2,635,195  1,121,697          
+File Meta    190    66,772     66,772             
+Backup Meta  24     563,617    563,617            
+
+Total Meta   214    630,389    630,389            
+Grand Total  554    3,265,584  1,752,086          
