@@ -792,7 +792,7 @@ export function performMinorTests({
   );
   
   deepStrictEqual(
-    arrayParseArgs(['--arg1 --to=val']),
+    arrayParseArgs(['--arg1', '--to=val']),
     
     {
       subCommands: [],
@@ -805,7 +805,7 @@ export function performMinorTests({
   );
   
   deepStrictEqual(
-    arrayParseArgs(['--to=val --arg1']),
+    arrayParseArgs(['--to=val', '--arg1']),
     
     {
       subCommands: [],
