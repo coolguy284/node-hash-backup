@@ -4,8 +4,7 @@ list command:
   ensure total size of backup or of entire backup dir is stated
   add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
 
-save readonly flag
-add file, dir, junction to test; set to ignore symlinkType for now
+add to readme explaining exactly what data is preserved when taking a backup
 
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
@@ -22,6 +21,7 @@ improved data storage on windows:
   save hidden, system flags
   detect alternate file streams on windows; store as path with ':'
   support for directory junction / file and directory symlinks
+    remove warning in help about symbolic link type
 rework getentryinfo to show whether compression is enabled as well, and also the compression algo and params used
 function param and subcommand param in backup to create backup with new name following prefix instead of full name
 implement proper async operation read/write locking in backup manager class

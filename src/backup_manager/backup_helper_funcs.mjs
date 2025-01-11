@@ -37,7 +37,7 @@ export async function deleteBackupDir({
   logger = console.log,
 }) {
   if (!confirm) {
-    throw new Error(`Confirm must be true to perform backup dir deletion`);
+    throw new Error('Confirm must be true to perform full backup dir deletion');
   }
   
   await deleteBackupDirInternal({
@@ -90,7 +90,7 @@ export async function deleteBackup({
   logger = console.log,
 }) {
   if (!confirm) {
-    throw new Error(`Confirm must be true to perform backup deletion`);
+    throw new Error('Confirm must be true to perform backup deletion');
   }
   
   let backupMgr = await createBackupManager(backupDir, {

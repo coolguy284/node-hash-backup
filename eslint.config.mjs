@@ -1,7 +1,8 @@
 // https://typescript-eslint.io/getting-started/
 
-import globals from 'globals';
 import eslint from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 ///** @type {import('eslint').Linter.Config[]} */
@@ -16,13 +17,19 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
-      }
+      },
+    },
+    plugins: {
+      '@stylistic': stylistic,
     },
     rules: {
+      // promise catching
       // https://stackoverflow.com/questions/41685693/how-to-warn-when-you-forget-to-await-an-async-function-in-javascript/63437779#63437779
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/promise-function-async': 'error',
+      
+      // undoing some typescript linting
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -30,13 +37,31 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/prefer-promise-reject-errors': 'off',
+      
+      // stylistic
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
-          'argsIgnorePattern': '^_',
-          'varsIgnorePattern': '^_',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
         },
       ],
+      '@typescript-eslint/class-methods-use-this': 'error',
+      '@stylistic/semi': 'error',
+      '@stylistic/comma-dangle': ['error', {
+        arrays: 'always-multiline',
+        objects: 'always-multiline',
+        imports: 'always-multiline',
+        exports: 'always-multiline',
+        functions: 'ignore',
+        importAttributes: 'always-multiline',
+        dynamicImports: 'always-multiline',
+        enums: 'always-multiline',
+        generics: 'always-multiline',
+        tuples: 'always-multiline',
+      }],
+      '@stylistic/indent': ['error', 2],
+      '@stylistic/quotes': ['error', 'single'],
     },
   },
 );

@@ -28,6 +28,7 @@ import {
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
+  isReadOnly,
   readLargeFile,
   splitPath,
 } from '../lib/fs.mjs';
@@ -315,6 +316,11 @@ export async function getAndAddBackupEntry({
     return {
       path: relativeFilePath,
       type: 'directory',
+      ...(
+        (await isReadOnly(subFileOrFolderPath)) ?
+          { attributes: ['readonly'] } :
+          {}
+      ),
       atime,
       mtime,
       ctime,
@@ -333,6 +339,11 @@ export async function getAndAddBackupEntry({
     return {
       path: relativeFilePath,
       type: 'symbolic link',
+      ...(
+        (await isReadOnly(subFileOrFolderPath)) ?
+          { attributes: ['readonly'] } :
+          {}
+      ),
       symlinkPath: linkPathBase64,
       atime,
       mtime,
@@ -347,6 +358,11 @@ export async function getAndAddBackupEntry({
     return {
       path: relativeFilePath,
       type: 'file',
+      ...(
+        (await isReadOnly(subFileOrFolderPath)) ?
+          { attributes: ['readonly'] } :
+          {}
+      ),
       ...(
         addFileToStoreFunc != null ?
           {

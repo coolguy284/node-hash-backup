@@ -450,6 +450,7 @@ export async function executeCommandLine({
         properties.push(['Name', JSON.stringify(name)]);
         properties.push(['Path', JSON.stringify(pathToEntry)]);
         properties.push(['Type', entry.type]);
+        properties.push(['Attributes', entry.attributes != null ? entry.attributes.join(', ') : 'none']);
         properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
         properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
         properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);

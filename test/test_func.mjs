@@ -1,4 +1,7 @@
-import { deepStrictEqual } from 'assert'; 
+import {
+  AssertionError,
+  deepStrictEqual,
+} from 'assert'; 
 import {
   cp,
   mkdir,
@@ -96,6 +99,19 @@ class RandomManager {
   }
 }
 
+function isDeepEqual(obj1, obj2) {
+  try {
+    deepStrictEqual(obj1, obj2);
+    return true;
+  } catch (err) {
+    if (err instanceof AssertionError) {
+      return false;
+    } else {
+      throw err;
+    }
+  }
+}
+
 class TestManager {
   // class vars
   
@@ -133,7 +149,7 @@ class TestManager {
         numericSeparator: true,
       },
       `[${new Date().toISOString()}]`,
-      ...vals
+      ...vals,
     );
     
     this.#logger(logLine);
@@ -185,7 +201,7 @@ class TestManager {
       writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.')),
       mkdir(join(basePath, 'folder', 'subfolder')),
     ]);
-    await writeFile(join(basePath, 'folder', 'subfolder', 'file.txt'), Buffer.from('Test file in sub folder.'))
+    await writeFile(join(basePath, 'folder', 'subfolder', 'file.txt'), Buffer.from('Test file in sub folder.'));
     
     if (this.#testSymlink) {
       await symlink(resolve(join(basePath, 'folder', 'file.txt')), join(basePath, 'file-symlink-absolute.txt'), 'file');
@@ -234,7 +250,7 @@ class TestManager {
       }
     }
     for (let i = 0; i < 5; i++) {
-      await writeFile(join(basePath, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()))
+      await writeFile(join(basePath, this.#randomMgr.randomName()), Buffer.from(this.#randomMgr.randomContent()));
     }
     
     this.timestampLog(`finished random1 ${basePath}`);
@@ -358,12 +374,14 @@ class TestManager {
     }
     
     // atime ignored because it changes, ctime ignored because cannot be set
-    let stringProps = [
+    // symlinkType ignored for now
+    const propsToCheck = [
       'path',
       'type',
+      'attributes',
       'symlinkPath',
       ...(ignoreMTime ? [] : ['mtime']),
-      'birthtime'
+      'birthtime',
     ];
     
     let objLength = Math.min(dataObj.length, restoreObj.length);
@@ -371,8 +389,8 @@ class TestManager {
     for (let i = 0; i < objLength; i++) {
       let dataEntry = dataObj[i], restoreEntry = restoreObj[i];
       
-      for (let stringProp of stringProps) {
-        if (dataEntry[stringProp] != restoreEntry[stringProp]) {
+      for (let stringProp of propsToCheck) {
+        if (!isDeepEqual(dataEntry[stringProp], restoreEntry[stringProp])) {
           this.timestampLog(`property mismatch, entry ${i}, property ${stringProp}, data value ${JSON.stringify(dataEntry[stringProp])}, restore value ${JSON.stringify(restoreEntry[stringProp])}`);
           this.timestampLog('dataentry\n', dataEntry);
           this.timestampLog('restoreentry\n', restoreEntry);
