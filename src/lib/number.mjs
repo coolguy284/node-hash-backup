@@ -126,6 +126,8 @@ export function numberToStringWithSeparator(number, {
         });
       }
       
+      /* eslint-disable @stylistic/indent */
+      
       return intString +
         (
           decimalString != null ?
@@ -136,6 +138,8 @@ export function numberToStringWithSeparator(number, {
             `e${exponent}` :
             ''
         );
+      
+      /* eslint-enable @stylistic/indent */
     }
   }
 }
