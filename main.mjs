@@ -3,9 +3,18 @@
 export { createBackupManager } from './src/backup_manager/backup_manager.mjs';
 export {
   initBackupDir,
+  getBackupInfo,
+  getEntryInfo,
+  getFileStreamByBackupPath,
+  getFolderContents,
+  getSubtree,
+  deleteBackup,
   deleteBackupDir,
   performBackup,
   performRestore,
+  pruneUnreferencedFiles,
+  renameBackup,
+  runInteractiveSession,
 } from './src/backup_manager/backup_helper_funcs.mjs';
 export { SymlinkModes } from './src/lib/fs.mjs';
 
@@ -27,7 +36,10 @@ export {
   // VARIABLE_LENGTH_HAHSHES,
 } from './src/backup_manager/lib.mjs';
 export { getProgramVersion } from './src/backup_manager/version.mjs';
-export { executeCommandLine } from './src/command_line/command_line.mjs';
+export {
+  executeCommandLine,
+  executeCommandLineCollectOutput,
+} from './src/command_line/command_line.mjs';
 
 // check for running as main
 

@@ -1399,7 +1399,19 @@ class BackupManager {
       throw new Error(`entry not found in backup ${JSON.stringify(backupName)}, entry ${JSON.stringify(backupFileOrFolderPath)}`);
     }
     
-    return Object.fromEntries(Object.entries(entries.get(backupFileOrFolderPath)));
+    const entry = entries.get(backupFileOrFolderPath);
+    
+    if (entry.type != 'file') {
+      return Object.fromEntries(Object.entries(entry));
+    } else {
+      const { size, compressedSize } = await this.#getFileMeta(entry.hash);
+      
+      return {
+        ...entry,
+        size,
+        compressedSize,
+      };
+    }
   }
   
   async getSubtreeInfoFromBackup({

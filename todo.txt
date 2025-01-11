@@ -22,6 +22,7 @@ improved data storage on windows:
   save hidden, system flags
   detect alternate file streams on windows; store as path with ':'
   support for directory junction / file and directory symlinks
+rework getentryinfo to show whether compression is enabled as well, and also the compression algo and params used
 function param and subcommand param in backup to create backup with new name following prefix instead of full name
 implement proper async operation read/write locking in backup manager class
 add ctrl c lock to certain parts of code (look up good way), to ensure any backup or load or other operation isnt interrupted during write

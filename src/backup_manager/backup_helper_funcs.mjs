@@ -284,7 +284,7 @@ export async function pruneUnreferencedFiles({
   }
 }
 
-export async function startInteractiveSession({
+export async function runInteractiveSession({
   backupDir = null,
   custom = null,
   logger = console.error,

@@ -1,5 +1,3 @@
-import { parseArgs } from '../lib/command_line.mjs';
-
 import { COMMANDS } from './command_info.mjs';
 import {
   getVersionString,
@@ -18,8 +16,10 @@ import {
   performRestore,
   pruneUnreferencedFiles,
   renameBackup,
-  startInteractiveSession,
+  runInteractiveSession,
 } from '../backup_manager/backup_helper_funcs.mjs';
+import { parseArgs } from '../lib/command_line.mjs';
+import { humanReadableSizeString } from '../lib/fs.mjs';
 
 function convertArgIfNeeded(argValue, conversionFunc) {
   if (conversionFunc != null) {
@@ -217,6 +217,43 @@ function printVersion({ logger = console.log }) {
   logger(getVersionString());
 }
 
+// assumes that local time is always an integer number of seconds offset from UTC
+function formatUnixSecStringAsDate(unixSecString) {
+  // TODO: convert to 12hr format
+  const [ intSecs, fracSecs ] = unixSecString.split('.');
+  
+  if (fracSecs != null) {
+    const simplifiedFracSecs = fracSecs.replace(/0+$/, '');
+    
+    if (simplifiedFracSecs == '') {
+      return new Date(parseInt(intSecs) * 1_000).toString();
+    } else {
+      let baseDateString;
+      
+      if (intSecs.startsWith('-')) {
+        // intSecs as -4.3 secs since epoch should be treated as -5
+        // with some decimals added to the seconds after stringification
+        baseDateString = new Date((parseInt(intSecs) - 1) * 1_000).toString();
+      } else {
+        baseDateString = new Date(parseInt(intSecs) * 1_000).toString();
+      }
+      
+      let match;
+      
+      if ((match = /^(.+\d{2}:\d{2}:\d{2})(.+)$/.exec(baseDateString)) != null) {
+        const [ start, end ] = match.slice(1);
+        
+        return `${start}.${simplifiedFracSecs}${end}`;
+      } else {
+        // date string does not match format, abort and return base date stringification
+        return baseDateString;
+      }
+    }
+  } else {
+    return new Date(parseInt(intSecs) * 1_000).toString();
+  }
+}
+
 export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
@@ -395,9 +432,62 @@ export async function executeCommandLine({
         break;
       }
       
-      case 'getEntryInfo':
-        // TODO
+      case 'getEntryInfo': {
+        const backupDir = keyedArgs.get('backupDir');
+        const name = keyedArgs.get('name');
+        const pathToEntry = keyedArgs.get('pathToEntry');
+        
+        const entry = await getEntryInfo({
+          backupDir,
+          name,
+          pathToEntry,
+          logger: extraneousLogger,
+        });
+        
+        let properties = [];
+        
+        properties.push(['Backup', JSON.stringify(backupDir)]);
+        properties.push(['Name', JSON.stringify(name)]);
+        properties.push(['Path', JSON.stringify(pathToEntry)]);
+        properties.push(['Type', entry.type]);
+        properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
+        properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
+        properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);
+        properties.push(['Creation Time', `${formatUnixSecStringAsDate(entry.birthtime)} (${entry.birthtime})`]);
+        
+        switch (entry.type) {
+          case 'directory':
+            // no extra info
+            break;
+          
+          case 'symbolic link':
+            properties.push(['Symlink Type', `${entry.symlinkType ?? 'unspecified'}`]);
+            properties.push(['Symlink Path (Base64)', `${entry.symlinkPath}`]);
+            properties.push(['Symlink Path (Raw)', `${JSON.stringify(Buffer.from(entry.symlinkPath, 'base64').toString())}`]);
+            break;
+          
+          case 'file':
+            properties.push(['Hash', entry.hash]);
+            properties.push(['Size', humanReadableSizeString(entry.size)]);
+            properties.push(['Compressed Size', humanReadableSizeString(entry.compressedSize)]);
+            break;
+          
+          default:
+            throw new Error(`unknown type: ${entry.type}`);
+        }
+        
+        const maxPropertyLength =
+          properties
+            .map(([ propertyName, _ ]) => propertyName.length)
+            .reduce((currentLength, newLength) => Math.max(currentLength, newLength));
+        
+        logger(
+          properties
+            .map(([ propertyName, propertyValue ]) => `${`${propertyName}:`.padEnd(maxPropertyLength + 1)}  ${propertyValue}`)
+            .join('\n'),
+        );
         break;
+      }
       
       case 'getSubtree':
         // TODO
@@ -424,4 +514,32 @@ export async function executeCommandLine({
   }
   
   logger();
+}
+
+export async function executeCommandLineCollectOutput(args, {
+  mergeArraysIntoStrings = true,
+} = {}) {
+  let logLines = [];
+  let extraneousLogLines = [];
+  
+  await executeCommandLine({
+    args,
+    logger: data => {
+      logLines.push(data);
+    },
+    extraneousLogger: data => {
+      extraneousLogLines.push(data);
+    },
+  });
+  
+  return {
+    logLines:
+      mergeArraysIntoStrings ?
+        logLines.join('\n') :
+        logLines,
+    extraneousLogLines:
+      mergeArraysIntoStrings ?
+        extraneousLogLines.join('\n') :
+        extraneousLogLines,
+  }
 }
