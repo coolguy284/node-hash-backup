@@ -13,6 +13,9 @@ check excluded files are relative or absolute
 
 update readme.md and help output to match true commands
 clear TODO from codebase
+delete all of old src
+
+check that "--to=val" and "--to val" and "--arg1 --to=val" and "--arg1" work
 
 low prio:
 create native module to do what powershell cannot
@@ -110,6 +113,7 @@ fix inconsistent periods at the end of console logged messages
 use custom error type when throwing, and print custom errors differently (without the traceback)
 function to delete certain files in a backup instead of whole backup
 fix main and exports in package json, shouldnt need main
+add prompt to confirm to delete backup dir contents if backup dir not empty on calling init
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited
