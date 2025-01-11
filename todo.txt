@@ -1,3 +1,4 @@
+if current restorepath is dir and top of backupdir is dir, just go with it instead of deleting and re creating
 getsubtree command shows entries as optional flag, if false, then fs is just printed using tree unicode characters
 list command:
   ensure total size of backup or of entire backup dir is stated
@@ -114,6 +115,7 @@ use custom error type when throwing, and print custom errors differently (withou
 function to delete certain files in a backup instead of whole backup
 fix main and exports in package json, shouldnt need main
 add prompt to confirm to delete backup dir contents if backup dir not empty on calling init
+add prompt to confirm deletion of original restore dir contents, instead of just setting it in cli arg
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

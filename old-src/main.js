@@ -1,11 +1,4 @@
-let fs = require('fs');
-let path = require('path');
-
-let { _checkPathIsDir } = require('./lib/fs');
-let _getUserInput = require('./lib/input');
 let getBackupInfo = require('./main/get_backup_info');
-let performBackup = require('./main/perform_backup');
-let performRestore = require('./main/perform_restore');
 
 async function runIfMain() {
   let argvSliced = process.argv.slice(2);
@@ -19,8 +12,6 @@ async function runIfMain() {
       if (backupDir == null || backupDir == '') throw new Error('Error: to dir must be specified.');
       
       let name = commandArgs.get('name');
-      
-      _checkPathIsDir(backupDir);
       
       let info = await getBackupInfo({
         backupDir,
@@ -117,118 +108,5 @@ async function runIfMain() {
       }
       break;
     }
-    
-    case 'backup': {
-      let basePath = commandArgs.get('from');
-      
-      if (basePath == null || basePath == '') throw new Error('Error: from dir must be specified.');
-      
-      let backupDir = commandArgs.get('to');
-      
-      if (backupDir == null || backupDir == '') throw new Error('Error: to dir must be specified.');
-      
-      let name = commandArgs.get('name');
-      
-      if (name == null) throw new Error('Error: backup name must be specified.');
-      
-      _checkPathIsDir(basePath);
-      _checkPathIsDir(backupDir);
-      
-      console.log(`Backing up "${basePath}" to "${backupDir}", backup name "${name}".`);
-      
-      await performBackup({
-        basePath,
-        backupDir,
-        name,
-        ignoreSymlinks: commandArgs.get('ignore-symlinks'),
-        inMemory: commandArgs.get('in-memory'),
-        checkDuplicateHashes: commandArgs.get('check-duplicate-hashes'),
-        _performChecks: false,
-      });
-      
-      console.log('Finished.');
-      break;
-    }
-    
-    case 'restore': {
-      let backupDir = commandArgs.get('from');
-      
-      if (backupDir == null || backupDir == '') throw new Error('Error: from dir must be specified.');
-      
-      let basePath = commandArgs.get('to');
-      
-      if (basePath == null || basePath == '') throw new Error('Error: to dir must be specified.');
-      
-      let name = commandArgs.get('name');
-      
-      if (name == null) throw new Error('Error: backup name must be specified.');
-      
-      _checkPathIsDir(backupDir);
-      _checkPathIsDir(basePath);
-      
-      let basePathContents = await fs.promises.readdir(basePath);
-      
-      if (basePathContents.length != 0) {
-        console.log(
-          `Directory "${basePath}" is not empty, proceed anyway?\n` +
-          'WARNING: This will remove all files in the directory and replace them with the restore!'
-        );
-        
-        let proceed = await _getUserInput();
-        if (!proceed) {
-          console.log('Aborting.');
-          return;
-        }
-        
-        console.log(`Deleting files in "${basePath}".`);
-        
-        for (let basePathContent of basePathContents)
-          await fs.promises.rm(path.join(basePath, basePathContent), { recursive: true });
-        
-        console.log('Delete finished.');
-      }
-      
-      console.log(`Restoring backup name "${name}" from "${backupDir}" to "${basePath}".`);
-      
-      await performRestore({
-        backupDir,
-        basePath,
-        name,
-        verify: commandArgs.get('verify') ? commandArgs.get('verify') == 'true' : null,
-        setFileTimes: commandArgs.get('set_file_times') ? commandArgs.get('set_file_times') == 'true' : null,
-        _performChecks: false,
-      });
-      
-      console.log('Finished.');
-      break;
-    }
   }
-}
-
-module.exports = exports = {
-  _checkPathIsDir,
-  _getAllEntriesInDir: require('./lib/fs')._getAllEntriesInDir,
-  _getUserInput,
-  _recursiveReaddir: require('./lib/fs')._recursiveReaddir,
-  _setFileTimes: require('./lib/fs')._setFileTimes,
-  _getFileFromBackup: require('./lib/fs_meta')._getFileFromBackup,
-  _getFileHashSlices: require('./lib/fs_meta')._getFileHashSlices,
-  _getFileMetaPathFromBackup: require('./lib/fs_meta')._getFileMetaPathFromBackup,
-  _getFilePathFromBackup: require('./lib/fs_meta')._getFilePathFromBackup,
-  _setFileToBackup: require('./lib/fs_meta')._setFileToBackup,
-  _nsTimeToString: require('./lib/misc')._nsTimeToString,
-  _stringToNsTime: require('./lib/misc')._stringToNsTime,
-  _stringToUTCTimeString: require('./lib/misc')._stringToUTCTimeString,
-  _procPromisify: require('./lib/process'),
-  getBackupInfo,
-  performBackup,
-  performRestore,
-  runIfMain,
-};
-
-if (require.main === module) {
-  (async () => {
-    await runIfMain();
-    process.exit();
-  })();
 }
