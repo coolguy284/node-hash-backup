@@ -435,6 +435,9 @@ export async function setReadOnly(filePath) {
   const newPerms = currentPerms & 0o555;
   
   if (currentPerms != newPerms) {
+    // it would seem that lchmod should be used here, but chmod does not
+    // follow symlinks anyway apparently (at least on windows), and lchmod
+    // (non promise ver) is apparently only implemented on macos
     await chmod(filePath, newPerms);
   }
 }
@@ -460,6 +463,9 @@ export async function unsetReadOnly(filePath) {
   }
   
   if (currentPerms != newPerms) {
+    // it would seem that lchmod should be used here, but chmod does not
+    // follow symlinks anyway apparently (at least on windows), and lchmod
+    // (non promise ver) is apparently only implemented on macos
     await chmod(filePath, newPerms);
   }
 }

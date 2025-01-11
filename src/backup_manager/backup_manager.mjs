@@ -1700,7 +1700,7 @@ class BackupManager {
       }
     }
     
-    for (const { path, type, hash, symlinkType, symlinkPath } of backupData) {
+    for (const { path, type, attributes, hash, symlinkType, symlinkPath } of backupData) {
       const outputPath = join(outputFileOrFolderPath, path);
       
       switch (type) {
@@ -1748,6 +1748,19 @@ class BackupManager {
             }
           }
           break;
+        }
+      }
+      
+      if (attributes != null) {
+        for (const attribute of attributes) {
+          switch (attribute) {
+            case 'readonly':
+              await setReadOnly(outputPath);
+              break;
+            
+            default:
+              throw new Error(`cannot set attribute on file ${JSON.stringify(outputPath)}: attribute ${attribute} unknown`);
+          }
         }
       }
     }

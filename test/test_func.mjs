@@ -26,6 +26,7 @@ import {
   performRestore,
 } from '../src/backup_manager/backup_helper_funcs.mjs';
 import { parseArgs } from '../src/lib/command_line.mjs';
+import { setReadOnly } from '../src/lib/fs.mjs';
 
 import { getFilesAndMetaInDir } from './lib/fs.mjs'; 
 import { AdvancedPrng } from './lib/prng_extended.mjs';
@@ -195,20 +196,33 @@ class TestManager {
     await mkdir(basePath);
     await Promise.all([
       mkdir(join(basePath, 'folder')),
+      mkdir(join(basePath, 'folder-readonly')),
       writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      writeFile(join(basePath, 'file-readonly.txt'), Buffer.from('Test readonly file.')),
     ]);
     await Promise.all([
       writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.')),
       mkdir(join(basePath, 'folder', 'subfolder')),
+      setReadOnly(join(basePath, 'file-readonly.txt')),
     ]);
     await writeFile(join(basePath, 'folder', 'subfolder', 'file.txt'), Buffer.from('Test file in sub folder.'));
     
     if (this.#testSymlink) {
       await symlink(resolve(join(basePath, 'folder', 'file.txt')), join(basePath, 'file-symlink-absolute.txt'), 'file');
-      await symlink('./folder/file.txt', join(basePath, 'file-symlink-relative.txt'), 'file');
-      await symlink(resolve(join(basePath, 'folder')), join(basePath, 'dir-symlink-absolute'), 'dir');
-      await symlink('./folder', join(basePath, 'dir-symlink-relative'), 'dir');
-      await symlink(join(basePath, 'folder'), join(basePath, 'dir-junction-absolute'), 'junction');
+      await Promise.all([
+        symlink('./folder/file.txt', join(basePath, 'file-symlink-relative.txt'), 'file'),
+        symlink('./folder/file.txt', join(basePath, 'file-symlink-relative-readonly.txt'), 'file'),
+        symlink(resolve(join(basePath, 'folder')), join(basePath, 'dir-symlink-absolute'), 'dir'),
+        symlink('./folder', join(basePath, 'dir-symlink-relative'), 'dir'),
+        symlink('./folder', join(basePath, 'dir-symlink-relative-readonly'), 'dir'),
+        symlink(join(basePath, 'folder'), join(basePath, 'dir-junction-absolute'), 'junction'),
+        symlink(join(basePath, 'folder'), join(basePath, 'dir-junction-absolute-readonly'), 'junction'),
+      ]);
+      await Promise.all([
+        setReadOnly(join(basePath, 'file-symlink-relative-readonly.txt')),
+        setReadOnly(join(basePath, 'dir-symlink-relative-readonly')),
+        setReadOnly(join(basePath, 'dir-junction-absolute-readonly')),
+      ]);
     }
     
     this.timestampLog(`finished manual4 ${basePath}`);
