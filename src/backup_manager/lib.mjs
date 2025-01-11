@@ -286,7 +286,7 @@ export function splitCompressObjectAlgoAndParams(compression) {
     compressionParams: Object.fromEntries(
       Object.entries(compression)
         .filter(([key, _]) => key != 'algorithm')
-    )
+    ),
   };
 }
 
@@ -330,9 +330,7 @@ export async function getAndAddBackupEntry({
     if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [symbolic link]`);
     
     const linkPathBuf = await readlink(subFileOrFolderPath, { encoding: 'buffer' });
-    const linkPathBase64 =
-      linkPathBuf
-      .toString('base64');
+    const linkPathBase64 = linkPathBuf.toString('base64');
     
     if (addingLogger != null) addingLogger(`Points to: ${JSON.stringify(linkPathBuf.toString())}`);
     

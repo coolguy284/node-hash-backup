@@ -62,7 +62,7 @@ export async function streamsEqual(streams, highWaterMark = HIGH_WATER_MARK) {
               buffers: [],
               bufferLength: 0,
               totalBytesRead: 0,
-            }
+            },
           ]
       )
     );

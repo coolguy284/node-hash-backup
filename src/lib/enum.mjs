@@ -47,7 +47,7 @@ export function Enum(values) {
         throw new Error('Enums are immutable');
       },
     }
-  )
+  );
   
   activeEnums.add(enumObject);
   

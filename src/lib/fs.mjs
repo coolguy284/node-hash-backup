@@ -44,7 +44,7 @@ export const RelativeStatus = Enum([
 
 export async function errorIfPathNotDir(validationPath) {
   if (typeof validationPath != 'string') {
-    throw new Error(`validationPath not string: ${validationPath}`)
+    throw new Error(`validationPath not string: ${validationPath}`);
   }
   
   let stats = await stat(validationPath);
@@ -152,7 +152,7 @@ async function recursiveReaddirInternal(
     {
       filePath: fileOrDirPath,
       stats: selfStats,
-    }
+    },
   ];
   
   if (selfStats.isDirectory()) {
@@ -168,7 +168,7 @@ async function recursiveReaddirInternal(
                     const [ first, ..._ ] = excludePath;
                     return first == name;
                   })
-                  .map(excludePath => excludePath.slice(1))
+                  .map(excludePath => excludePath.slice(1)),
             };
           })
           .filter(({ subExcludedFilesOrFolders }) =>
@@ -182,8 +182,8 @@ async function recursiveReaddirInternal(
             }
           ))
       ))
-      .filter(entry => entry != null)
-      .flat();
+        .filter(entry => entry != null)
+        .flat();
     
     dirContents.forEach(entry => result.push(entry));
   }
@@ -300,7 +300,7 @@ export async function recursiveReaddirSimpleFileNamesOnly(dirPath, depth) {
   }
   
   if (!Number.isSafeInteger(depth) || depth <= 0) {
-    throw new Error(`depth not positive integer`);
+    throw new Error(`depth not positive integer: ${depth}`);
   }
   
   return await recursiveReaddirSimpleFileNamesOnlyInternal(dirPath, depth);
@@ -383,13 +383,13 @@ export async function setFileTimes(fileTimeEntries) {
         })
         .filter(fileSetCode => fileSetCode != null)
         .join('\n');
-      
-      return await callProcess({
-        processName: 'powershell',
-        processArguments: ['-Command', '-'],
-        environmentVars,
-        stdin: commandString,
-      });
+    
+    return await callProcess({
+      processName: 'powershell',
+      processArguments: ['-Command', '-'],
+      environmentVars,
+      stdin: commandString,
+    });
   } else {
     let environmentVars = {};
     
@@ -416,13 +416,13 @@ export async function setFileTimes(fileTimeEntries) {
         })
         .filter(fileSetCode => fileSetCode != null)
         .join('\n');
-      
-      return await callProcess({
-        processName: 'bash',
-        processArguments: ['-'],
-        environmentVars,
-        stdin: commandString,
-      });
+    
+    return await callProcess({
+      processName: 'bash',
+      processArguments: ['-'],
+      environmentVars,
+      stdin: commandString,
+    });
   }
 }
 

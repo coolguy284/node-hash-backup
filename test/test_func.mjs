@@ -484,7 +484,7 @@ async function createTestDirectoryContents(testMgr, testDir) {
         (async () => {
           await testMgr.DirectoryCreationFuncs_random1(join(testDir, 'data-build', 'randomconstant'));
           for (let i = 0; i < 10; i++) {
-            await testMgr.DirectoryCreationFuncs_random1(join(testDir, 'data', 'random' + i))
+            await testMgr.DirectoryCreationFuncs_random1(join(testDir, 'data', 'random' + i));
           }
           
           let fsOps = [];
@@ -538,8 +538,8 @@ async function performSubTest({
   // open logging file and redirect stdout and stderr
   //let oldProcStdoutWrite = process.stdout.write.bind(process.stdout);
   let oldProcStderrWrite = process.stderr.write.bind(process.stderr);
-  //process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c) };
-  process.stderr.write = c => { testMgr.timestampLog(c); oldProcStderrWrite(c) };
+  //process.stdout.write = c => { loggingFile.write(c); oldProcStdoutWrite(c); };
+  process.stderr.write = c => { testMgr.timestampLog(c); oldProcStderrWrite(c); };
   
   try {
     // make temp dir for tests
@@ -637,7 +637,7 @@ async function performSubTest({
             }
             
             if (!passed) {
-              throw new Error(`deliberate modification failed to cause a validation error`);
+              throw new Error('deliberate modification failed to cause a validation error');
             }
           } else {
             await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i + '.1', true, verboseFinalValidationLog);

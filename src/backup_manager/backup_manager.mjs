@@ -399,9 +399,9 @@ class BackupManager {
         }
       }
       
-      this.#log(logger, `File already in backup dir`);
+      this.#log(logger, 'File already in backup dir');
     } else {
-      this.#log(logger, `File not in backup dir, adding`);
+      this.#log(logger, 'File not in backup dir, adding');
       
       let compressionUsed = false;
       let compressedBytes;
@@ -471,9 +471,9 @@ class BackupManager {
           }
         }
       
-        this.#log(logger, `File already in backup dir`);
+        this.#log(logger, 'File already in backup dir');
       } else {
-        this.#log(logger, `File not in backup dir, adding`);
+        this.#log(logger, 'File not in backup dir, adding');
         
         let compressionUsed = false;
         
@@ -984,7 +984,7 @@ class BackupManager {
     await mkdir(join(this.#backupDirPath, 'backups'));
     await mkdir(join(this.#backupDirPath, 'files'));
     await mkdir(join(this.#backupDirPath, 'files_meta'));
-    const infoFilePath = join(this.#backupDirPath, 'info.json')
+    const infoFilePath = join(this.#backupDirPath, 'info.json');
     await writeFileReplaceWhenDone(
       infoFilePath,
       fullInfoFileStringify({
@@ -999,7 +999,7 @@ class BackupManager {
               compression: {
                 algorithm: compressionAlgo,
                 ...compressionParams,
-              }
+              },
             } :
             {}
         ),
@@ -1233,7 +1233,7 @@ class BackupManager {
       }
     }
     
-    this.#log(logger, `Writing backup file...`);
+    this.#log(logger, 'Writing backup file...');
     
     const finishedBackupData = {
       createdAt: new Date().toISOString(),
@@ -2315,7 +2315,7 @@ class BackupManager {
                     ([ backupInfoKey, _ ]) =>
                       backupInfoKey != 'referencedFileHashes'
                   )
-              )
+              ),
             ]),
         naiveSum: {
           files: filesTotal,

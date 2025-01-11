@@ -9,10 +9,12 @@ export class ReadOnlySet {
     return this.#set.has(value);
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   add(_value) {
     throw new Error('ReadOnlySet is not editable');
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   delete(_value) {
     throw new Error('ReadOnlySet is not editable');
   }
@@ -21,6 +23,7 @@ export class ReadOnlySet {
     return this.#set.size;
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   clear() {
     throw new Error('ReadOnlySet is not editable');
   }

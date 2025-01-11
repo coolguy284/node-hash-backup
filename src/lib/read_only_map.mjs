@@ -13,10 +13,12 @@ export class ReadOnlyMap {
     return this.#map.get(key);
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   set(_key, _value) {
     throw new Error('ReadOnlyMap is not editable');
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   delete(_key) {
     throw new Error('ReadOnlyMap is not editable');
   }
@@ -25,6 +27,7 @@ export class ReadOnlyMap {
     return this.#map.size;
   }
   
+  // eslint-disable-next-line @typescript-eslint/class-methods-use-this
   clear() {
     throw new Error('ReadOnlyMap is not editable');
   }

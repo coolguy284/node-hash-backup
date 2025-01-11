@@ -33,14 +33,14 @@ async function upgradeDir1To2_processOneMetaFile({
   
   const newContents = Object.fromEntries(
     Object.entries(origContents)
-    .map(([fileHash, fileMeta]) => [
-      fileHash,
-      {
-        size: fileMeta.size,
-        ...(fileMeta.compressedSize != null ? { compressedSize: fileMeta.compressedSize } : {}),
-        ...(fileMeta.compression != null ? { compression: fileMeta.compression } : {}),
-      },
-    ])
+      .map(([fileHash, fileMeta]) => [
+        fileHash,
+        {
+          size: fileMeta.size,
+          ...(fileMeta.compressedSize != null ? { compressedSize: fileMeta.compressedSize } : {}),
+          ...(fileMeta.compression != null ? { compression: fileMeta.compression } : {}),
+        },
+      ])
   );
   
   await writeFileReplaceWhenDone(

@@ -542,5 +542,5 @@ export async function executeCommandLineCollectOutput(args, {
       mergeArraysIntoStrings ?
         extraneousLogLines.join('\n') :
         extraneousLogLines,
-  }
+  };
 }
