@@ -6,6 +6,7 @@ import {
   mainHelpText,
 } from './help_info.mjs';
 import {
+  deleteBackup,
   deleteBackupDir,
   getBackupInfo,
   getEntryInfo,
@@ -16,6 +17,7 @@ import {
   performBackup,
   performRestore,
   pruneUnreferencedFiles,
+  renameBackup,
   startInteractiveSession,
 } from '../backup_manager/backup_helper_funcs.mjs';
 
@@ -215,6 +217,24 @@ function printVersion({ logger = console.log }) {
   logger(getVersionString());
 }
 
+function stringToBool(string) {
+  switch (string.toLowerCase()) {
+    case 'true':
+      return true;
+    
+    case 'false':
+      return false;
+  }
+}
+
+function stringToInt(string) {
+  if (!/^-?\d+$/.test(string)) {
+    throw new Error(`string not valid integer: ${JSON.stringify(string)}`);
+  }
+  
+  return parseInt(string);
+}
+
 export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
@@ -318,11 +338,56 @@ export async function executeCommandLine({
       }
       
       case 'backup':
-        // TODO
+        await performBackup({
+          backupDir: keyedArgs.get('backupDir'),
+          name: keyedArgs.get('name'),
+          basePath: keyedArgs.get('basePath'),
+          excludedFilesOrFolders: JSON.parse(keyedArgs.get('excludedItems')),
+          allowBackupDirSubPathOfFileOrFolderPath: stringToBool(keyedArgs.get('allowBackupDirSubPathOfFileOrFolderPath')),
+          symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
+          inMemoryCutoffSize: stringToInt(keyedArgs.get('inMemoryCutoff')),
+          compressionMinimumSizeThreshold: stringToInt(keyedArgs.get('compressionMinimumSizeThreshold')),
+          compressionMaximumSizeThreshold: stringToInt(keyedArgs.get('compressionMaximumSizeThreshold')),
+          checkForDuplicateHashes: stringToBool(keyedArgs.get('checkDuplicateHashes')),
+          ignoreErrors: stringToBool(keyedArgs.get('ignoreErrors')),
+          logger,
+        });
         break;
       
       case 'restore':
-        // TODO
+        await performRestore({
+          backupDir: keyedArgs.get('backupDir'),
+          name: keyedArgs.get('name'),
+          basePath: keyedArgs.get('restorePath'),
+          backupFileOrFolderPath: keyedArgs.get('pathToEntry'),
+          excludedFilesOrFolders: JSON.parse(keyedArgs.get('excludedItems')),
+          symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
+          inMemoryCutoffSize: stringToInt(keyedArgs.get('imMemoryCutoff')),
+          setFileTimes: stringToBool(keyedArgs.get('setFileTimes')),
+          createParentFolders: stringToBool(keyedArgs.get('createParentFolders')),
+          overwriteExistingRestoreFolderOrFile: stringToBool(keyedArgs.get('overwriteExisting')),
+          verifyFileHashOnRetrieval: stringToBool(keyedArgs.get('verify')),
+          logger,
+        });
+        break;
+      
+      case 'deleteBackup':
+        await deleteBackup({
+          backupDir: keyedArgs.get('backupDir'),
+          name: keyedArgs.get('name'),
+          pruneReferencedFilesAfter: keyedArgs.get('pruneFilesAfter'),
+          confirm: keyedArgs.get('confirm') == 'yes',
+          logger,
+        });
+        break;
+      
+      case 'renameBackup':
+        await renameBackup({
+          backupDir: keyedArgs.get('backupDir'),
+          oldName: keyedArgs.get('oldName'),
+          newName: keyedArgs.get('newName'),
+          logger,
+        });
         break;
       
       case 'getFolderContents':

@@ -557,6 +557,17 @@ export const COMMANDS = new Map(
           ],
           
           [
+            'pruneFilesAfter',
+            
+            {
+              aliases: ['prune-files-after'],
+              presenceOnly: false,
+              required: false,
+              defaultValue: 'true',
+            },
+          ],
+          
+          [
             'confirm',
             
             {
@@ -578,6 +589,7 @@ export const COMMANDS = new Map(
           '        aliases: --backup-dir, --to',
           '    --name=<name> (required): The name of the backup to delete.',
           '    --confirm=yes (required): Must be set to allow deletion.',
+          '    --pruneFilesAfter=<true|false> (default `true`): If true, prune unused files in the hash backup afterward.',
         ].join('\n'),
       },
     ],

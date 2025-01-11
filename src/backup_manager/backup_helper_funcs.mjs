@@ -289,5 +289,34 @@ export async function startInteractiveSession({
   custom = null,
   logger = console.error,
 }) {
+  if (typeof backupDir != 'string' && backupDir != null) {
+    throw new Error(`backupDir not string or null: ${typeof backupDir}`);
+  }
   
+  if (typeof custom != 'string' && custom != null) {
+    throw new Error(`custom not string or null: ${typeof custom}`);
+  }
+  
+  let hashBackup = null;
+  
+  if (backupDir != null) {
+    hashBackup = await createBackupManager(backupDir, { globalLogger: logger });
+  }
+  
+  try {
+    if (hashBackup != null) {
+      globalThis.hb = hashBackup;
+    }
+    
+    if (custom != null) {
+      globalThis.custom = custom;
+    }
+  } finally {
+    if (hashBackup != null) {
+      await hashBackup[Symbol.asyncDispose]();
+    }
+  }
+  
+  delete globalThis.hb;
+  delete globalThis.custom;
 }
