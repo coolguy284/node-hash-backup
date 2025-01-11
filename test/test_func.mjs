@@ -10,7 +10,10 @@ import {
   symlink,
   writeFile,
 } from 'fs/promises';
-import { join } from 'path';
+import {
+  join,
+  resolve,
+} from 'path';
 import { formatWithOptions as utilFormatWithOptions } from 'util';
 
 import {
@@ -139,8 +142,8 @@ class TestManager {
     
     await mkdir(basePath);
     await Promise.all([
-      await mkdir(join(basePath, 'folder')),
-      await writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      mkdir(join(basePath, 'folder')),
+      writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
     await writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder.'));
     
@@ -152,8 +155,8 @@ class TestManager {
     
     await mkdir(basePath);
     await Promise.all([
-      await mkdir(join(basePath, 'emptyfolder')),
-      await writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      mkdir(join(basePath, 'emptyfolder')),
+      writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
     
     this.timestampLog(`finished manual2 ${basePath}`);
@@ -172,14 +175,21 @@ class TestManager {
     
     await mkdir(basePath);
     await Promise.all([
-      await mkdir(join(basePath, 'folder')),
-      await writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
+      mkdir(join(basePath, 'folder')),
+      writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
     ]);
-    await writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.'));
+    await Promise.all([
+      writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.')),
+      mkdir(join(basePath, 'folder', 'subfolder')),
+    ]);
+    await writeFile(join(basePath, 'folder', 'subfolder', 'file.txt'), Buffer.from('Test file in sub folder.'))
     
     if (this.#testSymlink) {
-      await symlink(join(basePath, 'folder', 'file.txt'), join(basePath, 'file-symlink-absolute.txt'));
-      await symlink('./folder/file.txt', join(basePath, 'file-symlink-relative.txt'));
+      await symlink(resolve(join(basePath, 'folder', 'file.txt')), join(basePath, 'file-symlink-absolute.txt'), 'file');
+      await symlink('./folder/file.txt', join(basePath, 'file-symlink-relative.txt'), 'file');
+      await symlink(resolve(join(basePath, 'folder')), join(basePath, 'dir-symlink-absolute'), 'dir');
+      await symlink('./folder', join(basePath, 'dir-symlink-relative'), 'dir');
+      await symlink(join(basePath, 'folder'), join(basePath, 'dir-junction-absolute'), 'junction');
     }
     
     this.timestampLog(`finished manual4 ${basePath}`);
@@ -433,6 +443,51 @@ class TestManager {
   }
 }
 
+// includeSymlinks not an argument here because it is a part of testMgr
+async function createTestDirectoryContents(testMgr, testDir) {
+  await Promise.all([
+    (async () => {
+      await Promise.all([
+        mkdir(join(testDir, 'data')),
+        mkdir(join(testDir, 'data-build')),
+      ]);
+      await Promise.all([
+        testMgr.DirectoryCreationFuncs_manual1(join(testDir, 'data', 'manual1')),
+        testMgr.DirectoryCreationFuncs_manual2(join(testDir, 'data', 'manual2')),
+        testMgr.DirectoryCreationFuncs_manual3(join(testDir, 'data', 'manual3')),
+        testMgr.DirectoryCreationFuncs_manual4(join(testDir, 'data', 'manual4')),
+        testMgr.DirectoryCreationFuncs_manual5(join(testDir, 'data', 'manual5')),
+        (async () => {
+          await testMgr.DirectoryCreationFuncs_random1(join(testDir, 'data-build', 'randomconstant'));
+          for (let i = 0; i < 10; i++) {
+            await testMgr.DirectoryCreationFuncs_random1(join(testDir, 'data', 'random' + i))
+          }
+          
+          let fsOps = [];
+          for (let i2 = 0; i2 < 10; i2++) {
+            fsOps.push(cp(join(testDir, 'data-build', 'randomconstant'), join(testDir, 'data', 'random' + i2), { recursive: true }));
+          }
+          await Promise.all(fsOps);
+          
+          for (let i3 = 0; i3 < 10; i3++) {
+            await testMgr.DirectoryModificationFuncs_copyThenModif(join(testDir, 'data', 'random' + i3), join(testDir, 'data', 'random' + i3 + '.1'));
+          }
+        })(),
+      ]);
+    })(),
+    mkdir(join(testDir, 'backup')),
+    (async () => {
+      await mkdir(join(testDir, 'restore'));
+      let dirArr = ['manual1', 'manual2', 'manual3', 'manual4'];
+      for (let i = 0; i < 10; i++) {
+        dirArr.push('random' + i);
+        dirArr.push('random' + i + '.1');
+      }
+      await Promise.all(dirArr.map(async x => await mkdir(join(testDir, 'restore', x))));
+    })(),
+  ]);
+}
+
 async function performSubTest({
   testDeliberateModification,
   verboseFinalValidationLog,
@@ -464,57 +519,17 @@ async function performSubTest({
   
   try {
     // make temp dir for tests
-    const tmpDir = join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`);
-    await mkdir(tmpDir);
+    const testDir = join(TESTS_DIR, `test-${Date.now() - new Date('2025-01-01T00:00:00.000Z').getTime()}`);
+    await mkdir(testDir);
     
     let errorOccurred = false;
     let errorValue;
     
     try {
       // create filetree
-      await Promise.all([
-        (async () => {
-          await Promise.all([
-            mkdir(join(tmpDir, 'data')),
-            mkdir(join(tmpDir, 'data-build')),
-          ]);
-          await Promise.all([
-            testMgr.DirectoryCreationFuncs_manual1(join(tmpDir, 'data', 'manual1')),
-            testMgr.DirectoryCreationFuncs_manual2(join(tmpDir, 'data', 'manual2')),
-            testMgr.DirectoryCreationFuncs_manual3(join(tmpDir, 'data', 'manual3')),
-            testMgr.DirectoryCreationFuncs_manual4(join(tmpDir, 'data', 'manual4')),
-            testMgr.DirectoryCreationFuncs_manual5(join(tmpDir, 'data', 'manual5')),
-            (async () => {
-              await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data-build', 'randomconstant'));
-              for (let i = 0; i < 10; i++) {
-                await testMgr.DirectoryCreationFuncs_random1(join(tmpDir, 'data', 'random' + i))
-              }
-              
-              let fsOps = [];
-              for (let i2 = 0; i2 < 10; i2++) {
-                fsOps.push(cp(join(tmpDir, 'data-build', 'randomconstant'), join(tmpDir, 'data', 'random' + i2), { recursive: true }));
-              }
-              await Promise.all(fsOps);
-              
-              for (let i3 = 0; i3 < 10; i3++) {
-                await testMgr.DirectoryModificationFuncs_copyThenModif(join(tmpDir, 'data', 'random' + i3), join(tmpDir, 'data', 'random' + i3 + '.1'));
-              }
-            })(),
-          ]);
-        })(),
-        mkdir(join(tmpDir, 'backup')),
-        (async () => {
-          await mkdir(join(tmpDir, 'restore'));
-          let dirArr = ['manual1', 'manual2', 'manual3', 'manual4'];
-          for (let i = 0; i < 10; i++) {
-            dirArr.push('random' + i);
-            dirArr.push('random' + i + '.1');
-          }
-          await Promise.all(dirArr.map(async x => await mkdir(join(tmpDir, 'restore', x))));
-        })(),
-      ]);
+      await createTestDirectoryContents(testMgr, testDir, testSymlink);
       
-      let backupDir = join(tmpDir, 'backup');
+      let backupDir = join(testDir, 'backup');
       
       // init backup dir
       testMgr.timestampLog('starting initbackupdir');
@@ -539,13 +554,13 @@ async function performSubTest({
       await printBackupInfo();
       
       let backupOrRestore = async backupOrRestoreFunc => {
-        await backupOrRestoreFunc(tmpDir, backupDir, 'manual1');
-        await backupOrRestoreFunc(tmpDir, backupDir, 'manual2');
-        await backupOrRestoreFunc(tmpDir, backupDir, 'manual3');
-        await backupOrRestoreFunc(tmpDir, backupDir, 'manual4');
+        await backupOrRestoreFunc(testDir, backupDir, 'manual1');
+        await backupOrRestoreFunc(testDir, backupDir, 'manual2');
+        await backupOrRestoreFunc(testDir, backupDir, 'manual3');
+        await backupOrRestoreFunc(testDir, backupDir, 'manual4');
         for (let i = 0; i < 10; i++) {
-          await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i);
-          await backupOrRestoreFunc(tmpDir, backupDir, 'random' + i + '.1');
+          await backupOrRestoreFunc(testDir, backupDir, 'random' + i);
+          await backupOrRestoreFunc(testDir, backupDir, 'random' + i + '.1');
         }
       };
       
@@ -559,36 +574,36 @@ async function performSubTest({
       await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
       
       // check validity of restores
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', undefined, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', undefined, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', undefined, verboseFinalValidationLog);
-      await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual1', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual2', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual3', undefined, verboseFinalValidationLog);
+      await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual4', undefined, verboseFinalValidationLog);
       for (let i = 0; i < 10; i++) {
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, undefined, verboseFinalValidationLog);
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i, undefined, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
       }
       
       if (testDeliberateModification) {
         testMgr.timestampLog('starting deliberate modifs');
         
-        await testMgr.DirectoryModificationFuncs_modif(join(tmpDir, 'restore', 'random7.1'));
-        await testMgr.DirectoryModificationFuncs_medModif(join(tmpDir, 'restore', 'random8.1'));
-        await testMgr.DirectoryModificationFuncs_mildModif(join(tmpDir, 'restore', 'random9.1'));
+        await testMgr.DirectoryModificationFuncs_modif(join(testDir, 'restore', 'random7.1'));
+        await testMgr.DirectoryModificationFuncs_medModif(join(testDir, 'restore', 'random8.1'));
+        await testMgr.DirectoryModificationFuncs_mildModif(join(testDir, 'restore', 'random9.1'));
         
         testMgr.timestampLog('finished deliberate modifs');
         
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual1', true, verboseFinalValidationLog);
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual2', true, verboseFinalValidationLog);
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual3', true, verboseFinalValidationLog);
-        await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'manual4', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual1', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual2', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual3', true, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual4', true, verboseFinalValidationLog);
         for (let i = 0; i < 10; i++) {
-          await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i, true, verboseFinalValidationLog);
+          await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i, true, verboseFinalValidationLog);
           
           if (i >= 7 && i <= 9) {
             let passed = false;
             
             try {
-              await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+              await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i + '.1', true, verboseFinalValidationLog);
             } catch (err) {
               if (err instanceof RestoreInaccurateError) {
                 passed = true;
@@ -601,7 +616,7 @@ async function performSubTest({
               throw new Error(`deliberate modification failed to cause a validation error`);
             }
           } else {
-            await testMgr.BackupTestFuncs_checkRestoreAccuracy(tmpDir, 'random' + i + '.1', true, verboseFinalValidationLog);
+            await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i + '.1', true, verboseFinalValidationLog);
           }
         }
       }
@@ -624,7 +639,7 @@ async function performSubTest({
         }
       } else {
         if (doNotSaveTestDirIfTestPassed) {
-          await rm(tmpDir, { recursive: true });
+          await rm(testDir, { recursive: true });
         }
         
         if (!doNotSaveLogIfTestPassed) {
