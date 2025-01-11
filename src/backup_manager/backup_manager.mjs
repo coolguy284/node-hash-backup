@@ -1509,6 +1509,10 @@ class BackupManager {
       let slicedPath;
       
       if (backupFolderPath == '.') {
+        if (entry.path == '.') {
+          continue;
+        }
+        
         slicedPath = entry.path;
       } else {
         if (entry.path.length <= backupFolderPath.length) {

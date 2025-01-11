@@ -386,7 +386,7 @@ export async function executeCommandLine({
           logger: extraneousLogger,
         });
         
-        logger(`Contents of: backup ${JSON.stringify(backupDir)}, name ${JSON.stringify(name)}, path ${JSON.stringify(pathToFolder)}:`);
+        logger(`Contents of backup ${JSON.stringify(backupDir)}, name ${JSON.stringify(name)}, path ${JSON.stringify(pathToFolder)}:`);
         logger(
           folderContents
             .map(fileName => JSON.stringify(fileName))
