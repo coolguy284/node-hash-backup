@@ -217,24 +217,6 @@ function printVersion({ logger = console.log }) {
   logger(getVersionString());
 }
 
-function stringToBool(string) {
-  switch (string.toLowerCase()) {
-    case 'true':
-      return true;
-    
-    case 'false':
-      return false;
-  }
-}
-
-function stringToInt(string) {
-  if (!/^-?\d+$/.test(string)) {
-    throw new Error(`string not valid integer: ${JSON.stringify(string)}`);
-  }
-  
-  return parseInt(string);
-}
-
 export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
@@ -342,14 +324,14 @@ export async function executeCommandLine({
           backupDir: keyedArgs.get('backupDir'),
           name: keyedArgs.get('name'),
           basePath: keyedArgs.get('basePath'),
-          excludedFilesOrFolders: JSON.parse(keyedArgs.get('excludedItems')),
-          allowBackupDirSubPathOfFileOrFolderPath: stringToBool(keyedArgs.get('allowBackupDirSubPathOfFileOrFolderPath')),
+          excludedFilesOrFolders: keyedArgs.get('excludedItems'),
+          allowBackupDirSubPathOfFileOrFolderPath: keyedArgs.get('allowBackupDirSubPathOfFileOrFolderPath'),
           symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
-          inMemoryCutoffSize: stringToInt(keyedArgs.get('inMemoryCutoff')),
-          compressionMinimumSizeThreshold: stringToInt(keyedArgs.get('compressionMinimumSizeThreshold')),
-          compressionMaximumSizeThreshold: stringToInt(keyedArgs.get('compressionMaximumSizeThreshold')),
-          checkForDuplicateHashes: stringToBool(keyedArgs.get('checkDuplicateHashes')),
-          ignoreErrors: stringToBool(keyedArgs.get('ignoreErrors')),
+          inMemoryCutoffSize: keyedArgs.get('inMemoryCutoff'),
+          compressionMinimumSizeThreshold: keyedArgs.get('compressionMinimumSizeThreshold'),
+          compressionMaximumSizeThreshold: keyedArgs.get('compressionMaximumSizeThreshold'),
+          checkForDuplicateHashes: keyedArgs.get('checkDuplicateHashes'),
+          ignoreErrors: keyedArgs.get('ignoreErrors'),
           logger,
         });
         break;
@@ -360,13 +342,13 @@ export async function executeCommandLine({
           name: keyedArgs.get('name'),
           basePath: keyedArgs.get('restorePath'),
           backupFileOrFolderPath: keyedArgs.get('pathToEntry'),
-          excludedFilesOrFolders: JSON.parse(keyedArgs.get('excludedItems')),
+          excludedFilesOrFolders: keyedArgs.get('excludedItems'),
           symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
-          inMemoryCutoffSize: stringToInt(keyedArgs.get('imMemoryCutoff')),
-          setFileTimes: stringToBool(keyedArgs.get('setFileTimes')),
-          createParentFolders: stringToBool(keyedArgs.get('createParentFolders')),
-          overwriteExistingRestoreFolderOrFile: stringToBool(keyedArgs.get('overwriteExisting')),
-          verifyFileHashOnRetrieval: stringToBool(keyedArgs.get('verify')),
+          inMemoryCutoffSize: keyedArgs.get('imMemoryCutoff'),
+          setFileTimes: keyedArgs.get('setFileTimes'),
+          createParentFolders: keyedArgs.get('createParentFolders'),
+          overwriteExistingRestoreFolderOrFile: keyedArgs.get('overwriteExisting'),
+          verifyFileHashOnRetrieval: keyedArgs.get('verify'),
           logger,
         });
         break;

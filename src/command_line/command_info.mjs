@@ -2,14 +2,35 @@ import { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from '../backup_manager/backup_manager.
 import { splitLongLinesByWord } from '../lib/command_line.mjs';
 import { integerToStringWithSeparator } from '../lib/number.mjs';
 
-function toInteger(value) {
-  let cleanedValue = value.replaceAll(/[_,.]/g, '');
+function toBool(string) {
+  switch (string.toLowerCase()) {
+    case 'true':
+      return true;
+    
+    case 'false':
+      return false;
+    
+    default:
+      throw new Error(`string not valid boolean: ${JSON.stringify(string)}`);
+  }
+}
+
+function toInteger(string) {
+  const cleanedString = string.replaceAll(/[_,.]/g, '');
   
-  if (!/^\d+$/.test(cleanedValue)) {
-    throw new Error(`value not valid integer: ${value}`);
+  let match;
+  
+  if ((match = /^(-)?(\d+|Infinity)$/.exec(cleanedString)) == null) {
+    throw new Error(`string not valid integer: ${JSON.stringify(string)}`);
   }
   
-  return parseInt(value);
+  const [ signString, intString ] = match.slice(1);
+  
+  const unsignedInt = intString == 'Infinity' ? Infinity : parseInt(intString);
+  
+  const signMultiplier = signString != null ? -1 : 1;
+  
+  return signMultiplier * unsignedInt;
 }
 
 function toJSONObject(value) {
@@ -40,7 +61,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'to'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -50,8 +70,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['hash-algo', 'hash'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'sha256',
             },
           ],
@@ -61,8 +79,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['hash-slices'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '1',
               conversion: toInteger,
             },
@@ -73,8 +89,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['hash-slice-length'],
-              presenceOnly: false,
-              required: false,
               conversion: toInteger,
             },
           ],
@@ -84,8 +98,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['compress-algo'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'brotli',
             },
           ],
@@ -95,8 +107,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['compress-params'],
-              presenceOnly: false,
-              required: false,
               conversion: toJSONObject,
             },
           ],
@@ -106,8 +116,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['compress-level'],
-              presenceOnly: false,
-              required: false,
               conversion: toInteger,
             },
           ],
@@ -148,7 +156,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'to'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -157,7 +164,6 @@ export const COMMANDS = new Map(
             'confirm',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -190,7 +196,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -198,10 +203,7 @@ export const COMMANDS = new Map(
           [
             'name',
             
-            {
-              presenceOnly: false,
-              required: false,
-            },
+            undefined,
           ],
         ],
         
@@ -230,7 +232,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-path'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -239,7 +240,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -249,7 +249,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -259,9 +258,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['excluded-items'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '[]',
+              conversion: toJSONObject,
             },
           ],
           
@@ -270,9 +268,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['allow-backup-dir-sub-path-of-file-or-folder-path'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'false',
+              conversion: toBool,
             },
           ],
           
@@ -281,8 +278,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['symlink-handling'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'preserve',
             },
           ],
@@ -292,9 +287,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['in-memory-cutoff'],
-              presenceOnly: false,
-              required: false,
               defaultValue: DEFAULT_IN_MEMORY_CUTOFF_SIZE + '',
+              conversion: toInteger,
             },
           ],
           
@@ -303,9 +297,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['compression-minimum-size-threshold'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '-1',
+              conversion: toInteger,
             },
           ],
           
@@ -314,9 +307,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['compression-maximum-size-threshold'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'Infinity',
+              conversion: toInteger,
             },
           ],
           
@@ -325,9 +317,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['check-duplicate-hashes'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'true',
+              conversion: toBool,
             },
           ],
           
@@ -336,9 +327,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['ignore-errors'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'false',
+              conversion: toBool,
             },
           ],
         ],
@@ -386,7 +376,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -395,7 +384,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -404,8 +392,7 @@ export const COMMANDS = new Map(
             'restorePath',
             
             {
-              aliases: ['backup-path'],
-              presenceOnly: false,
+              aliases: ['restore-path'],
               required: true,
             },
           ],
@@ -415,8 +402,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['path-to-entry'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '.',
             },
           ],
@@ -426,9 +411,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['excluded-items'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '[]',
+              conversion: toJSONObject,
             },
           ],
           
@@ -437,8 +421,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['symlink-handling'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'preserve',
             },
           ],
@@ -448,9 +430,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['in-memory-cutoff'],
-              presenceOnly: false,
-              required: false,
               defaultValue: DEFAULT_IN_MEMORY_CUTOFF_SIZE + '',
+              conversion: toInteger,
             },
           ],
           
@@ -459,9 +440,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['set-file-times'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'true',
+              conversion: toBool,
             },
           ],
           
@@ -470,9 +450,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['create-parent-folders'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'false',
+              conversion: toBool,
             },
           ],
           
@@ -481,9 +460,8 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['overwrite-existing'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'false',
+              conversion: toBool,
             },
           ],
           
@@ -491,9 +469,8 @@ export const COMMANDS = new Map(
             'verify',
             
             {
-              presenceOnly: false,
-              required: false,
               defaultValue: 'true',
+              conversion: toBool,
             },
           ],
         ],
@@ -507,7 +484,7 @@ export const COMMANDS = new Map(
           '        aliases: --backup-dir, --from',
           '    --name=<name> (required): The name of the backup.',
           '    --restorePath=<basePath> (required): The directory to restore to.',
-          '        aliases: --backup-path, --basePath, --base-path, --to',
+          '        aliases: --restore-path, --basePath, --base-path, --to',
           '    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder to be restored.',
           '        aliases: --path-to-entry',
           '    --excludedItems=<excludedItems> (default "[]"): The relative paths to exclude from the backup dir.',
@@ -564,6 +541,7 @@ export const COMMANDS = new Map(
               presenceOnly: false,
               required: false,
               defaultValue: 'true',
+              conversion: toBool,
             },
           ],
           
@@ -854,6 +832,7 @@ export const COMMANDS = new Map(
               presenceOnly: false,
               required: false,
               defaultValue: 'true',
+              conversion: toBool,
             },
           ],
         ],
@@ -995,6 +974,7 @@ export const COMMANDS = new Map(
         args: [
           [
             'help',
+            
             {
               presenceOnly: true,
             },
@@ -1002,6 +982,7 @@ export const COMMANDS = new Map(
           
           [
             'version',
+            
             {
               presenceOnly: true,
             },
@@ -1052,11 +1033,11 @@ function convertCommandArgs(args) {
           argName,
           {
             aliases = [],
-            presenceOnly,
-            required,
+            presenceOnly = false,
+            required = false,
             defaultValue = null,
             conversion = null,
-          },
+          } = {},
         ]
       ) => {
         const argNames = [argName, ...aliases];

@@ -1,4 +1,3 @@
-convert presenceOnly to default true
 save readonly, hidden, system flags
 show both raw bytes and human readable version
 add file, dir, junction to test; set to ignore symlinkType for now
