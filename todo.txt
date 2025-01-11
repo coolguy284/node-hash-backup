@@ -8,15 +8,13 @@ add file, dir, junction to test; set to ignore symlinkType for now
 
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
-configurable lockfile behavior, either error out or just wait until lockfile is deleted using watchfile
-optimize backup getinfo command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 
 check excluded files are relative or absolute
 
 update readme.md and help output to match true commands
 clear TODO from codebase
 
-low prio top:
+low prio:
 create native module to do what powershell cannot
 improved data storage on windows:
   save hidden, system flags
@@ -31,7 +29,7 @@ internal backup dir command to store file by repeatable stream func or by bytes,
     with in memory cutoff like usual
   then transmute
 
-low prio:
+if list command is slow: optimize command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 improved data storage:
   explicitly detect hardlinks
 create helper funcs and cli commands for all aspects of backupmanager; including the low-level hex stuff
@@ -40,7 +38,6 @@ more options to define backup granularity:
   store file times?
   store file attributes?
   etc.
-test symlink support
 add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 option to reset access times after finishing backing up a folder
 sort metafiles as adding new entries to them
@@ -59,7 +56,7 @@ version 3
   low prio:
     add checksums
 add lzma support to node-hash-backup as an optional dependency
-modify command that can modify backup dir parameters including upgrading or downgrading hash backup format
+modify command that can modify backup dir parameters
   first step modifies hash slice length, hash slices count, and hash type (if set)
     first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename
   second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level or both

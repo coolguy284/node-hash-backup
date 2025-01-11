@@ -3,9 +3,11 @@ import {
   getHashes,
 } from 'crypto';
 import {
+  lstat,
   readFile,
   readlink,
   rm,
+  watch,
 } from 'fs/promises';
 import {
   join,
@@ -398,4 +400,89 @@ export async function deleteBackupDirInternal({
   await rm(join(backupDirPath, 'info.json'));
   
   callBothLoggers({ logger, globalLogger }, `Backup dir successfully destroyed at ${JSON.stringify(backupDirPath)}`);
+}
+
+export async function permissiveGetFileType(filePath) {
+  let stats;
+  
+  try {
+    stats = await lstat(filePath);
+  } catch (err) {
+    if (err.code == 'ENOENT') {
+      return null;
+    } else {
+      throw err;
+    }
+  }
+  
+  if (stats.isSymbolicLink()) {
+    return 'symbolic link';
+  } else if (stats.isDirectory()) {
+    return 'directory';
+  } else if (stats.isFile()) {
+    return 'file';
+  } else {
+    return 'other';
+  }
+}
+
+export async function awaitFileDeletion(filePath, timeout = null) {
+  if (timeout != null && !Number.isSafeInteger(timeout)) {
+    throw new Error(`timeout invalid: ${timeout}`);
+  }
+  
+  if (timeout != null && timeout <= 0) {
+    throw new Error(`timeout ${timeout} exceeded awaiting file deletion`);
+  }
+  
+  const abortController = new AbortController();
+  
+  let abortTimeout = null;
+  
+  let errorThrown = false;
+  let errorValue;
+  
+  if (timeout != null) {
+    abortTimeout = setTimeout(() => {
+      errorThrown = true;
+      errorValue = new Error(`timeout ${timeout} exceeded awaiting file deletion`);
+      abortController.abort();
+    }, timeout);
+  }
+  
+  try {
+    for await (const event of watch(filePath, { signal: abortController.signal })) {
+      if (event.filename != filePath) {
+        // error, watchfile called on directory
+        const error = new Error(`awaitFileDeletion called on a directory: ${JSON.stringify(filePath)}`);
+        errorThrown = true;
+        errorValue = error;
+        abortController.abort();
+        if (abortTimeout != null) {
+          clearTimeout(abortTimeout);
+        }
+        throw error;
+      }
+      
+      if (event.eventType == 'rename') {
+        if (!(await fileOrFolderExists(filePath))) {
+          // success, file deleted
+          abortController.abort();
+          if (abortTimeout != null) {
+            clearTimeout(abortTimeout);
+          }
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    if (err.name == 'AbortError') {
+      if (errorThrown) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw errorValue;
+      }
+    } else {
+      throw err;
+    }
+  }
 }

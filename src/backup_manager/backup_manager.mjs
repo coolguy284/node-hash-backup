@@ -44,6 +44,7 @@ import { callBothLoggers } from '../lib/logger.mjs';
 import { unixSecStringToUnixNSInt } from '../lib/time.mjs';
 import { streamsEqual } from '../lib/stream_equality.mjs';
 import {
+  awaitFileDeletion,
   backupFileStringify,
   createCompressor,
   createDecompressor,
@@ -62,6 +63,7 @@ import {
   HEX_CHAR_LENGTH_BITS,
   INSECURE_HASHES,
   metaFileStringify,
+  permissiveGetFileType,
   splitCompressObjectAlgoAndParams,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
@@ -146,14 +148,32 @@ class BackupManager {
     return await hashStream(stream, this.#hashAlgo);
   }
   
+  static #lockFilePath(backupDirPath) {
+    return join(backupDirPath, EDIT_LOCK_FILE);
+  }
+  
+  static async #openLockFile(backupDirPath) {
+    return await open(
+      BackupManager.#lockFilePath(backupDirPath),
+      // https://man7.org/linux/man-pages/man2/open.2.html
+      constants.O_CREAT | constants.O_EXCL | constants.O_RDONLY,
+      0o444,
+    );
+  }
+  
   async #initManager({
     backupDirPath,
+    awaitLockFileDeletionTimeout = 0,
     autoUpgradeDir = false,
     cacheEnabled = true,
     globalLogger = null,
   }) {
     if (typeof backupDirPath != 'string') {
       throw new Error(`backupDirPath not string: ${typeof backupDirPath}`);
+    }
+    
+    if (awaitLockFileDeletionTimeout != Infinity && !Number.isSafeInteger(awaitLockFileDeletionTimeout) || awaitLockFileDeletionTimeout < 0) {
+      throw new Error(`awaitLockFileDeletionTimeout invalid: ${awaitLockFileDeletionTimeout}`);
     }
     
     if (typeof autoUpgradeDir != 'boolean') {
@@ -175,12 +195,49 @@ class BackupManager {
     await errorIfPathNotDir(backupDirPath);
     
     // create lock file
-    this.#lockFile = await open(
-      join(backupDirPath, EDIT_LOCK_FILE),
-      // https://man7.org/linux/man-pages/man2/open.2.html
-      constants.O_CREAT | constants.O_EXCL | constants.O_RDONLY,
-      0o444,
-    );
+    if (awaitLockFileDeletionTimeout == 0) {
+      this.#lockFile = await BackupManager.#openLockFile(backupDirPath);
+    } else {
+      let success = false;
+      let timeStarted = null;
+      
+      while (!success) {
+        try {
+          this.#lockFile = await BackupManager.#openLockFile(backupDirPath);
+          success = true;
+        } catch (err) {
+          if (err.code != 'EEXIST') {
+            throw err;
+          } else {
+            if (timeStarted == null) {
+              timeStarted = Date.now();
+            }
+            
+            if (awaitLockFileDeletionTimeout != Infinity && Date.now() - timeStarted > awaitLockFileDeletionTimeout) {
+              throw new Error(`timeout (${awaitLockFileDeletionTimeout}) exceeded waiting for lockfile to be deleted`);
+            }
+            
+            const lockFilePath = BackupManager.#lockFilePath(backupDirPath);
+            const lockFileType = await permissiveGetFileType(lockFilePath);
+            
+            if (lockFileType == 'file') {
+              // await file going away
+              await awaitFileDeletion(
+                lockFilePath,
+                awaitLockFileDeletionTimeout == Infinity ?
+                  null :
+                  awaitLockFileDeletionTimeout - (Date.now() - timeStarted)
+              );
+            } else if (lockFileType == null) {
+              // file doesnt exist, try again in while loop
+            } else {
+              // lock file forbidden type, error
+              throw new Error(`lockFile forbidden type: ${lockFileType}`);
+            }
+          }
+        }
+      }
+    }
     
     try {
       const { bytesRead } = await this.#lockFile.read({
@@ -778,12 +835,14 @@ class BackupManager {
   
   // This function is async as it calls an async helper and returns the corresponding promise
   constructor(backupDirPath, {
+    awaitLockFileDeletionTimeout = 0,
     autoUpgradeDir = false,
     cacheEnabled = true,
     globalLogger = null,
   }) {
     return this.#initManager({
       backupDirPath,
+      awaitLockFileDeletionTimeout,
       autoUpgradeDir,
       cacheEnabled,
       globalLogger,
