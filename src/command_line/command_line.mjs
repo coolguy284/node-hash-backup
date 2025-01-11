@@ -389,7 +389,10 @@ export async function executeCommandLine({
         break;
       
       case 'pruneBackupDir':
-        // TODO
+        await pruneUnreferencedFiles({
+          backupDir: keyedArgs.get('backupDir'),
+          logger,
+        });
         break;
       
       case 'interactive':

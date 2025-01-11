@@ -519,7 +519,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -528,7 +527,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -538,8 +536,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['prune-files-after'],
-              presenceOnly: false,
-              required: false,
               defaultValue: 'true',
               conversion: toBool,
             },
@@ -549,7 +545,6 @@ export const COMMANDS = new Map(
             'confirm',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -584,7 +579,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -594,7 +588,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['old-name'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -604,7 +597,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['new-name'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -638,7 +630,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -647,7 +638,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -657,7 +647,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['path-to-folder'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -692,7 +681,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -701,7 +689,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -711,7 +698,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['path-to-entry'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -746,7 +732,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -755,7 +740,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -765,8 +749,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['path-to-entry'],
-              presenceOnly: false,
-              required: false,
               defaultValue: '.',
             },
           ],
@@ -801,7 +783,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'from'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -810,7 +791,6 @@ export const COMMANDS = new Map(
             'name',
             
             {
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -820,7 +800,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['path-to-file'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -829,8 +808,6 @@ export const COMMANDS = new Map(
             'verify',
             
             {
-              presenceOnly: false,
-              required: false,
               defaultValue: 'true',
               conversion: toBool,
             },
@@ -867,7 +844,6 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'to'],
-              presenceOnly: false,
               required: true,
             },
           ],
@@ -897,18 +873,13 @@ export const COMMANDS = new Map(
             
             {
               aliases: ['backup-dir', 'to'],
-              presenceOnly: false,
-              required: false,
             },
           ],
           
           [
             'custom',
             
-            {
-              presenceOnly: false,
-              required: false,
-            },
+            undefined,
           ],
         ],
         
@@ -933,10 +904,7 @@ export const COMMANDS = new Map(
           [
             'command',
             
-            {
-              presenceOnly: false,
-              required: false,
-            },
+            undefined,
           ],
         ],
         
