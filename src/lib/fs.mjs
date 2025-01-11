@@ -326,7 +326,10 @@ export async function setFileTimes(fileTimeEntries) {
               mtimeNs: fileStats.mtimeNs,
             });
           } else {
-            fileTimeEntriesRegular.push(entry);
+            fileTimeEntriesRegular.push({
+              ...entry,
+              readOnly: await isReadOnly(entry.filePath),
+            });
           }
         })
     );
@@ -384,12 +387,26 @@ export async function setFileTimes(fileTimeEntries) {
         .filter(fileSetCode => fileSetCode != null)
         .join('\n');
     
-    return await callProcess({
+    // must manually unset files as readonly then set them back afterward because powershell
+    
+    for (const { filePath, readOnly } of fileTimeEntriesRegular) {
+      if (readOnly) {
+        await unsetReadOnly(filePath);
+      }
+    }
+    
+    await callProcess({
       processName: 'powershell',
       processArguments: ['-Command', '-'],
       environmentVars,
       stdin: commandString,
     });
+    
+    for (const { filePath, readOnly } of fileTimeEntriesRegular) {
+      if (readOnly) {
+        await setReadOnly(filePath);
+      }
+    }
   } else {
     let environmentVars = {};
     
@@ -417,7 +434,7 @@ export async function setFileTimes(fileTimeEntries) {
         .filter(fileSetCode => fileSetCode != null)
         .join('\n');
     
-    return await callProcess({
+    await callProcess({
       processName: 'bash',
       processArguments: ['-'],
       environmentVars,

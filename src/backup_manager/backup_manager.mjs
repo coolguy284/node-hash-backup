@@ -2039,8 +2039,6 @@ class BackupManager {
   }
   
   async _getTotalFilesMetaSize() {
-    // TODO: remove:
-    // const metaFiles = await recursiveReaddirSimpleFileNamesOnly(join(this.#backupDirPath, 'files_meta'), Math.max(this.#hashSlices, 1));
     const metaFiles = await recursiveReaddir(join(this.#backupDirPath, 'files_meta'), { includeDirs: false, entries: false });
     
     let totalBytes = 0;
