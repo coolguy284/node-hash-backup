@@ -831,6 +831,21 @@ class BackupManager {
     return backupData;
   }
   
+  async #processFileOrFolderEntry(fileOrFolderEntry) {
+    let result = Object.fromEntries(Object.entries(fileOrFolderEntry));
+    
+    result.attributes = result.attributes ?? [];
+    
+    if (fileOrFolderEntry.type == 'file') {
+      const { size, compressedSize } = await this.#getFileMeta(fileOrFolderEntry.hash);
+      
+      result.size = size;
+      result.compressedSize = compressedSize;
+    }
+    
+    return result;
+  }
+  
   // public funcs
   
   // This function is async as it calls an async helper and returns the corresponding promise
@@ -1401,17 +1416,7 @@ class BackupManager {
     
     const entry = entries.get(backupFileOrFolderPath);
     
-    if (entry.type != 'file') {
-      return Object.fromEntries(Object.entries(entry));
-    } else {
-      const { size, compressedSize } = await this.#getFileMeta(entry.hash);
-      
-      return {
-        ...entry,
-        size,
-        compressedSize,
-      };
-    }
+    return await this.#processFileOrFolderEntry(entry);
   }
   
   async getSubtreeInfoFromBackup({
@@ -1457,19 +1462,7 @@ class BackupManager {
     
     return await Promise.all(
       resultEntries
-        .map(async entry => {
-          if (entry.type != 'file') {
-            return Object.fromEntries(Object.entries(entry));
-          } else {
-            const { size, compressedSize } = await this.#getFileMeta(entry.hash);
-            
-            return {
-              ...entry,
-              size,
-              compressedSize,
-            };
-          }
-        })
+        .map(async entry => await this.#processFileOrFolderEntry(entry))
     );
   }
   

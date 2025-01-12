@@ -21,6 +21,7 @@ improved data storage on windows:
   detect alternate file streams on windows; store as path with ':'
   support for directory junction / file and directory symlinks
     remove warning in help about symbolic link type
+eslint require jsdoc, and also just do the jsdoc for all funcs
 create run.bat and run.sh that autorun npm i if node_modules doesnt exist, and then runs node hash backup
 rework getentryinfo to show whether compression is enabled as well, and also the compression algo and params used
 function param and subcommand param in backup to create backup with new name following prefix instead of full name

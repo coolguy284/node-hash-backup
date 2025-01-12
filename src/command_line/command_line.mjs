@@ -260,7 +260,7 @@ function formatUnixSecStringAsDate(unixSecString) {
 function getUIOutputOfBackupEntry(properties, entry) {
   properties.push(['Path', JSON.stringify(entry.path)]);
   properties.push(['Type', entry.type]);
-  properties.push(['Attributes', entry.attributes != null ? entry.attributes.join(', ') : 'none']);
+  properties.push(['Attributes', entry.attributes.length > 0 ? entry.attributes.join(', ') : 'none']);
   properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
   properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
   properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);
@@ -289,121 +289,117 @@ function getUIOutputOfBackupEntry(properties, entry) {
 }
 
 /**
+ * The type of a subtree entry.
+ * @typedef {Object} SubtreeEntry
+ * @property {string} path
+ * @property {string} type
+ */
+
+/**
+ * The output of recursiveSplitSubtree.
+ * @typedef {Object} RecursiveSplitResult
+ * @property {SubtreeEntry} rootEntry
+ * @property {RecursiveSplitResult[]} subEntries
+ */
+
+/**
+ * Recursively split a list of subtree entries into a split subtree.
+ * @param {SubtreeEntry[]} subtreeEntries
+ * @return {RecursiveSplitResult}
+ */
+function recursiveSplitSubtree(subtreeEntries) {
+  if (subtreeEntries.length == 0) {
+    throw new Error('cannot recursively split no subtree');
+  }
+  
+  const rootEntry = subtreeEntries[0];
+  
+  let remainingEntries = [];
+  
+  for (const subtreeEntry of subtreeEntries.slice(1)) {
+    const [ base, ...rest ] = subtreeEntry.path.split('/');
+    
+    if (remainingEntries.length == 0 || remainingEntries.at(-1).base != base) {
+      remainingEntries.push({
+        base,
+        contents: [{
+          ...subtreeEntry,
+          path: base,
+        }],
+      });
+    } else {
+      remainingEntries.at(-1).contents.push({
+        ...subtreeEntry,
+        path: rest.join('/'),
+      });
+    }
+  }
+  
+  return {
+    rootEntry,
+    subEntries:
+      remainingEntries
+        .map(({ contents }) => recursiveSplitSubtree(contents)),
+  };
+}
+
+/**
  * Formats a tree of files/folders nicely.
- * @param {Object[]} subtreeEntries
- * @param {string} subtreeEntries[].path
- * @param {string} subtreeEntries[].type
+ * @param {RecursiveSplitResult} splitSubtree
  * @param {Object} [formatParams={}]
  * @param {number} [formatParams.indent=2]
  * @return {string[]}
  */
-function formatTree(subtreeEntries, formatParams = {}) {
+function formatTree(splitSubtree, formatParams = {}) {
   const { indent = 2 } = formatParams;
   
-  if (subtreeEntries.length == 0) {
-    return [];
-  } else {
-    // unicode chars definitely not taken from the windows "tree" command:
-    // ─└├│
-    
-    const { path: rootPath, type: rootType } = subtreeEntries[0];
-    
-    const remainingEntries = subtreeEntries.slice(1).map(subtreeEntry => {
-      const { path: subtreePath } = subtreeEntry;
-      const [ base, ...restArray ] = subtreePath.split('/');
+  // unicode chars definitely not taken from the windows "tree" command:
+  // ─└├│
+  
+  const {
+    rootEntry: {
+      path: rootPath,
+      type: rootType,
+    },
+    subEntries: rootSubEntries,
+  } = splitSubtree;
+  
+  const rootString = `${rootPath} [${rootType}]`;
+  
+  if (splitSubtree.subEntries.length > 0) {
+    return [
+      rootString,
       
-      return {
-        base,
-        rest: restArray.length == 0 ? null : restArray.join('/'),
-        subtreeEntry,
-      };
-    });
-    
-    const rootString = `${rootPath} [${rootType}]`;
-    
-    if (remainingEntries.length > 0) {
-      let groupedEntries = [];
-      
-      let baseProperties;
-      
-      for (const { base, rest, subtreeEntry } of remainingEntries) {
-        if (groupedEntries.length > 0) {
-          let lastEntry = groupedEntries.at(-1);
-          
-          if (lastEntry.base == base) {
-            if (rest != null) {
-              lastEntry.contents.push({
-                ...subtreeEntry,
-                path: rest,
-              });
-            }
-          } else {
-            baseProperties = subtreeEntry;
-            groupedEntries.push({
-              base,
-              baseProperties,
-              contents: rest != null ? [{
-                ...subtreeEntry,
-                path: rest,
-              }] : [],
-            });
-          }
-        } else {
-          baseProperties = subtreeEntry;
-          groupedEntries.push({
-            base,
-            baseProperties,
-            contents: rest != null ? [{
-              ...subtreeEntry,
-              path: rest,
-            }] : [],
-          });
-        }
-      }
-      
-      return [
-        rootString,
-        
-        ...groupedEntries.map(
-          ({ base, baseProperties, contents }, groupIndex) => {
-            return formatTree(
-              [
-                {
-                  ...baseProperties,
-                  path: base,
-                },
-                ...contents,
-              ],
-              formatParams,
-            )
-              .map((formattedEntry, contentIndex) => {
-                const lastGroup = groupIndex == groupedEntries.length - 1;
-                const firstContent = contentIndex == 0;
-                
-                let addlCharacters;
-                
-                if (lastGroup) {
-                  if (firstContent) {
-                    addlCharacters = '└' + '─'.repeat(indent - 1);
-                  } else {
-                    addlCharacters = ' '.repeat(indent);
-                  }
+      ...rootSubEntries.map(
+        (subSplitSubtree, groupIndex) => {
+          return formatTree(subSplitSubtree, formatParams)
+            .map((formattedEntry, contentIndex) => {
+              const lastGroup = groupIndex == rootSubEntries.length - 1;
+              const firstContent = contentIndex == 0;
+              
+              let addlCharacters;
+              
+              if (lastGroup) {
+                if (firstContent) {
+                  addlCharacters = '└' + '─'.repeat(indent - 1);
                 } else {
-                  if (firstContent) {
-                    addlCharacters = '├' + '─'.repeat(indent - 1);
-                  } else {
-                    addlCharacters = '│' + ' '.repeat(indent - 1);
-                  }
+                  addlCharacters = ' '.repeat(indent);
                 }
-                
-                return addlCharacters + formattedEntry;
-              });
-          }
-        ),
-      ].flat();
-    } else {
-      return [rootString];
-    }
+              } else {
+                if (firstContent) {
+                  addlCharacters = '├' + '─'.repeat(indent - 1);
+                } else {
+                  addlCharacters = '│' + ' '.repeat(indent - 1);
+                }
+              }
+              
+              return addlCharacters + formattedEntry;
+            });
+        }
+      ),
+    ].flat();
+  } else {
+    return [rootString];
   }
 }
 
@@ -675,7 +671,8 @@ export async function executeCommandLine({
           
           logger(`Tree of ${JSON.stringify(pathToEntry)}:`);
           logger();
-          const treeLines = formatTree(subtreeEntries.map(({ path, type }) => ({ path, type })), { indent: treeIndent });
+          const splitSubtree = recursiveSplitSubtree(subtreeEntries);
+          const treeLines = formatTree(splitSubtree, { indent: treeIndent });
           logger(treeLines.join('\n'));
         }
         break;
