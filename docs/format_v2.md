@@ -10,6 +10,7 @@ backup  .   .   .   .   . the backup directory
           object {
             path: string (relative path inside the backup folder, '.' for root folder (/ file), and path string for other folders / files; path string uses '/' as separator always; no leading '/' and no trailing '/' for any path),
             type: string (either "file", "directory", or "symbolic link"),
+            attributes?: string[] (allowed length is 0 or 1, only allowed value is 'readonly'),
             hash?: string (file hash, property only present on files),
             symlinkType?: string (either "file", "directory", or "junction"; not present if unknown or on linux),
             symlinkPath?: string (base64 encoded; only present on symbolic links),
