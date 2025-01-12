@@ -9,7 +9,7 @@ export function getVersionString() {
 export const mainHelpText = splitLongLinesByWord([
   getVersionString(),
   '',
-  'Usage: node hash_backup.js [command] [options]',
+  'Usage: node <path to folder of hash backup code> [command] [options]',
   '  Command is optional. Options can be specified in either the format "--argument=value" or "--argument value" (with the space in between meaning there are two separate command line arguments, i.e. ["--argument", "value"]).',
   '',
   'Warning:',

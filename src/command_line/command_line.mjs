@@ -491,6 +491,7 @@ export async function executeCommandLine({
       }
       
       case 'getSubtree':
+        // TODO: add parameter for unicode tree like view
         // TODO
         break;
       

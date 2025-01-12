@@ -4,18 +4,17 @@ list command:
   ensure total size of backup or of entire backup dir is stated
   add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta
 
-add to readme explaining exactly what data is preserved when taking a backup
-
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
 
 check excluded files are relative or absolute
 
-update readme.md and help output to match true commands
+update readme.md to match help output
 clear TODO from codebase
 delete all of old src
 
 low prio:
+use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
 create native module to do what powershell cannot
 improved data storage on windows:
   save hidden, system flags

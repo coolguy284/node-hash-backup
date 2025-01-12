@@ -388,6 +388,8 @@ export async function setFileTimes(fileTimeEntries) {
         .join('\n');
     
     // must manually unset files as readonly then set them back afterward because powershell
+    // refuses to alter the file times if a file is readonly, even though nodejs fs.utimes
+    // can do it fine
     
     for (const { filePath, readOnly } of fileTimeEntriesRegular) {
       if (readOnly) {
