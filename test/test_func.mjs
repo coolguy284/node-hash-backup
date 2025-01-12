@@ -1,7 +1,7 @@
 import {
   AssertionError,
   deepStrictEqual,
-} from 'node:assert'; 
+} from 'node:assert/strict';
 import {
   cp,
   mkdir,

@@ -30,15 +30,16 @@ export default tseslint.config(
       '@typescript-eslint/promise-function-async': 'error',
       
       // undoing some typescript linting
-      '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
       '@typescript-eslint/prefer-promise-reject-errors': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
       
       // stylistic
+      '@typescript-eslint/class-methods-use-this': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -46,8 +47,6 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/class-methods-use-this': 'error',
-      '@stylistic/semi': 'error',
       '@stylistic/comma-dangle': ['error', {
         arrays: 'always-multiline',
         objects: 'always-multiline',
@@ -61,7 +60,11 @@ export default tseslint.config(
         tuples: 'always-multiline',
       }],
       '@stylistic/indent': ['error', 2],
+      '@stylistic/no-trailing-spaces': ['error', {
+        skipBlankLines: true,
+      }],
       '@stylistic/quotes': ['error', 'single'],
+      '@stylistic/semi': 'error',
     },
   },
 );
