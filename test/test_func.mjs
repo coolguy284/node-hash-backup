@@ -29,7 +29,7 @@ import {
 import { parseArgs } from '../src/lib/command_line.mjs';
 import { setReadOnly } from '../src/lib/fs.mjs';
 
-import { getFilesAndMetaInDir } from './lib/fs.mjs'; 
+import { getFilesAndMetaInDir } from './lib/fs.mjs';
 import { AdvancedPrng } from './lib/prng_extended.mjs';
 
 export const DEFAULT_TEST_RANDOM_NAME = false;
