@@ -1,7 +1,8 @@
+// importing assert/strict crashes eslint, so regular assert must be used instead
 import {
   AssertionError,
   deepStrictEqual,
-} from 'node:assert/strict';
+} from 'node:assert';
 import {
   cp,
   mkdir,
