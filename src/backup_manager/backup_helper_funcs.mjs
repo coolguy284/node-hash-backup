@@ -253,6 +253,7 @@ export async function getFileStreamByBackupPath({
   backupDir,
   name,
   pathToFile,
+  verify = true,
   logger = console.error,
 }) {
   let backupMgr = await createBackupManager(backupDir, {
@@ -263,6 +264,7 @@ export async function getFileStreamByBackupPath({
     return await backupMgr.getFileStreamFromBackup({
       backupName: name,
       backupFilePath: pathToFile,
+      verifyFileHashOnRetrieval: verify,
     });
   } finally {
     await backupMgr[Symbol.asyncDispose]();

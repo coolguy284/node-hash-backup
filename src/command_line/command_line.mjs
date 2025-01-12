@@ -266,7 +266,7 @@ export async function executeCommandLine({
     presentOnlyArgs,
   } = validateAndExtendedParseCommandCall(parseArgs(args));
   
-  logger();
+  extraneousLogger();
   
   if (commandName == null) {
     // called without a command
@@ -495,9 +495,18 @@ export async function executeCommandLine({
         // TODO
         break;
       
-      case 'getRawFileContents':
-        // TODO
+      case 'getRawFileContents': {
+        const stream = await getFileStreamByBackupPath({
+          backupDir: keyedArgs.get('backupDir'),
+          name: keyedArgs.get('name'),
+          pathToFile: keyedArgs.get('pathToFile'),
+          verify: keyedArgs.get('verify'),
+          logger: extraneousLogger,
+        });
+        
+        stream.pipe(process.stdout);
         break;
+      }
       
       case 'pruneBackupDir':
         await pruneUnreferencedFiles({
@@ -507,7 +516,11 @@ export async function executeCommandLine({
         break;
       
       case 'interactive':
-        // TODO
+        await runInteractiveSession({
+          backupDir: keyedArgs.get('backupDir'),
+          custom: keyedArgs.get('custom'),
+          logger: extraneousLogger,
+        });
         break;
       
       default:
@@ -515,7 +528,7 @@ export async function executeCommandLine({
     }
   }
   
-  logger();
+  extraneousLogger();
 }
 
 export async function executeCommandLineCollectOutput(args, {

@@ -1484,6 +1484,7 @@ class BackupManager {
   async getFileStreamFromBackup({
     backupName,
     backupFilePath,
+    verifyFileHashOnRetrieval = true,
   }) {
     this.#ensureBackupDirLive();
     
@@ -1496,7 +1497,7 @@ class BackupManager {
       throw new Error(`entry is type ${entry.type}, not file`);
     }
     
-    return await this._getFileStream(entry.hash);
+    return await this._getFileStream(entry.hash, { verifyFileHashOnRetrieval });
   }
   
   async getFolderFilenamesFromBackup({

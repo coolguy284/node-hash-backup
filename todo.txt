@@ -11,6 +11,7 @@ add lzma support to node-hash-backup as an optional dependency
 update readme.md to match help output
 clear TODO from codebase
 delete all of old src
+fix all linter errors
 
 low prio:
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
