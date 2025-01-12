@@ -757,9 +757,19 @@ export const COMMANDS = new Map(
             'withEntries',
             
             {
-              aliases: ['withEntries'],
+              aliases: ['with-entries'],
               defaultValue: 'false',
               conversion: toBool,
+            },
+          ],
+          
+          [
+            'treeIndent',
+            
+            {
+              aliases: ['tree-indent'],
+              defaultValue: '2',
+              conversion: toInteger,
             },
           ],
         ],
@@ -778,6 +788,7 @@ export const COMMANDS = new Map(
           '    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder to get information from.',
           '        aliases: path-to-entry',
           '    --withEntries=<true|false> (default `false`): If false, a tree of files in backup will be shown. If true, a tree will not be shown and instead detailed information about each entry in the backup will be shown.',
+          '    --treeIndent=<integer >= 1> (default `2`): If tree mode is active, the number of spaces to the right to indent each level of the tree.',
         ].join('\n'),
       },
     ],

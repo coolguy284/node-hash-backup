@@ -288,7 +288,9 @@ function getUIOutputOfBackupEntry(properties, entry) {
   }
 }
 
-function formatTree(subtreePaths) {
+function formatTree(subtreePaths, formatParams) {
+  const { indent = 2 } = formatParams ?? {};
+  
   if (subtreePaths.length == 0) {
     return [];
   } else {
@@ -328,28 +330,28 @@ function formatTree(subtreePaths) {
       root,
       ...groupedEntries.map(
         ({ base, contents }, groupIndex) =>
-          formatTree([base, ...contents])
+          formatTree([base, ...contents], formatParams)
             .map((formattedEntry, contentIndex) => {
               const lastGroup = groupIndex == groupedEntries.length - 1;
               const firstContent = contentIndex == 0;
               
-              let addlCharacter;
+              let addlCharacters;
               
               if (lastGroup) {
                 if (firstContent) {
-                  addlCharacter = '└';
+                  addlCharacters = '└' + '─'.repeat(indent - 1);
                 } else {
-                  addlCharacter = ' ';
+                  addlCharacters = ' '.repeat(indent);
                 }
               } else {
                 if (firstContent) {
-                  addlCharacter = '├';
+                  addlCharacters = '├' + '─'.repeat(indent - 1);
                 } else {
-                  addlCharacter = '│';
+                  addlCharacters = '│' + ' '.repeat(indent - 1);
                 }
               }
               
-              return addlCharacter + formattedEntry;
+              return addlCharacters + formattedEntry;
             })
       ),
     ].flat();
@@ -561,6 +563,10 @@ export async function executeCommandLine({
         const backupDir = keyedArgs.get('backupDir');
         const name = keyedArgs.get('name');
         const pathToEntry = keyedArgs.get('pathToEntry');
+        const treeIndent = keyedArgs.get('treeIndent');
+        if (treeIndent < 1) {
+          throw new Error(`treeIndent must be >= 1 but was: ${treeIndent}`);
+        }
         
         const subtreeEntries = await getSubtree({
           backupDir,
@@ -620,7 +626,7 @@ export async function executeCommandLine({
           
           logger(`Tree of ${JSON.stringify(pathToEntry)}:`);
           logger();
-          const treeLines = formatTree(subtreeEntries.map(({ path }) => path));
+          const treeLines = formatTree(subtreeEntries.map(({ path }) => path), { indent: treeIndent });
           logger(treeLines.join('\n'));
         }
         break;
