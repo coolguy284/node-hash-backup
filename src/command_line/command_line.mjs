@@ -344,6 +344,42 @@ function recursiveSplitSubtree(subtreeEntries) {
 }
 
 /**
+ * Sorts a RecursiveSplitResult
+ * @param {RecursiveSplitResult} splitSubtree
+ * @return {void}
+ */
+function sortSubtree(splitSubtree) {
+  splitSubtree.subEntries.sort((subSplitSubtreeA, subSplitSubtreeB) => {
+    const {
+      rootEntry: {
+        path: pathA, type: typeA,
+      },
+    } = subSplitSubtreeA;
+    
+    const {
+      rootEntry: {
+        path: pathB, type: typeB,
+      },
+    } = subSplitSubtreeB;
+    
+    sortSubtree(subSplitSubtreeA);
+    sortSubtree(subSplitSubtreeB);
+    
+    if (typeA == 'directory' && typeB != 'directory') {
+      return -1;
+    } else if (typeA != 'directory' && typeB == 'directory') {
+      return 1;
+    } else if (pathA < pathB) {
+      return -1;
+    } else if (pathA > pathB) {
+      return 1;
+    } else {
+      return 0;
+    }
+  });
+}
+
+/**
  * Formats a tree of files/folders nicely.
  * @param {RecursiveSplitResult} splitSubtree
  * @param {Object} [formatParams={}]
@@ -672,6 +708,7 @@ export async function executeCommandLine({
           logger(`Tree of ${JSON.stringify(pathToEntry)}:`);
           logger();
           const splitSubtree = recursiveSplitSubtree(subtreeEntries);
+          sortSubtree(splitSubtree);
           const treeLines = formatTree(splitSubtree, { indent: treeIndent });
           logger(treeLines.join('\n'));
         }
