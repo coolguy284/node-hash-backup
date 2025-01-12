@@ -217,7 +217,7 @@ export async function recursiveReaddir(
   
   excludedFilesOrFolders =
     excludedFilesOrFolders
-      .map(excludeEntry => splitPath(excludeEntry));
+      .map(excludeEntry => splitPath(relative(fileOrDirPath, excludeEntry)));
   
   if (typeof includeDirs != 'boolean') {
     throw new Error(`includeDirs not boolean: ${typeof includeDirs}`);

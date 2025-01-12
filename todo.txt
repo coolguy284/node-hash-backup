@@ -7,8 +7,6 @@ list command:
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
 
-check excluded files are relative or absolute
-
 update readme.md to match help output
 clear TODO from codebase
 delete all of old src
