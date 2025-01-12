@@ -1,5 +1,3 @@
-convert imports to node:
-
 if current restorepath is dir and top of backupdir is dir, just go with it instead of deleting and re creating
 getsubtree command shows entries as optional flag, if false, then fs is just printed using tree unicode characters
 list command:
@@ -8,6 +6,7 @@ list command:
 
 support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
+add lzma support to node-hash-backup as an optional dependency
 
 update readme.md to match help output
 clear TODO from codebase
@@ -58,7 +57,6 @@ version 3
   store immutable, appendonly attributes on linux
   low prio:
     add checksums
-add lzma support to node-hash-backup as an optional dependency
 modify command that can modify backup dir parameters
   first step modifies hash slice length, hash slices count, and hash type (if set)
     first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename

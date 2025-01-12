@@ -1,19 +1,19 @@
 import {
   createHash,
   getHashes,
-} from 'crypto';
+} from 'node:crypto';
 import {
   lstat,
   readFile,
   readlink,
   rm,
   watch,
-} from 'fs/promises';
+} from 'node:fs/promises';
 import {
   join,
   relative,
-} from 'path';
-import { pipeline } from 'stream/promises';
+} from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import {
   createBrotliCompress,
   createBrotliDecompress,
@@ -23,7 +23,7 @@ import {
   createGzip,
   createInflate,
   createInflateRaw,
-} from 'zlib';
+} from 'node:zlib';
 
 import {
   errorIfPathNotDir,

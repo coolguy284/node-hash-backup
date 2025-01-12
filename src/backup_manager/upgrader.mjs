@@ -1,8 +1,8 @@
 import {
   readdir,
   readFile,
-} from 'fs/promises';
-import { join } from 'path';
+} from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { writeFileReplaceWhenDone } from '../lib/fs.mjs';
 import { callBothLoggers } from '../lib/logger.mjs';

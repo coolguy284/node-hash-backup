@@ -1,8 +1,8 @@
 import {
+  constants,
   createReadStream,
   createWriteStream,
-} from 'fs';
-import { constants } from 'fs';
+} from 'node:fs';
 import {
   copyFile,
   lstat,
@@ -15,13 +15,13 @@ import {
   symlink,
   unlink,
   writeFile,
-} from 'fs/promises';
+} from 'node:fs/promises';
 import {
   dirname,
   join,
   resolve,
-} from 'path';
-import { pipeline } from 'stream/promises';
+} from 'node:path';
+import { pipeline } from 'node:stream/promises';
 
 import { deepObjectClone } from '../lib/deep_clone.mjs';
 import {

@@ -43,8 +43,8 @@ export {
 
 // check for running as main
 
-import { realpath } from 'fs/promises';
-import { dirname } from 'path';
+import { realpath } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 import { executeCommandLine } from './src/command_line/command_line.mjs';
 

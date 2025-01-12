@@ -1,7 +1,7 @@
 import {
   AssertionError,
   deepStrictEqual,
-} from 'assert'; 
+} from 'node:assert'; 
 import {
   cp,
   mkdir,
@@ -12,12 +12,12 @@ import {
   rmdir,
   symlink,
   writeFile,
-} from 'fs/promises';
+} from 'node:fs/promises';
 import {
   join,
   resolve,
-} from 'path';
-import { formatWithOptions as utilFormatWithOptions } from 'util';
+} from 'node:path';
+import { formatWithOptions as utilFormatWithOptions } from 'node:util';
 
 import {
   getBackupInfo,

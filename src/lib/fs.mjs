@@ -9,12 +9,12 @@ import {
   stat,
   unlink,
   writeFile,
-} from 'fs/promises';
+} from 'node:fs/promises';
 import {
   join,
   relative,
   sep,
-} from 'path';
+} from 'node:path';
 
 import { Enum } from './enum.mjs';
 import {
