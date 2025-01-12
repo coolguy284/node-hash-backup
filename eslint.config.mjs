@@ -39,6 +39,7 @@ export default tseslint.config(
       '@typescript-eslint/restrict-template-expressions': 'off',
       
       // stylistic
+      'no-warning-comments': 'error',
       '@typescript-eslint/class-methods-use-this': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',

@@ -1444,23 +1444,33 @@ class BackupManager {
           path.startsWith(backupFileOrFolderPath + '/') ||
           path == backupFileOrFolderPath
         ) {
-          resultEntries.push(Object.fromEntries(Object.entries(entry)));
+          resultEntries.push(entry);
         }
       }
     } else {
-      resultEntries =
-        Array.from(entries.values())
-          .map(
-            entry =>
-              Object.fromEntries(Object.entries(entry))
-          );
+      resultEntries = Array.from(entries.values());
     }
     
     if (resultEntries.length == 0) {
       throw new Error(`no subtree found in backup ${JSON.stringify(backupName)} with prefix ${JSON.stringify(backupFileOrFolderPath)}`);
     }
     
-    return resultEntries;
+    return await Promise.all(
+      resultEntries
+        .map(async entry => {
+          if (entry.type != 'file') {
+            return Object.fromEntries(Object.entries(entry));
+          } else {
+            const { size, compressedSize } = await this.#getFileMeta(entry.hash);
+            
+            return {
+              ...entry,
+              size,
+              compressedSize,
+            };
+          }
+        })
+    );
   }
   
   async getFileBytesFromBackup({

@@ -118,3 +118,47 @@ export function splitLongLinesByWord(output, approximateMaxLineLength = DEFAULT_
     })
     .join('\n');
 }
+
+export function formatWithEvenColumns(lines) {
+  let outputLines = [];
+  
+  for (let line of lines) {
+    if (line == null) {
+      line = [];
+    } else if (typeof line == 'string') {
+      line = [line];
+    }
+    
+    if (line.length == 0) {
+      outputLines.push('');
+    } else if (line.length == 1) {
+      outputLines.push(line[0]);
+    } else if (line.length == 2) {
+      outputLines.push(line);
+    } else {
+      throw new Error(`line length over 2 (${line.length}) not supported`);
+    }
+  }
+  
+  const doubleOutputLines = outputLines.filter(line => Array.isArray(line));
+  
+  let maxPropertyLength;
+  
+  if (doubleOutputLines.length > 0) {
+    maxPropertyLength =
+      doubleOutputLines
+        .map(([ propertyName, _ ]) => propertyName.length)
+        .reduce((currentLength, newLength) => Math.max(currentLength, newLength));
+  }
+  
+  return outputLines
+    .map(line => {
+      if (!Array.isArray(line)) {
+        return line;
+      } else {
+        const [ propertyName, propertyValue ] = line;
+        return `${`${propertyName}:`.padEnd(maxPropertyLength + 1)}  ${propertyValue}`;
+      }
+    })
+    .join('\n');
+}

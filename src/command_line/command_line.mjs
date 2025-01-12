@@ -18,7 +18,10 @@ import {
   renameBackup,
   runInteractiveSession,
 } from '../backup_manager/backup_helper_funcs.mjs';
-import { parseArgs } from '../lib/command_line.mjs';
+import {
+  formatWithEvenColumns,
+  parseArgs,
+} from '../lib/command_line.mjs';
 import { humanReadableSizeString } from '../lib/fs.mjs';
 
 function convertArgIfNeeded(argValue, conversionFunc) {
@@ -254,6 +257,105 @@ function formatUnixSecStringAsDate(unixSecString) {
   }
 }
 
+function getUIOutputOfBackupEntry(properties, entry) {
+  properties.push(['Path', JSON.stringify(entry.path)]);
+  properties.push(['Type', entry.type]);
+  properties.push(['Attributes', entry.attributes != null ? entry.attributes.join(', ') : 'none']);
+  properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
+  properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
+  properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);
+  properties.push(['Creation Time', `${formatUnixSecStringAsDate(entry.birthtime)} (${entry.birthtime})`]);
+  
+  switch (entry.type) {
+    case 'directory':
+      // no extra info
+      break;
+    
+    case 'symbolic link':
+      properties.push(['Symlink Type', `${entry.symlinkType ?? 'unspecified'}`]);
+      properties.push(['Symlink Path (Base64)', `${entry.symlinkPath}`]);
+      properties.push(['Symlink Path (Raw)', `${JSON.stringify(Buffer.from(entry.symlinkPath, 'base64').toString())}`]);
+      break;
+    
+    case 'file':
+      properties.push(['Hash', entry.hash]);
+      properties.push(['Size', humanReadableSizeString(entry.size)]);
+      properties.push(['Compressed Size', humanReadableSizeString(entry.compressedSize)]);
+      break;
+    
+    default:
+      throw new Error(`unknown type: ${entry.type}`);
+  }
+}
+
+function formatTree(subtreePaths) {
+  if (subtreePaths.length == 0) {
+    return [];
+  } else {
+    // unicode chars definitely not taken from the windows "tree" command:
+    // ─└├│
+    
+    const root = subtreePaths[0];
+    const remainingEntries = subtreePaths.slice(1).map(subtreePath => {
+      const [ base, ...restArray ] = subtreePath.split('/');
+      return [base, restArray.length == 0 ? null : restArray.join('/')];
+    });
+    let groupedEntries = [];
+    
+    for (const [ base, rest ] of remainingEntries) {
+      if (groupedEntries.length > 0) {
+        let lastEntry = groupedEntries.at(-1);
+        
+        if (lastEntry.base == base) {
+          if (rest != null) {
+            lastEntry.contents.push(rest);
+          }
+        } else {
+          groupedEntries.push({
+            base,
+            contents: rest != null ? [rest] : [],
+          });
+        }
+      } else {
+        groupedEntries.push({
+          base,
+          contents: rest != null ? [rest] : [],
+        });
+      }
+    }
+    
+    return [
+      root,
+      ...groupedEntries.map(
+        ({ base, contents }, groupIndex) =>
+          formatTree([base, ...contents])
+            .map((formattedEntry, contentIndex) => {
+              const lastGroup = groupIndex == groupedEntries.length - 1;
+              const firstContent = contentIndex == 0;
+              
+              let addlCharacter;
+              
+              if (lastGroup) {
+                if (firstContent) {
+                  addlCharacter = '└';
+                } else {
+                  addlCharacter = ' ';
+                }
+              } else {
+                if (firstContent) {
+                  addlCharacter = '├';
+                } else {
+                  addlCharacter = '│';
+                }
+              }
+              
+              return addlCharacter + formattedEntry;
+            })
+      ),
+    ].flat();
+  }
+}
+
 export async function executeCommandLine({
   args = process.argv.slice(2),
   logger = console.log,
@@ -448,52 +550,81 @@ export async function executeCommandLine({
         
         properties.push(['Backup', JSON.stringify(backupDir)]);
         properties.push(['Name', JSON.stringify(name)]);
-        properties.push(['Path', JSON.stringify(pathToEntry)]);
-        properties.push(['Type', entry.type]);
-        properties.push(['Attributes', entry.attributes != null ? entry.attributes.join(', ') : 'none']);
-        properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
-        properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
-        properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);
-        properties.push(['Creation Time', `${formatUnixSecStringAsDate(entry.birthtime)} (${entry.birthtime})`]);
         
-        switch (entry.type) {
-          case 'directory':
-            // no extra info
-            break;
-          
-          case 'symbolic link':
-            properties.push(['Symlink Type', `${entry.symlinkType ?? 'unspecified'}`]);
-            properties.push(['Symlink Path (Base64)', `${entry.symlinkPath}`]);
-            properties.push(['Symlink Path (Raw)', `${JSON.stringify(Buffer.from(entry.symlinkPath, 'base64').toString())}`]);
-            break;
-          
-          case 'file':
-            properties.push(['Hash', entry.hash]);
-            properties.push(['Size', humanReadableSizeString(entry.size)]);
-            properties.push(['Compressed Size', humanReadableSizeString(entry.compressedSize)]);
-            break;
-          
-          default:
-            throw new Error(`unknown type: ${entry.type}`);
-        }
+        getUIOutputOfBackupEntry(properties, entry);
         
-        const maxPropertyLength =
-          properties
-            .map(([ propertyName, _ ]) => propertyName.length)
-            .reduce((currentLength, newLength) => Math.max(currentLength, newLength));
-        
-        logger(
-          properties
-            .map(([ propertyName, propertyValue ]) => `${`${propertyName}:`.padEnd(maxPropertyLength + 1)}  ${propertyValue}`)
-            .join('\n'),
-        );
+        logger(formatWithEvenColumns(properties));
         break;
       }
       
-      case 'getSubtree':
-        // TODO: add parameter for unicode tree like view
-        // TODO
+      case 'getSubtree': {
+        const backupDir = keyedArgs.get('backupDir');
+        const name = keyedArgs.get('name');
+        const pathToEntry = keyedArgs.get('pathToEntry');
+        
+        const subtreeEntries = await getSubtree({
+          backupDir,
+          name,
+          pathToEntry,
+          logger,
+        });
+        
+        const withEntries = keyedArgs.get('withEntries');
+        
+        if (withEntries) {
+          {
+            let properties = [];
+            
+            properties.push(['Backup', JSON.stringify(backupDir)]);
+            properties.push(['Name', JSON.stringify(name)]);
+            
+            logger('Backup Info:');
+            logger(formatWithEvenColumns(properties));
+            logger();
+          }
+          
+          let subtreeProperties = [];
+          
+          for (const entry of subtreeEntries) {
+            let entryProperties = [];
+            getUIOutputOfBackupEntry(entryProperties, entry);
+            subtreeProperties.push(entryProperties);
+          }
+          
+          let newSubtreeProperties = [];
+          
+          for (let i = 0; i < subtreeProperties.length; i++) {
+            const lastElem = i == subtreeProperties.length - 1;
+            
+            newSubtreeProperties.push(subtreeProperties[i]);
+            
+            if (!lastElem) {
+              newSubtreeProperties.push('');
+            }
+          }
+          
+          logger('Subtree Entry Info:');
+          logger();
+          logger(formatWithEvenColumns(newSubtreeProperties.flat()));
+        } else {
+          {
+            let properties = [];
+            
+            properties.push(['Backup', JSON.stringify(backupDir)]);
+            properties.push(['Name', JSON.stringify(name)]);
+            
+            logger('Backup Info:');
+            logger(formatWithEvenColumns(properties));
+            logger();
+          }
+          
+          logger(`Tree of ${JSON.stringify(pathToEntry)}:`);
+          logger();
+          const treeLines = formatTree(subtreeEntries.map(({ path }) => path));
+          logger(treeLines.join('\n'));
+        }
         break;
+      }
       
       case 'getRawFileContents': {
         const stream = await getFileStreamByBackupPath({
