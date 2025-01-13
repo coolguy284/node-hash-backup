@@ -221,7 +221,7 @@ function printVersion({ logger = console.log }) {
 }
 
 // assumes that local time is always an integer number of seconds offset from UTC
-function formatUnixSecStringAsDate(unixSecString) {
+function unixSecStringToDateString(unixSecString) {
   // TODO: convert to 12hr format
   const [ intSecs, fracSecs ] = unixSecString.split('.');
   
@@ -257,14 +257,18 @@ function formatUnixSecStringAsDate(unixSecString) {
   }
 }
 
+function dateToDateString(date) {
+  return unixSecStringToDateString(date.getTime() / 1_000 + '');
+}
+
 function getUIOutputOfBackupEntry(properties, entry) {
   properties.push(['Path', JSON.stringify(entry.path)]);
   properties.push(['Type', entry.type]);
   properties.push(['Attributes', entry.attributes.length > 0 ? entry.attributes.join(', ') : 'none']);
-  properties.push(['Access Time', `${formatUnixSecStringAsDate(entry.atime)} (${entry.atime})`]);
-  properties.push(['Modify Time', `${formatUnixSecStringAsDate(entry.mtime)} (${entry.mtime})`]);
-  properties.push(['Change Time', `${formatUnixSecStringAsDate(entry.ctime)} (${entry.ctime})`]);
-  properties.push(['Creation Time', `${formatUnixSecStringAsDate(entry.birthtime)} (${entry.birthtime})`]);
+  properties.push(['Access Time', `${unixSecStringToDateString(entry.atime)} (${entry.atime})`]);
+  properties.push(['Modify Time', `${unixSecStringToDateString(entry.mtime)} (${entry.mtime})`]);
+  properties.push(['Change Time', `${unixSecStringToDateString(entry.ctime)} (${entry.ctime})`]);
+  properties.push(['Creation Time', `${unixSecStringToDateString(entry.birthtime)} (${entry.birthtime})`]);
   
   switch (entry.type) {
     case 'directory':
@@ -527,15 +531,30 @@ export async function executeCommandLine({
         break;
       
       case 'info': {
+        const backupDir = keyedArgs.get('backupDir');
+        const name = keyedArgs.get('name');
         const info = await getBackupInfo({
-          backupDir: keyedArgs.get('backupDir'),
-          name: keyedArgs.get('name'),
+          backupDir,
+          name,
           logger: extraneousLogger,
         });
         
         if (keyedArgs.has('name')) {
           // single backup info
-          // TODO
+          let propertyLines = [];
+          logger('Information about backup:');
+          propertyLines.push(['Containing Backup Dir', JSON.stringify(backupDir)]);
+          propertyLines.push(['Name', JSON.stringify(name)]);
+          propertyLines.push(['Created At', `${dateToDateString(info.createdAt)} (${info.createdAt.toISOString()})`]);
+          propertyLines.push(['Files', info.files]);
+          propertyLines.push(['Folders', info.folders]);
+          propertyLines.push(['Symbolic Links', info.symbolicLinks]);
+          propertyLines.push(['Total Items', info.items]);
+          propertyLines.push(['Unique Files', info.referencedFileCount]);
+          propertyLines.push(['File Raw Size', humanReadableSizeString(info.sizeBytes)]);
+          propertyLines.push(['File Compressed Size', humanReadableSizeString(info.compressedSizeBytes)]);
+          propertyLines.push(['Backup Metadata Size', humanReadableSizeString(info.backupOnlyMetaSizeBytes)]);
+          logger(formatWithEvenColumns(propertyLines));
         } else {
           // full backup dir info
           // TODO

@@ -42,7 +42,6 @@ more options to define backup granularity:
   store file times?
   store file attributes?
   etc.
-add verify function which verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
 option to reset access times after finishing backing up a folder
 sort metafiles as adding new entries to them
 version 3
@@ -65,7 +64,8 @@ modify command that can modify backup dir parameters
     first 2 can be done at once, only problem renaming if from hash slice length of hash and hash slices count of 1, to hash slices count of 0, or other way around; if so, temporarily add character to hash file names then mkdir or rmdir and rename
   second step modifies compression algorythm and parameters (if set), useful to recompress dir after the fact to a much higher compression level, can be set to change base dir compress level or just change compression of files in dir with new files coming in still having old compression level or both
 
-verify function to verify ver 1 hash backup dir with no extraneous parts; also for ver 2
+verify function to verify hash backup dir with no extraneous parts
+  verifies contents of hash dir, erroring if there is extra stuff there or things are invalid
   verify command for whole hash backup or optionally just one backup
   alternate mode that is functionally equivalent to restoring and checksumming but does so without restoring
     add variant that will calculate hash and hash with names of slice of it to exactly match restoring it and calculating hash
