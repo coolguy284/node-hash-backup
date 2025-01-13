@@ -42,10 +42,10 @@ export function integerToStringWithSeparator(integer, {
   }
 }
 
-export function decimalStringToStringWithSeparator(decimalString, {
+function decimalStringToStringWithSeparator(decimalString, {
   separatorInterval = DEFAULT_DECIMAL_SEPARATOR_INTERVAL,
   separatorCharacter = DEFAULT_DECIMAL_SEPARATOR_CHARACTER,
-}) {
+} = {}) {
   if (typeof decimalString != 'string') {
     throw new Error(`decimalString not string: ${typeof decimalString}`);
   }
@@ -76,14 +76,14 @@ export function decimalStringToStringWithSeparator(decimalString, {
   return digitChunks.join(separatorCharacter);
 }
 
-export function numberToStringWithSeparator(number, {
+export function numberStringToStringWithSeparator(numberString, {
   integerSeparatorInterval = DEFAULT_INTEGER_SEPARATOR_INTERVAL,
   integerSeparatorCharacter = DEFAULT_INTEGER_SEPARATOR_CHARACTER,
   decimalSeparatorInterval = DEFAULT_DECIMAL_SEPARATOR_INTERVAL,
   decimalSeparatorCharacter = DEFAULT_DECIMAL_SEPARATOR_CHARACTER,
 } = {}) {
-  if (typeof number != 'number') {
-    throw new Error(`integer not integer: ${number}`);
+  if (typeof numberString != 'string') {
+    throw new Error(`numberString not string: ${typeof numberString}`);
   }
   
   if (!Number.isSafeInteger(integerSeparatorInterval) || integerSeparatorInterval <= 0) {
@@ -102,46 +102,74 @@ export function numberToStringWithSeparator(number, {
     throw new Error(`decimalSeparatorCharacter not string: ${typeof decimalSeparatorCharacter}`);
   }
   
-  if (number < 0) {
-    return `-${numberToStringWithSeparator(-number, { integerSeparatorInterval, integerSeparatorCharacter, decimalSeparatorInterval, decimalSeparatorCharacter })}`;
-  } else {
-    const numString = number + '';
-    
-    let match;
-    
-    if (numString == 'Infinity' || numString == 'NaN') {
-      return numString;
-    } else if ((match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(numString)) == null) {
-      let [ intString, decimalString, exponent ] = match.slice(1);
-      
-      intString = intStringToStringWithSeparator(intString, {
-        separatorInterval: integerSeparatorInterval,
-        separatorCharacter: integerSeparatorCharacter,
-      });
-      
-      if (decimalString != null) {
-        decimalString = decimalStringToStringWithSeparator(intString, {
-          separatorInterval: decimalSeparatorInterval,
-          separatorCharacter: decimalSeparatorCharacter,
-        });
-      }
-      
-      /* eslint-disable @stylistic/indent */
-      
-      return intString +
-        (
-          decimalString != null ?
-            `.${decimalString}` :
-            ''
-        ) + (
-          exponent != null ?
-            `e${exponent}` :
-            ''
-        );
-      
-      /* eslint-enable @stylistic/indent */
-    }
+  if (numberString.startsWith('--')) {
+    throw new Error(`numberString invalid format: ${numberString}`);
+  } else if (numberString.startsWith('-')) {
+    return '-' + numberStringToStringWithSeparator(
+      numberString.slice(1),
+      {
+        integerSeparatorInterval,
+        integerSeparatorCharacter,
+        decimalSeparatorInterval,
+        decimalSeparatorCharacter,
+      },
+    );
   }
+  
+  let match;
+  
+  if (numberString == 'Infinity' || numberString == 'NaN') {
+    return numberString;
+  } else if ((match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(numberString)) != null) {
+    let [ intString, decimalString, exponent ] = match.slice(1);
+    
+    intString = intStringToStringWithSeparator(intString, {
+      separatorInterval: integerSeparatorInterval,
+      separatorCharacter: integerSeparatorCharacter,
+    });
+    
+    if (decimalString != null) {
+      decimalString = decimalStringToStringWithSeparator(decimalString, {
+        separatorInterval: decimalSeparatorInterval,
+        separatorCharacter: decimalSeparatorCharacter,
+      });
+    }
+    
+    /* eslint-disable @stylistic/indent */
+    
+    return intString +
+      (
+        decimalString != null ?
+          `.${decimalString}` :
+          ''
+      ) + (
+        exponent != null ?
+          `e${exponent}` :
+          ''
+      );
+    
+    /* eslint-enable @stylistic/indent */
+  } else {
+    throw new Error(`numberString invalid format: ${numberString}`);
+  }
+}
+
+export function numberToStringWithSeparator(number, {
+  integerSeparatorInterval = DEFAULT_INTEGER_SEPARATOR_INTERVAL,
+  integerSeparatorCharacter = DEFAULT_INTEGER_SEPARATOR_CHARACTER,
+  decimalSeparatorInterval = DEFAULT_DECIMAL_SEPARATOR_INTERVAL,
+  decimalSeparatorCharacter = DEFAULT_DECIMAL_SEPARATOR_CHARACTER,
+} = {}) {
+  if (typeof number != 'number') {
+    throw new Error(`number not number: ${typeof number}`);
+  }
+  
+  return numberStringToStringWithSeparator(number, {
+    integerSeparatorInterval,
+    integerSeparatorCharacter,
+    decimalSeparatorInterval,
+    decimalSeparatorCharacter,
+  });
 }
 
 export function numberStringToNumber(numString) {

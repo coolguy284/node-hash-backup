@@ -13,6 +13,9 @@ clear TODO from codebase
 delete all of old src
 fix all linter errors
 
+fix info command memory usage
+verify command
+
 low prio:
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
 create native module to do what powershell cannot

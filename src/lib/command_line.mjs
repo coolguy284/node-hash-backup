@@ -132,23 +132,32 @@ export function formatWithEvenColumns(lines) {
     if (line.length == 0) {
       outputLines.push('');
     } else if (line.length == 1) {
-      outputLines.push(line[0]);
-    } else if (line.length == 2) {
-      outputLines.push(line);
+      outputLines.push(line[0] + '');
     } else {
-      throw new Error(`line length over 2 (${line.length}) not supported`);
+      outputLines.push(line.map(lineSegment => lineSegment + ''));
     }
   }
   
   const doubleOutputLines = outputLines.filter(line => Array.isArray(line));
   
-  let maxPropertyLength;
+  let maxLineSegmentLengths;
   
   if (doubleOutputLines.length > 0) {
-    maxPropertyLength =
+    maxLineSegmentLengths =
       doubleOutputLines
-        .map(([ propertyName, _ ]) => propertyName.length)
-        .reduce((currentLength, newLength) => Math.max(currentLength, newLength));
+        .reduce(
+          (currentLengths, newLine) => {
+            for (let i = 0; i < newLine.length; i++) {
+              if (i >= currentLengths.length) {
+                currentLengths[i] = newLine[i].length;
+              } else {
+                currentLengths[i] = Math.max(currentLengths[i], newLine[i].length);
+              }
+            }
+            return currentLengths;
+          },
+          []
+        );
   }
   
   return outputLines
@@ -156,8 +165,11 @@ export function formatWithEvenColumns(lines) {
       if (!Array.isArray(line)) {
         return line;
       } else {
-        const [ propertyName, propertyValue ] = line;
-        return `${`${propertyName}:`.padEnd(maxPropertyLength + 1)}  ${propertyValue}`;
+        return line
+          .map(
+            (lineSegment, lineSegmentIndex) =>
+              lineSegment.padEnd(maxLineSegmentLengths[lineSegmentIndex])
+          ).join('  ');
       }
     })
     .join('\n');

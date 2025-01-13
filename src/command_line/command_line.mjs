@@ -262,13 +262,13 @@ function dateToDateString(date) {
 }
 
 function getUIOutputOfBackupEntry(properties, entry) {
-  properties.push(['Path', JSON.stringify(entry.path)]);
-  properties.push(['Type', entry.type]);
-  properties.push(['Attributes', entry.attributes.length > 0 ? entry.attributes.join(', ') : 'none']);
-  properties.push(['Access Time', `${unixSecStringToDateString(entry.atime)} (${entry.atime})`]);
-  properties.push(['Modify Time', `${unixSecStringToDateString(entry.mtime)} (${entry.mtime})`]);
-  properties.push(['Change Time', `${unixSecStringToDateString(entry.ctime)} (${entry.ctime})`]);
-  properties.push(['Creation Time', `${unixSecStringToDateString(entry.birthtime)} (${entry.birthtime})`]);
+  properties.push(['Path:', JSON.stringify(entry.path)]);
+  properties.push(['Type:', entry.type]);
+  properties.push(['Attributes:', entry.attributes.length > 0 ? entry.attributes.join(', ') : 'none']);
+  properties.push(['Access Time:', `${unixSecStringToDateString(entry.atime)} (${entry.atime})`]);
+  properties.push(['Modify Time:', `${unixSecStringToDateString(entry.mtime)} (${entry.mtime})`]);
+  properties.push(['Change Time:', `${unixSecStringToDateString(entry.ctime)} (${entry.ctime})`]);
+  properties.push(['Creation Time:', `${unixSecStringToDateString(entry.birthtime)} (${entry.birthtime})`]);
   
   switch (entry.type) {
     case 'directory':
@@ -276,15 +276,15 @@ function getUIOutputOfBackupEntry(properties, entry) {
       break;
     
     case 'symbolic link':
-      properties.push(['Symlink Type', `${entry.symlinkType ?? 'unspecified'}`]);
-      properties.push(['Symlink Path (Base64)', `${entry.symlinkPath}`]);
-      properties.push(['Symlink Path (Raw)', `${JSON.stringify(Buffer.from(entry.symlinkPath, 'base64').toString())}`]);
+      properties.push(['Symlink Type:', `${entry.symlinkType ?? 'unspecified'}`]);
+      properties.push(['Symlink Path (Base64):', `${entry.symlinkPath}`]);
+      properties.push(['Symlink Path (Raw):', `${JSON.stringify(Buffer.from(entry.symlinkPath, 'base64').toString())}`]);
       break;
     
     case 'file':
-      properties.push(['Hash', entry.hash]);
-      properties.push(['Size', humanReadableSizeString(entry.size)]);
-      properties.push(['Compressed Size', humanReadableSizeString(entry.compressedSize)]);
+      properties.push(['Hash:', entry.hash]);
+      properties.push(['Size:', humanReadableSizeString(entry.size)]);
+      properties.push(['Compressed Size:', humanReadableSizeString(entry.compressedSize)]);
       break;
     
     default:
@@ -541,22 +541,71 @@ export async function executeCommandLine({
         
         if (keyedArgs.has('name')) {
           // single backup info
+          
           let propertyLines = [];
-          logger('Information about backup:');
-          propertyLines.push(['Containing Backup Dir', JSON.stringify(backupDir)]);
-          propertyLines.push(['Name', JSON.stringify(name)]);
-          propertyLines.push(['Created At', `${dateToDateString(info.createdAt)} (${info.createdAt.toISOString()})`]);
-          propertyLines.push(['Files', info.files]);
-          propertyLines.push(['Folders', info.folders]);
-          propertyLines.push(['Symbolic Links', info.symbolicLinks]);
-          propertyLines.push(['Total Items', info.items]);
-          propertyLines.push(['Unique Files', info.referencedFileCount]);
-          propertyLines.push(['File Raw Size', humanReadableSizeString(info.sizeBytes)]);
-          propertyLines.push(['File Compressed Size', humanReadableSizeString(info.compressedSizeBytes)]);
-          propertyLines.push(['Backup Metadata Size', humanReadableSizeString(info.backupOnlyMetaSizeBytes)]);
+          
+          logger(`Information about backup ${JSON.stringify(name)} in backup dir ${JSON.stringify(backupDir)}:`);
+          logger();
+          
+          propertyLines.push(['Created At:', `${dateToDateString(info.createdAt)} (${info.createdAt.toISOString()})`]);
+          propertyLines.push(['Files:', info.files]);
+          propertyLines.push(['Folders:', info.folders]);
+          propertyLines.push(['Symbolic Links:', info.symbolicLinks]);
+          propertyLines.push(['Total Items:', info.items]);
+          propertyLines.push(['Unique Files:', info.referencedFileCount]);
+          propertyLines.push(['File Raw Size:', humanReadableSizeString(info.sizeBytes)]);
+          propertyLines.push(['File Compressed Size:', humanReadableSizeString(info.compressedSizeBytes)]);
+          propertyLines.push(['Backup Metadata Size:', humanReadableSizeString(info.backupOnlyMetaSizeBytes)]);
+          
           logger(formatWithEvenColumns(propertyLines));
         } else {
           // full backup dir info
+          
+          logger(`Information about backup dir ${JSON.stringify(backupDir)}:`);
+          logger();
+          
+          // print backup specific information
+          {
+            let propertyLines = [];
+            
+            propertyLines.push([
+              'Name',
+              'Created',
+              'Files', 'Folders', 'Symlinks', 'Items', 'Unique Files',
+              'Size', 'Compressed Size', 'Metadata Size',
+            ]);
+            
+            for (const [ backupName, backupData ] of info.individualBackupsInfo.backups) {
+              propertyLines.push([
+                backupName,
+                backupData.createdAt.toISOString(),
+                backupData.files,
+                backupData.folders,
+                backupData.symbolicLinks,
+                backupData.items,
+                backupData.referencedFileCount,
+                humanReadableSizeString(backupData.sizeBytes),
+                humanReadableSizeString(backupData.compressedSizeBytes),
+                humanReadableSizeString(backupData.backupOnlyMetaSizeBytes),
+              ]);
+            }
+            
+            propertyLines.push([
+              'TOTAL',
+              '-',
+              info.individualBackupsInfo.naiveSum.files,
+              info.individualBackupsInfo.naiveSum.folders,
+              info.individualBackupsInfo.naiveSum.symbolicLinks,
+              info.individualBackupsInfo.naiveSum.items,
+              info.fullBackupInfo.nonMeta.referenced.fileCount,
+              humanReadableSizeString(info.individualBackupsInfo.naiveSum.sizeBytes),
+              humanReadableSizeString(info.individualBackupsInfo.naiveSum.compressedSizeBytes),
+              humanReadableSizeString(info.fullBackupInfo.meta.backupMeta.fileSizeTotal),
+            ]);
+            
+            logger(formatWithEvenColumns(propertyLines));
+          }
+          
           // TODO
         }
         break;
@@ -650,8 +699,8 @@ export async function executeCommandLine({
         
         let properties = [];
         
-        properties.push(['Backup', JSON.stringify(backupDir)]);
-        properties.push(['Name', JSON.stringify(name)]);
+        properties.push(['Backup:', JSON.stringify(backupDir)]);
+        properties.push(['Name:', JSON.stringify(name)]);
         
         getUIOutputOfBackupEntry(properties, entry);
         
@@ -681,8 +730,8 @@ export async function executeCommandLine({
           {
             let properties = [];
             
-            properties.push(['Backup', JSON.stringify(backupDir)]);
-            properties.push(['Name', JSON.stringify(name)]);
+            properties.push(['Backup:', JSON.stringify(backupDir)]);
+            properties.push(['Name:', JSON.stringify(name)]);
             
             logger('Backup Info:');
             logger(formatWithEvenColumns(properties));
@@ -716,8 +765,8 @@ export async function executeCommandLine({
           {
             let properties = [];
             
-            properties.push(['Backup', JSON.stringify(backupDir)]);
-            properties.push(['Name', JSON.stringify(name)]);
+            properties.push(['Backup:', JSON.stringify(backupDir)]);
+            properties.push(['Name:', JSON.stringify(name)]);
             
             logger('Backup Info:');
             logger(formatWithEvenColumns(properties));
