@@ -1,3 +1,6 @@
+add eval option to interactive to run code before opening interactive
+ensure _new is used for new entries in "files" folder
+
 if current restorepath is dir and top of backupdir is dir, just go with it instead of deleting and re creating
 list command:
   ensure total size of backup or of entire backup dir is stated

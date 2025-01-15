@@ -564,6 +564,32 @@ export async function executeCommandLine({
           logger(`Information about backup dir ${JSON.stringify(backupDir)}:`);
           logger();
           
+          // print topology information
+          {
+            logger('Backup topology:');
+            
+            let propertyLines = [];
+            
+            propertyLines.push(['Hash Algorithm:', info.fullBackupInfo.topology.hashAlgo]);
+            propertyLines.push(['Hash Slices:', info.fullBackupInfo.topology.hashSlices]);
+            propertyLines.push([
+              'Hash Slice Length:',
+              info.fullBackupInfo.topology.hashSlices > 0 ?
+                info.fullBackupInfo.topology.hashSliceLength :
+                'N/A',
+            ]);
+            propertyLines.push(['Compression Algorithm:', info.fullBackupInfo.topology.compressionAlgo ?? 'None']);
+            propertyLines.push([
+              'Compression Parameters:',
+              info.fullBackupInfo.topology.compressionAlgo != null ?
+                JSON.stringify(info.fullBackupInfo.topology.compressionParams) :
+                'N/A',
+            ]);
+            
+            logger(formatWithEvenColumns(propertyLines));
+            logger();
+          }
+          
           // print backup specific information
           {
             let propertyLines = [];
@@ -604,9 +630,72 @@ export async function executeCommandLine({
             ]);
             
             logger(formatWithEvenColumns(propertyLines));
+            logger();
           }
           
-          // TODO
+          // print totals
+          {
+            logger('Summary:');
+            
+            let propertyLines = [];
+            
+            propertyLines.push(['Type', 'Files', 'Uncompressed Size', 'Compressed / Natural Size']);
+            
+            propertyLines.push([
+              'Backup Metadata',
+              info.fullBackupInfo.meta.backupMeta.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.meta.backupMeta.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.meta.backupMeta.fileSizeTotal),
+            ]);
+            
+            propertyLines.push([
+              'File Metadata',
+              info.fullBackupInfo.meta.filesMeta.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.meta.filesMeta.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.meta.filesMeta.fileSizeTotal),
+            ]);
+            
+            propertyLines.push([
+              'Total Metadata',
+              info.fullBackupInfo.meta.totalMeta.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.meta.totalMeta.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.meta.totalMeta.fileSizeTotal),
+            ]);
+            
+            propertyLines.push('');
+            
+            propertyLines.push([
+              'Referenced Files',
+              info.fullBackupInfo.nonMeta.referenced.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.referenced.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.referenced.fileCompressedSizeTotal),
+            ]);
+            
+            propertyLines.push([
+              'Non Referenced Files',
+              info.fullBackupInfo.nonMeta.nonReferenced.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.nonReferenced.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.nonReferenced.fileCompressedSizeTotal),
+            ]);
+            
+            propertyLines.push([
+              'Total Non-Meta Files',
+              info.fullBackupInfo.nonMeta.total.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.total.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.nonMeta.total.fileCompressedSizeTotal),
+            ]);
+            
+            propertyLines.push('');
+            
+            propertyLines.push([
+              'All Files',
+              info.fullBackupInfo.total.fileCount,
+              humanReadableSizeString(info.fullBackupInfo.total.fileSizeTotal),
+              humanReadableSizeString(info.fullBackupInfo.total.fileCompressedSizeTotal),
+            ]);
+            
+            logger(formatWithEvenColumns(propertyLines));
+          }
         }
         break;
       }
