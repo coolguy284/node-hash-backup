@@ -222,7 +222,6 @@ function printVersion({ logger = console.log }) {
 
 // assumes that local time is always an integer number of seconds offset from UTC
 function unixSecStringToDateString(unixSecString) {
-  // TODO: convert to 12hr format
   const [ intSecs, fracSecs ] = unixSecString.split('.');
   
   if (fracSecs != null) {
@@ -243,10 +242,15 @@ function unixSecStringToDateString(unixSecString) {
       
       let match;
       
-      if ((match = /^(.+\d{2}:\d{2}:\d{2})(.+)$/.exec(baseDateString)) != null) {
-        const [ start, end ] = match.slice(1);
+      if ((match = /^(.+)(\d{2}):(\d{2}:\d{2})(.+)$/.exec(baseDateString)) != null) {
+        const [ start, hourString, minuteSecond, end ] = match.slice(1);
         
-        return `${start}.${simplifiedFracSecs}${end}`;
+        const hour = parseInt(hourString);
+        
+        const halfDayHour = (hour % 12 + 11) % 12 + 1;
+        const secondHalfOfDay = hour >= 12;
+        
+        return `${start}${(halfDayHour + '').padStart(2, '0')}:${minuteSecond}.${simplifiedFracSecs} ${secondHalfOfDay ? 'PM' : 'AM'}${end}`;
       } else {
         // date string does not match format, abort and return base date stringification
         return baseDateString;
