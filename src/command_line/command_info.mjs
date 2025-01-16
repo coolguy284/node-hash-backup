@@ -913,7 +913,6 @@ export const COMMANDS = new Map(
           '    --backupDir=<backupDir>: The hash backup folder to open as a BackupManager object bound to the variable "hb".',
           '        aliases: --backup-dir, --to',
           '    --custom=<anything>: Custom data to pass to the NodeJS REPL.',
-          // TODO: clean up hb normally even if program end (asyncdispose?)
         ].join('\n'),
       },
     ],
