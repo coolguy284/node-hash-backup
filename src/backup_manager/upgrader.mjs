@@ -13,16 +13,16 @@ import {
 import { callBothLoggers } from '../lib/logger.mjs';
 import {
   CURRENT_BACKUP_VERSION,
-  FULL_INFO_FILE_NAME,
+  HB_FULL_INFO_FILE_NAME,
   fullInfoFileStringify,
   getBackupDirInfo,
   HB_BACKUP_META_DIRECTORY,
   HB_FILE_DIRECTORY,
-  META_DIRECTORY,
-  META_FILE_EXTENSION,
+  HB_FILE_META_DIRECTORY,
+  HB_FILE_META_FILE_EXTENSION,
+  HB_FILE_META_SINGULAR_META_FILE_NAME,
   metaFileStringify,
   MIN_BACKUP_VERSION,
-  SINGULAR_META_FILE_NAME,
 } from './lib.mjs';
 
 function isLowerCaseHex(string) {
@@ -68,9 +68,9 @@ async function upgradeDir1To2_processMetaFolder({
     
     const metaFiles = (await readdir(metaFolderPath))
       .filter(x =>
-        x.endsWith(META_FILE_EXTENSION) &&
-        (x.length - META_FILE_EXTENSION.length) == hashSliceLength &&
-        isLowerCaseHex(x.slice(0, META_FILE_EXTENSION.length))
+        x.endsWith(HB_FILE_META_FILE_EXTENSION) &&
+        (x.length - HB_FILE_META_FILE_EXTENSION.length) == hashSliceLength &&
+        isLowerCaseHex(x.slice(0, HB_FILE_META_FILE_EXTENSION.length))
       );
     
     for (const metaFile of metaFiles) {
@@ -113,10 +113,11 @@ async function upgradeDir1To2({
   
   callBothLoggers({ logger, globalLogger }, 'Upgrading file metadata folder...');
   
-  const filesMetaPath = join(backupDirPath, META_DIRECTORY);
+  const filesMetaPath = join(backupDirPath, HB_FILE_META_DIRECTORY);
   
   if (info.hashSlices == 0) {
-    const fullMetaFileName = join(filesMetaPath, SINGULAR_META_FILE_NAME);
+    const fullMetaFileName = join(filesMetaPath, HB_FILE_META_SINGULAR_META_FILE_NAME);
+    
     await upgradeDir1To2_processOneMetaFile({
       metaFilePath: fullMetaFileName,
       logger,
@@ -142,9 +143,9 @@ async function upgradeDir1To2({
     delete info.compression;
   }
   
-  callBothLoggers({ logger, globalLogger }, `Upgrading ${FULL_INFO_FILE_NAME}...`);
+  callBothLoggers({ logger, globalLogger }, `Upgrading ${HB_FULL_INFO_FILE_NAME}...`);
   
-  const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
+  const infoFilePath = join(backupDirPath, HB_FULL_INFO_FILE_NAME);
   
   await unsetReadOnly(infoFilePath);
   

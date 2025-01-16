@@ -53,13 +53,13 @@ import {
   CURRENT_BACKUP_VERSION,
   decompressBytes,
   deleteBackupDirInternal,
-  EDIT_LOCK_FILE,
   fullInfoFileStringify,
   getBackupDirInfo,
   getAndAddBackupEntry,
   HASH_SIZES,
   hashBytes,
   hashStream,
+  HB_EDIT_LOCK_FILE,
   HEX_CHAR_LENGTH_BITS,
   INSECURE_HASHES,
   metaFileStringify,
@@ -149,7 +149,7 @@ class BackupManager {
   }
   
   static #lockFilePath(backupDirPath) {
-    return join(backupDirPath, EDIT_LOCK_FILE);
+    return join(backupDirPath, HB_EDIT_LOCK_FILE);
   }
   
   static async #openLockFile(backupDirPath) {
@@ -251,14 +251,14 @@ class BackupManager {
       });
       
       if (bytesRead > 0) {
-        throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it, cannot acquire lock`);
+        throw new Error(`${HB_EDIT_LOCK_FILE} lockfile has contents in it, cannot acquire lock`);
       }
       
       this.#backupDirPath = backupDirPath;
       
       const currentDirContents =
         (await readdir(backupDirPath))
-          .filter(x => x != EDIT_LOCK_FILE);
+          .filter(x => x != HB_EDIT_LOCK_FILE);
       
       if (currentDirContents.length != 0) {
         // dir contains hash backup contents
@@ -1883,11 +1883,11 @@ class BackupManager {
     });
     
     if (bytesRead > 0) {
-      throw new Error(`${EDIT_LOCK_FILE} lockfile has contents in it, cannot delete`);
+      throw new Error(`${HB_EDIT_LOCK_FILE} lockfile has contents in it, cannot delete`);
     }
     
     // operating systems allow unlinking files with open read handles, so might as well unlink before closing
-    await unlink(join(backupDirPath, EDIT_LOCK_FILE));
+    await unlink(join(backupDirPath, HB_EDIT_LOCK_FILE));
     await lockFile[Symbol.asyncDispose]();
   }
   
