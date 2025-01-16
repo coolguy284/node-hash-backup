@@ -709,10 +709,12 @@ async function performSubTest({
 }
 
 export async function performMainTest({
-  // "test" random name and content functions by printing to console their results 10x
+  // "test" random name and content functions by printing to console their results 10x:
   testOnlyRandomName = DEFAULT_TEST_RANDOM_NAME,
   testOnlyGetFilesAndMetaDir = DEFAULT_TEST_GET_FILES_AND_META_DIR,
-  // mtime change ignored when doing verification after modification since folders will get modified
+  // test minor funcs as well:
+  includeMinor = true,
+  // mtime change ignored when doing verification after modification since folders will get modified:
   testDeliberateModification = DEFAULT_TEST_DELIBERATE_MODIFICATION,
   verboseFinalValidationLog = DEFAULT_VERBOSE_FINAL_VALIDATION_LOG,
   doNotSaveLogIfTestPassed = DEFAULT_DO_NOT_SAVE_LOG_IF_TEST_PASSED,
@@ -735,6 +737,10 @@ export async function performMainTest({
   } else if (testOnlyGetFilesAndMetaDir) {
     logger(await getFilesAndMetaInDir('src'));
     return;
+  }
+  
+  if (includeMinor) {
+    performMinorTests({ logger });
   }
   
   if (memoryOnlySubTest) {

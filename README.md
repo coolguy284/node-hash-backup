@@ -73,6 +73,28 @@ Command `delete`:
         aliases: --backup-dir, --to
     --confirm=yes (required): Must be set to allow deletion.
 
+Command `delete`:
+  Removes all files in hash backup dir.
+  
+  Aliases:
+    delete-all
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup dir to remove contents of.
+        aliases: --backup-dir, --to
+    --confirm=yes (required): Must be set to allow deletion.
+
+Command `info`:
+  Lists the backups in a given hash backup folder along with detailed information about them.
+  
+  Aliases:
+    list
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get data from.
+        aliases: --backup-dir, --from
+    --name=<name> (optional): If present, only show information about one backup.
+
 Command `info`:
   Lists the backups in a given hash backup folder along with detailed information about them.
   
@@ -88,8 +110,8 @@ Command `backup`:
   Backs up a folder to the hash backup.
   
   Options:
-    --backupPath=<basePath> (required): The directory to backup.
-        aliases: --backup-path, --basePath, --base-path, --from
+    --pathToBackup=<basePath> (required): The directory to backup.
+        aliases: --path-to-backup, --basePath, --base-path, --from
     --name=<name> (required): The name of the backup.
     --backupDir=<backupDir> (required): The hash backup folder to use.
         aliases: --backup-dir, --to
@@ -160,6 +182,84 @@ Command `restore`:
     --verify=<value> (default true): If true, file checksums will be verified as files are
     copied out.
 
+Command `deleteBackup`:
+  Deletes a given backup from the backup dir.
+  
+  Aliases:
+    delete-backup
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to delete the backup from.
+        aliases: --backup-dir, --to
+    --name=<name> (required): The name of the backup to delete.
+    --confirm=yes (required): Must be set to allow deletion.
+    --pruneFilesAfter=<true|false> (default `true`): If true, prune unused files in the hash
+    backup afterward.
+
+Command `deleteBackup`:
+  Deletes a given backup from the backup dir.
+  
+  Aliases:
+    delete-backup
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to delete the backup from.
+        aliases: --backup-dir, --to
+    --name=<name> (required): The name of the backup to delete.
+    --confirm=yes (required): Must be set to allow deletion.
+    --pruneFilesAfter=<true|false> (default `true`): If true, prune unused files in the hash
+    backup afterward.
+
+Command `renameBackup`:
+  Renames a given backup in the backup dir.
+  
+  Aliases:
+    rename-backup, rename
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --to
+    --oldName=<name> (required): The current name of the backup.
+    --newName=<name> (required): The new name of the backup.
+
+Command `renameBackup`:
+  Renames a given backup in the backup dir.
+  
+  Aliases:
+    rename-backup, rename
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --to
+    --oldName=<name> (required): The current name of the backup.
+    --newName=<name> (required): The new name of the backup.
+
+Command `renameBackup`:
+  Renames a given backup in the backup dir.
+  
+  Aliases:
+    rename-backup, rename
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --to
+    --oldName=<name> (required): The current name of the backup.
+    --newName=<name> (required): The new name of the backup.
+
+Command `getFolderContents`:
+  Gets a listing of the files/folders in a given folder of the backup.
+  
+  Aliases:
+    get-folder-contents
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --from
+    --name=<name> (required): The name of the backup to get the file from.
+    --pathToFolder=<relativePath> (required): The path inside the backup of the folder to get
+    the contents of.
+        aliases: path-to-folder
+
 Command `getFolderContents`:
   Gets a listing of the files/folders in a given folder of the backup.
   
@@ -188,6 +288,20 @@ Command `getEntryInfo`:
     information from.
         aliases: path-to-entry
 
+Command `getEntryInfo`:
+  Gets detailed information about an entry of the backup.
+  
+  Aliases:
+    get-entry-info
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --from
+    --name=<name> (required): The name of the backup to get the file from.
+    --pathToEntry=<relativePath> (required): The path inside the backup of the item to get
+    information from.
+        aliases: path-to-entry
+
 Command `getSubtree`:
   Gets a listing of the files in a given subtree of the backup.
   
@@ -201,6 +315,45 @@ Command `getSubtree`:
     --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder
     to get information from.
         aliases: path-to-entry
+    --withEntries=<true|false> (default `false`): If false, a tree of files in backup will
+    be shown. If true, a tree will not be shown and instead detailed information about each
+    entry in the backup will be shown.
+    --treeIndent=<integer >= 1> (default `2`): If tree mode is active, the number of spaces
+    to the right to indent each level of the tree.
+
+Command `getSubtree`:
+  Gets a listing of the files in a given subtree of the backup.
+  
+  Aliases:
+    get-subtree
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to get information from.
+        aliases: --backup-dir, --from
+    --name=<name> (required): The name of the backup to get the file from.
+    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder
+    to get information from.
+        aliases: path-to-entry
+    --withEntries=<true|false> (default `false`): If false, a tree of files in backup will
+    be shown. If true, a tree will not be shown and instead detailed information about each
+    entry in the backup will be shown.
+    --treeIndent=<integer >= 1> (default `2`): If tree mode is active, the number of spaces
+    to the right to indent each level of the tree.
+
+Command `getRawFileContents`:
+  Directly prints the contents of a file to console.
+  
+  Aliases:
+    get-raw-file-contents
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to prune.
+        aliases: --backup-dir, --to
+    --name=<name> (required): The name of the backup to get the file from.
+    --pathToFile=<relativePath> (required): The path inside the backup of the file to access.
+        aliases: path-to-file
+    --verify=<value> (default true): If true, file checksum will be verified before the file
+    is output.
 
 Command `getRawFileContents`:
   Directly prints the contents of a file to console.
@@ -226,6 +379,30 @@ Command `pruneBackupDir`:
   Options:
     --backupDir=<backupDir> (required): The hash backup folder to prune.
         aliases: --backup-dir, --to
+
+Command `pruneBackupDir`:
+  Removes unreferenced files from the backup dir.
+  
+  Aliases:
+    prune-backup-dir
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to prune.
+        aliases: --backup-dir, --to
+
+Command `interactive`:
+  Opens an interactive NodeJS REPL with all exported hash backup functions in the global scope.
+  If a hash backup location is provided, a "hb" variable will be set to a BackupManager initialized
+  to the backup dir. If the custom parameter is set, a variable called "data" will be set to
+  the value of the custom parameter.
+  
+  Options:
+    --backupDir=<backupDir>: The hash backup folder to open as a BackupManager object bound
+    to the variable "hb".
+        aliases: --backup-dir, --to
+    --customData=<anything>: Custom data to pass to the NodeJS REPL.
+        aliases: --custom-data, --custom
+    --stringToEval=<anything>: A string to evaluate before starting the NodeJS REPL.
 
 Command `help`:
   Prints this help message.

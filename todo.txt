@@ -14,6 +14,11 @@ update readme.md to match help output
 fix all linter errors
 ensure test still runs
 
+todo for any code validation pass after commit:
+update readme.md to match help output
+run "npx eslint ."
+run "npm test symlink"
+
 low prio:
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
 create native module to do what powershell cannot

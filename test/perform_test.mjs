@@ -5,18 +5,18 @@ import {
 
 /*
   known args:
-  minor = perform minor test instead
+  onlyminor = perform minor test instead
   preserve = keep test dir even if tests successful
   symlink | nosymlink = enables or disables testing of symlinks
   nomodif = no deliberate modification testing
   nomem = no testing of in-memory-only mode
   nostream = no testing of stream-only mode
-  auto = do not pause at end of each test for user input
+  auto | noauto = do not pause (auto) or pause (noauto) at end of each test for user input
 */
 
 const args = new Set(process.argv.slice(2));
 
-if (args.has('minor')) {
+if (args.has('onlyminor')) {
   performMinorTests();
 } else {
   await performMainTest({
@@ -32,6 +32,12 @@ if (args.has('minor')) {
     ),
     memoryOnlySubTest: !args.has('nomem'),
     streamOnlySubTest: !args.has('nostream'),
-    awaitUserInputAtEnd: !args.has('auto'),
+    ...(
+      args.has('auto') || args.has('noauto') ?
+        {
+          awaitUserInputAtEnd: args.has('noauto'),
+        } :
+        {}
+    ),
   });
 }
