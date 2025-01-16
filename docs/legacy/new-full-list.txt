@@ -1,0 +1,47 @@
+Information about backup dir "<backupDirPath>":
+
+Backup topology:
+Hash Algorithm:          sha256      
+Hash Slices:             1           
+Hash Slice Length:       2           
+Compression Algorithm:   brotli      
+Compression Parameters:  {"level":11}
+
+Name       Created                   Files  Folders  Symlinks  Items  Unique Files  Size                            Compressed Size                 Metadata Size             
+manual1    2025-01-11T03:04:45.288Z  2      2        0         4      2             30 bytes                        30 bytes                        1_116 bytes               
+manual2    2025-01-11T03:04:45.305Z  1      2        0         3      1             10 bytes                        10 bytes                        812 bytes                 
+manual3    2025-01-11T03:04:45.312Z  0      1        0         1      0             0 bytes                         0 bytes                         282 bytes                 
+manual4    2025-01-11T03:04:45.345Z  3      3        5         11     3             62 bytes                        62 bytes                        3_477 bytes               
+random0.1  2025-01-11T03:04:46.160Z  49     28       0         77     49            349.973 KiB; 358_372 bytes      148.990 KiB; 152_566 bytes      23.542 KiB; 24_107 bytes  
+random0    2025-01-11T03:04:45.900Z  49     28       0         77     49            361.530 KiB; 370_207 bytes      153.894 KiB; 157_587 bytes      23.542 KiB; 24_107 bytes  
+random1.1  2025-01-11T03:04:47.089Z  59     31       0         90     59            463.770 KiB; 474_900 bytes      197.373 KiB; 202_110 bytes      27.516 KiB; 28_176 bytes  
+random1    2025-01-11T03:04:46.772Z  59     31       0         90     59            465.646 KiB; 476_821 bytes      198.167 KiB; 202_923 bytes      27.630 KiB; 28_293 bytes  
+random2.1  2025-01-11T03:04:47.833Z  50     24       0         74     50            381.317 KiB; 390_469 bytes      162.301 KiB; 166_196 bytes      23.011 KiB; 23_563 bytes  
+random2    2025-01-11T03:04:47.487Z  50     24       0         74     50            391.404 KiB; 400_798 bytes      166.586 KiB; 170_584 bytes      23.010 KiB; 23_562 bytes  
+random3.1  2025-01-11T03:04:48.436Z  45     26       0         71     45            363.258 KiB; 371_976 bytes      154.583 KiB; 158_293 bytes      21.668 KiB; 22_188 bytes  
+random3    2025-01-11T03:04:48.163Z  45     26       0         71     45            365.029 KiB; 373_790 bytes      155.333 KiB; 159_061 bytes      21.696 KiB; 22_217 bytes  
+random4.1  2025-01-11T03:04:49.283Z  58     31       0         89     58            497.018 KiB; 508_946 bytes      211.483 KiB; 216_559 bytes      27.771 KiB; 28_438 bytes  
+random4    2025-01-11T03:04:48.991Z  58     31       0         89     58            497.837 KiB; 509_785 bytes      211.823 KiB; 216_907 bytes      27.771 KiB; 28_437 bytes  
+random5.1  2025-01-11T03:04:50.235Z  71     34       0         105    71            535.265 KiB; 548_111 bytes      227.832 KiB; 233_300 bytes      32.813 KiB; 33_601 bytes  
+random5    2025-01-11T03:04:49.910Z  71     34       0         105    71            547.439 KiB; 560_578 bytes      232.994 KiB; 238_586 bytes      32.826 KiB; 33_614 bytes  
+random6.1  2025-01-11T03:04:51.220Z  66     32       0         98     66            560.126 KiB; 573_569 bytes      238.332 KiB; 244_052 bytes      30.772 KiB; 31_511 bytes  
+random6    2025-01-11T03:04:50.893Z  66     32       0         98     66            563.620 KiB; 577_147 bytes      239.812 KiB; 245_567 bytes      30.800 KiB; 31_539 bytes  
+random7.1  2025-01-11T03:04:52.022Z  59     28       0         87     59            486.943 KiB; 498_630 bytes      207.209 KiB; 212_182 bytes      27.103 KiB; 27_753 bytes  
+random7    2025-01-11T03:04:51.751Z  59     28       0         87     59            492.487 KiB; 504_307 bytes      209.558 KiB; 214_587 bytes      26.988 KiB; 27_636 bytes  
+random8.1  2025-01-11T03:04:53.001Z  61     31       0         92     61            452.432 KiB; 463_290 bytes      192.609 KiB; 197_232 bytes      28.621 KiB; 29_308 bytes  
+random8    2025-01-11T03:04:52.584Z  61     31       0         92     61            448.823 KiB; 459_595 bytes      191.081 KiB; 195_667 bytes      28.524 KiB; 29_209 bytes  
+random9.1  2025-01-11T03:04:53.891Z  69     29       0         98     69            467.498 KiB; 478_718 bytes      199.079 KiB; 203_857 bytes      30.490 KiB; 31_222 bytes  
+random9    2025-01-11T03:04:53.563Z  69     29       0         98     69            477.425 KiB; 488_883 bytes      203.296 KiB; 208_175 bytes      30.525 KiB; 31_258 bytes  
+TOTAL      -                         1180   596      5         1781   340           9_168.939 KiB; 9_388_994 bytes  3_902.435 KiB; 3_996_093 bytes  552.174 KiB; 565_426 bytes
+
+Summary:
+Type                  Files  Uncompressed Size               Compressed / Natural Size     
+Backup Metadata       24     552.174 KiB; 565_426 bytes      552.174 KiB; 565_426 bytes    
+File Metadata         190    65.207 KiB; 66_772 bytes        65.207 KiB; 66_772 bytes      
+Total Metadata        214    617.381 KiB; 632_198 bytes      617.381 KiB; 632_198 bytes    
+
+Referenced Files      340    2_573.433 KiB; 2_635_195 bytes  1_095.407 KiB; 1_121_697 bytes
+Non Referenced Files  0      0 bytes                         0 bytes                       
+Total Non-Meta Files  340    2_573.433 KiB; 2_635_195 bytes  1_095.407 KiB; 1_121_697 bytes
+
+All Files             554    3_190.813 KiB; 3_267_393 bytes  1_712.788 KiB; 1_753_895 bytes

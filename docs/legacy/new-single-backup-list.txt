@@ -1,0 +1,11 @@
+Information about backup "manual4" in backup dir "<backupDirPath>":
+
+Created At:            Sat Jan 11 2025 03:04:45.345 AM GMT+0000 (Universal Time Coordinated) (2025-01-11T03:04:45.345Z)
+Files:                 3                                                                                          
+Folders:               3                                                                                          
+Symbolic Links:        5                                                                                          
+Total Items:           11                                                                                         
+Unique Files:          3                                                                                          
+File Raw Size:         62 bytes                                                                                   
+File Compressed Size:  62 bytes                                                                                   
+Backup Metadata Size:  3_477 bytes                                                                                
