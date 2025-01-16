@@ -49,7 +49,7 @@ export const HB_BACKUP_META_DIRECTORY = 'backups';
 export const HB_BACKUP_META_FILE_EXTENSION = META_FILE_EXTENSION;
 export const HB_FILE_META_DIRECTORY = 'files_meta';
 export const HB_FILE_META_FILE_EXTENSION = META_FILE_EXTENSION;
-export const HB_FILE_META_SINGULAR_META_FILE_NAME = `file${HB_FILE_META_FILE_EXTENSION}`;
+export const HB_FILE_META_SINGULAR_META_FILE_NAME = `meta${HB_FILE_META_FILE_EXTENSION}`;
 export const HB_FILE_DIRECTORY = 'files';
 export const HB_FULL_INFO_FILE_EXTENSION = META_FILE_EXTENSION;
 export const HB_FULL_INFO_FILE_NAME = `info${HB_FULL_INFO_FILE_EXTENSION}`;
@@ -415,16 +415,16 @@ export async function deleteBackupDirInternal({
   
   await errorIfPathNotDir(backupDirPath);
   
-  if (!(await fileOrFolderExists(join(backupDirPath, 'info.json')))) {
+  if (!(await fileOrFolderExists(join(backupDirPath, HB_FULL_INFO_FILE_NAME)))) {
     throw new Error(`Directory does not appear to be a backup dir: ${backupDirPath}`);
   }
   
   callBothLoggers({ logger, globalLogger }, `Destroying backup dir at ${JSON.stringify(backupDirPath)}`);
   
-  await rm(join(backupDirPath, 'backups'), { recursive: true });
-  await rm(join(backupDirPath, 'files'), { recursive: true });
-  await rm(join(backupDirPath, 'files_meta'), { recursive: true });
-  await rm(join(backupDirPath, 'info.json'));
+  await rm(join(backupDirPath, HB_BACKUP_META_DIRECTORY), { recursive: true });
+  await rm(join(backupDirPath, HB_FILE_DIRECTORY), { recursive: true });
+  await rm(join(backupDirPath, HB_FILE_META_DIRECTORY), { recursive: true });
+  await rm(join(backupDirPath, HB_FULL_INFO_FILE_NAME));
   
   callBothLoggers({ logger, globalLogger }, `Backup dir successfully destroyed at ${JSON.stringify(backupDirPath)}`);
 }

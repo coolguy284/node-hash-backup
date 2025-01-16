@@ -59,7 +59,14 @@ import {
   HASH_SIZES,
   hashBytes,
   hashStream,
+  HB_BACKUP_META_DIRECTORY,
+  HB_BACKUP_META_FILE_EXTENSION,
   HB_EDIT_LOCK_FILE,
+  HB_FILE_DIRECTORY,
+  HB_FILE_META_DIRECTORY,
+  HB_FILE_META_FILE_EXTENSION,
+  HB_FILE_META_SINGULAR_META_FILE_NAME,
+  HB_FULL_INFO_FILE_NAME,
   HEX_CHAR_LENGTH_BITS,
   INSECURE_HASHES,
   metaFileStringify,
@@ -317,12 +324,12 @@ class BackupManager {
       hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
     }
     
-    return join(this.#backupDirPath, 'files', ...hashSliceParts, fileHashHex);
+    return join(this.#backupDirPath, HB_FILE_DIRECTORY, ...hashSliceParts, fileHashHex);
   }
   
   #getMetaPathOfFile(fileHashHex) {
     if (this.#hashSlices == 0) {
-      return join(this.#backupDirPath, 'files_meta', 'meta.json');
+      return join(this.#backupDirPath, HB_FILE_META_DIRECTORY, HB_FILE_META_SINGULAR_META_FILE_NAME);
     } else {
       let hashSliceParts = [];
       
@@ -330,7 +337,12 @@ class BackupManager {
         hashSliceParts.push(fileHashHex.slice(this.#hashSliceLength * i, this.#hashSliceLength * (i + 1)));
       }
       
-      return join(this.#backupDirPath, 'files_meta', ...hashSliceParts.slice(0, -1), `${hashSliceParts.at(-1)}.json`);
+      return join(
+        this.#backupDirPath,
+        HB_FILE_META_DIRECTORY,
+        ...hashSliceParts.slice(0, -1),
+        `${hashSliceParts.at(-1)}${HB_FILE_META_FILE_EXTENSION}`
+      );
     }
   }
   
@@ -821,7 +833,7 @@ class BackupManager {
     if (this.#cacheEnabled && this.#loadedBackupsCache.has(backupName)) {
       backupData = this.#loadedBackupsCache.get(backupName);
     } else {
-      const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+      const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${backupName}${HB_BACKUP_META_FILE_EXTENSION}`);
       
       backupData = BackupManager.#processBackupData(
         JSON.parse((await readLargeFile(backupFilePath)).toString())
@@ -1002,10 +1014,10 @@ class BackupManager {
     
     this.#log(logger, `Initializing backup dir at ${JSON.stringify(this.#backupDirPath)}`);
     
-    await mkdir(join(this.#backupDirPath, 'backups'));
-    await mkdir(join(this.#backupDirPath, 'files'));
-    await mkdir(join(this.#backupDirPath, 'files_meta'));
-    const infoFilePath = join(this.#backupDirPath, 'info.json');
+    await mkdir(join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY));
+    await mkdir(join(this.#backupDirPath, HB_FILE_DIRECTORY));
+    await mkdir(join(this.#backupDirPath, HB_FILE_META_DIRECTORY));
+    const infoFilePath = join(this.#backupDirPath, HB_FULL_INFO_FILE_NAME);
     await writeFileReplaceWhenDone(
       infoFilePath,
       fullInfoFileStringify({
@@ -1087,9 +1099,9 @@ class BackupManager {
   async listBackups() {
     this.#ensureBackupDirLive();
     
-    return (await readdir(join(this.#backupDirPath, 'backups')))
-      .filter(x => x.endsWith('.json'))
-      .map(x => x.slice(0, -('.json'.length)));
+    return (await readdir(join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY)))
+      .filter(x => x.endsWith(HB_BACKUP_META_FILE_EXTENSION))
+      .map(x => x.slice(0, -(HB_BACKUP_META_FILE_EXTENSION.length)));
   }
   
   async hasBackup(backupName) {
@@ -1099,7 +1111,7 @@ class BackupManager {
       throw new Error(`backupName not string: ${typeof backupName}`);
     }
     
-    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${backupName}${HB_BACKUP_META_FILE_EXTENSION}`);
     
     return await fileOrFolderExists(backupFilePath);
   }
@@ -1200,7 +1212,7 @@ class BackupManager {
         break;
     }
     
-    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${backupName}${HB_BACKUP_META_FILE_EXTENSION}`);
     
     try {
       await testCreateFile(backupFilePath);
@@ -1311,7 +1323,7 @@ class BackupManager {
     
     this.#log(logger, `Deleting backup ${JSON.stringify(backupName)}`);
     
-    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${backupName}${HB_BACKUP_META_FILE_EXTENSION}`);
     
     await unlink(backupFilePath);
     
@@ -1350,8 +1362,8 @@ class BackupManager {
     this.#log(logger, `Renaming backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
     
     await safeRename(
-      join(this.#backupDirPath, 'backups', `${oldBackupName}.json`),
-      join(this.#backupDirPath, 'backups', `${newBackupName}.json`)
+      join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${oldBackupName}${HB_BACKUP_META_FILE_EXTENSION}`),
+      join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${newBackupName}${HB_BACKUP_META_FILE_EXTENSION}`)
     );
     
     this.#log(logger, `Successfully renamed backup ${JSON.stringify(oldBackupName)} to ${JSON.stringify(newBackupName)}`);
@@ -1906,7 +1918,7 @@ class BackupManager {
       throw new Error(`fileHashHexPrefix not hex: ${fileHashHexPrefix}`);
     }
     
-    let folderToRead = join(this.#backupDirPath, 'files');
+    let folderToRead = join(this.#backupDirPath, HB_FILE_DIRECTORY);
     
     let slicesRemaining;
     
@@ -2041,13 +2053,13 @@ class BackupManager {
       throw new Error(`backup nonexistent: ${backupName}`);
     }
     
-    const backupFilePath = join(this.#backupDirPath, 'backups', `${backupName}.json`);
+    const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, `${backupName}${HB_BACKUP_META_FILE_EXTENSION}`);
     
     return (await lstat(backupFilePath)).size;
   }
   
   async _getTotalFilesMetaSize() {
-    const metaFiles = await recursiveReaddir(join(this.#backupDirPath, 'files_meta'), { includeDirs: false, entries: false });
+    const metaFiles = await recursiveReaddir(join(this.#backupDirPath, HB_FILE_META_DIRECTORY), { includeDirs: false, entries: false });
     
     let totalBytes = 0;
     
