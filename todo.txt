@@ -8,7 +8,6 @@ add lzma support to node-hash-backup as an optional dependency
 
 fix info command memory usage
 verify command
-set appropriate files as read only when upgrading v1 to v2
 call hb dispose if program termination
 
 update readme.md to match help output

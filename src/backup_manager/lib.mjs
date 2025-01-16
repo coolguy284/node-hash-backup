@@ -37,13 +37,26 @@ import { ReadOnlyMap } from '../lib/read_only_map.mjs';
 import { ReadOnlySet } from '../lib/read_only_set.mjs';
 import { unixNSIntToUnixSecString } from '../lib/time.mjs';
 
+// main constants
+
 export const MIN_BACKUP_VERSION = 1;
 export const CURRENT_BACKUP_VERSION = 2;
-export const EDIT_LOCK_FILE = 'edit.lock';
-export const FULL_INFO_FILE_NAME = 'info.json';
+
+// file name constants
+
 export const META_FILE_EXTENSION = '.json';
-export const META_DIRECTORY = 'files_meta';
-export const SINGULAR_META_FILE_NAME = `file${META_FILE_EXTENSION}`;
+export const HB_BACKUP_META_DIRECTORY = 'backups';
+export const HB_BACKUP_META_FILE_EXTENSION = META_FILE_EXTENSION;
+export const HB_FILE_META_DIRECTORY = 'files_meta';
+export const HB_FILE_META_FILE_EXTENSION = META_FILE_EXTENSION;
+export const HB_FILE_META_SINGULAR_META_FILE_NAME = `file${HB_FILE_META_FILE_EXTENSION}`;
+export const HB_FILE_DIRECTORY = 'files';
+export const HB_FULL_INFO_FILE_EXTENSION = META_FILE_EXTENSION;
+export const HB_FULL_INFO_FILE_NAME = `info${HB_FULL_INFO_FILE_EXTENSION}`;
+export const HB_EDIT_LOCK_FILE = 'edit.lock';
+
+// more internal constants
+
 export const BACKUP_PATH_SEP = '/';
 export const BITS_PER_BYTE = 8;
 export const HEX_CHAR_LENGTH_BITS = 4;
@@ -61,7 +74,7 @@ export function backupFileStringify(contents) {
 }
 
 export async function getBackupDirInfo(backupDirPath) {
-  const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
+  const infoFilePath = join(backupDirPath, HB_FULL_INFO_FILE_NAME);
   
   let data;
   try {

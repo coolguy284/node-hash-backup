@@ -4,13 +4,20 @@ import {
 } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { writeFileReplaceWhenDone } from '../lib/fs.mjs';
+import {
+  recursiveReaddir,
+  setReadOnly,
+  writeFileReplaceWhenDone,
+  unsetReadOnly,
+} from '../lib/fs.mjs';
 import { callBothLoggers } from '../lib/logger.mjs';
 import {
   CURRENT_BACKUP_VERSION,
   FULL_INFO_FILE_NAME,
   fullInfoFileStringify,
   getBackupDirInfo,
+  HB_BACKUP_META_DIRECTORY,
+  HB_FILE_DIRECTORY,
   META_DIRECTORY,
   META_FILE_EXTENSION,
   metaFileStringify,
@@ -104,6 +111,8 @@ async function upgradeDir1To2({
 }) {
   callBothLoggers({ logger, globalLogger }, 'Upgrading hash backup store from version 1 to 2...');
   
+  callBothLoggers({ logger, globalLogger }, 'Upgrading file metadata folder...');
+  
   const filesMetaPath = join(backupDirPath, META_DIRECTORY);
   
   if (info.hashSlices == 0) {
@@ -133,12 +142,38 @@ async function upgradeDir1To2({
     delete info.compression;
   }
   
+  callBothLoggers({ logger, globalLogger }, `Upgrading ${FULL_INFO_FILE_NAME}...`);
+  
   const infoFilePath = join(backupDirPath, FULL_INFO_FILE_NAME);
+  
+  await unsetReadOnly(infoFilePath);
   
   await writeFileReplaceWhenDone(
     infoFilePath,
-    fullInfoFileStringify(info)
+    fullInfoFileStringify(info),
+    { readonly: true },
   );
+  
+  callBothLoggers({ logger, globalLogger }, 'Setting backup metadata files to read-only...');
+  
+  const backupMetaFilePath = join(backupDirPath, HB_BACKUP_META_DIRECTORY);
+  
+  const backupFileNames = await readdir(backupMetaFilePath);
+  
+  for (const fileName of backupFileNames) {
+    const backupMetaFile = join(backupMetaFilePath, fileName);
+    await setReadOnly(backupMetaFile);
+  }
+  
+  callBothLoggers({ logger, globalLogger }, 'Setting data files to read-only...');
+  
+  const filesFilePath = join(backupDirPath, HB_FILE_DIRECTORY);
+  
+  const dataFilePaths = await recursiveReaddir(filesFilePath, { includeDirs: false, entries: false });
+  
+  for (const filePath of dataFilePaths) {
+    await setReadOnly(filePath);
+  }
   
   callBothLoggers({ logger, globalLogger }, 'Finished upgrading hash backup store from version 1 to 2.');
 }
