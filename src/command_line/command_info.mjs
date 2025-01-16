@@ -228,10 +228,10 @@ export const COMMANDS = new Map(
       {
         args: [
           [
-            'backupPath',
+            'pathToBackup',
             
             {
-              aliases: ['backup-path'],
+              aliases: ['path-to-backup', 'basePath', 'base-path', 'from'],
               required: true,
             },
           ],
@@ -338,8 +338,8 @@ export const COMMANDS = new Map(
           '  Backs up a folder to the hash backup.',
           '  ',
           '  Options:',
-          '    --backupPath=<basePath> (required): The directory to backup.',
-          '        aliases: --backup-path, --basePath, --base-path, --from',
+          '    --pathToBackup=<basePath> (required): The directory to backup.',
+          '        aliases: --path-to-backup, --basePath, --base-path, --from',
           '    --name=<name> (required): The name of the backup.',
           '    --backupDir=<backupDir> (required): The hash backup folder to use.',
           '        aliases: --backup-dir, --to',

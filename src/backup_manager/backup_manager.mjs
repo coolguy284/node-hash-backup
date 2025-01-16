@@ -1254,10 +1254,9 @@ class BackupManager {
     
     await writeFileReplaceWhenDone(
       backupFilePath,
-      backupFileStringify(finishedBackupData)
+      backupFileStringify(finishedBackupData),
+      { readonly: true },
     );
-    
-    await setReadOnly(backupFilePath);
     
     this.#setCachedBackupData(backupName, finishedBackupData);
     

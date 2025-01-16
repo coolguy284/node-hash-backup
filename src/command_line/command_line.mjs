@@ -708,7 +708,7 @@ export async function executeCommandLine({
         await performBackup({
           backupDir: keyedArgs.get('backupDir'),
           name: keyedArgs.get('name'),
-          basePath: keyedArgs.get('basePath'),
+          basePath: keyedArgs.get('pathToBackup'),
           excludedFilesOrFolders: keyedArgs.get('excludedItems'),
           allowBackupDirSubPathOfFileOrFolderPath: keyedArgs.get('allowBackupDirSubPathOfFileOrFolderPath'),
           symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
