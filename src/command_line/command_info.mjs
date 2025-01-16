@@ -392,7 +392,7 @@ export const COMMANDS = new Map(
             'restorePath',
             
             {
-              aliases: ['restore-path'],
+              aliases: ['restore-path', 'basePath', 'base-path', 'to'],
               required: true,
             },
           ],
@@ -518,7 +518,7 @@ export const COMMANDS = new Map(
             'backupDir',
             
             {
-              aliases: ['backup-dir'],
+              aliases: ['backup-dir', 'to'],
               required: true,
             },
           ],
@@ -578,7 +578,7 @@ export const COMMANDS = new Map(
             'backupDir',
             
             {
-              aliases: ['backup-dir', 'from'],
+              aliases: ['backup-dir', 'to'],
               required: true,
             },
           ],
@@ -611,7 +611,7 @@ export const COMMANDS = new Map(
           '  ',
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to get information from.',
-          '        aliases: --backup-dir, --from',
+          '        aliases: --backup-dir, --to',
           '    --oldName=<name> (required): The current name of the backup.',
           '    --newName=<name> (required): The new name of the backup.',
         ].join('\n'),
@@ -899,7 +899,15 @@ export const COMMANDS = new Map(
           ],
           
           [
-            'custom',
+            'customData',
+            
+            {
+              aliases: ['custom-data', 'custom'],
+            },
+          ],
+          
+          [
+            'stringToEval',
             
             undefined,
           ],
@@ -912,7 +920,9 @@ export const COMMANDS = new Map(
           '  Options:',
           '    --backupDir=<backupDir>: The hash backup folder to open as a BackupManager object bound to the variable "hb".',
           '        aliases: --backup-dir, --to',
-          '    --custom=<anything>: Custom data to pass to the NodeJS REPL.',
+          '    --customData=<anything>: Custom data to pass to the NodeJS REPL.',
+          '        aliases: --custom-data, --custom',
+          '    --stringToEval=<anything>: A string to evaluate before starting the NodeJS REPL.',
         ].join('\n'),
       },
     ],

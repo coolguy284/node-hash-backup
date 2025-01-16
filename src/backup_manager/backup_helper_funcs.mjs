@@ -1,3 +1,5 @@
+import { start } from 'node:repl';
+
 import { SymlinkModes } from '../lib/fs.mjs';
 import {
   createBackupManager,
@@ -289,6 +291,7 @@ export async function pruneUnreferencedFiles({
 export async function runInteractiveSession({
   backupDir = null,
   custom = null,
+  stringToEval = null,
   logger = console.error,
 }) {
   if (typeof backupDir != 'string' && backupDir != null) {
@@ -297,6 +300,10 @@ export async function runInteractiveSession({
   
   if (typeof custom != 'string' && custom != null) {
     throw new Error(`custom not string or null: ${typeof custom}`);
+  }
+  
+  if (typeof stringToEval != 'string' && stringToEval != null) {
+    throw new Error(`stringToEval not string or null: ${typeof stringToEval}`);
   }
   
   let hashBackup = null;
@@ -313,6 +320,25 @@ export async function runInteractiveSession({
     if (custom != null) {
       globalThis.custom = custom;
     }
+    
+    if (stringToEval != null) {
+      eval?.(stringToEval);
+    }
+    
+    await new Promise((r, j) => {
+      let mainRepl;
+      
+      try {
+        mainRepl = start();
+      } catch (err) {
+        j(err);
+        throw err;
+      }
+      
+      mainRepl.once('exit', () => {
+        r();
+      });
+    });
   } finally {
     if (hashBackup != null) {
       await hashBackup[Symbol.asyncDispose]();

@@ -900,6 +900,7 @@ export async function executeCommandLine({
         await runInteractiveSession({
           backupDir: keyedArgs.get('backupDir'),
           custom: keyedArgs.get('custom'),
+          stringToEval: keyedArgs.get('stringToEval'),
           logger: extraneousLogger,
         });
         break;
