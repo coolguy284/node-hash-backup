@@ -61,10 +61,10 @@ export async function testCreateFile(filename) {
   await unlink(tempFilename);
 }
 
-export async function writeFileReplaceWhenDone(filename, contents) {
+export async function writeFileReplaceWhenDone(filename, contents, { readonly = false } = {}) {
   const tempNewFilename = filename + TEMP_NEW_FILE_SUFFIX;
   
-  await writeFile(tempNewFilename, contents);
+  await writeFile(tempNewFilename, contents, readonly ? { mode: 0o444 } : {});
   await rename(tempNewFilename, filename);
 }
 

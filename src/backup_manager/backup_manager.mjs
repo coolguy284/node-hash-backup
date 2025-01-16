@@ -431,11 +431,9 @@ class BackupManager {
       });
       
       await mkdir(dirname(newFilePath), { recursive: true });
-      await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes);
+      await writeFileReplaceWhenDone(newFilePath, compressionUsed ? compressedBytes : fileBytes, { readonly: true });
       await mkdir(dirname(metaFilePath), { recursive: true });
       await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
-      
-      await setReadOnly(newFilePath);
     }
     
     return fileHashHex;
@@ -527,13 +525,13 @@ class BackupManager {
             
             await mkdir(dirname(newFilePath), { recursive: true });
             if (compressionUsed) {
+              await setReadOnly(compressedFilePath);
               await rename(compressedFilePath, newFilePath);
             } else {
               await copyFile(filePath, newFilePath);
+              await setReadOnly(newFilePath);
             }
             await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
-            
-            await setReadOnly(newFilePath);
           } finally {
             if ((await readdir(tmpDirPath)).length == 0) {
               await rmdir(tmpDirPath);
@@ -1018,10 +1016,9 @@ class BackupManager {
             } :
             {}
         ),
-      })
+      }),
+      { readonly: true },
     );
-      
-    await setReadOnly(infoFilePath);
     
     this.#log(logger, `Backup dir successfully initialized at ${JSON.stringify(this.#backupDirPath)}`);
     
