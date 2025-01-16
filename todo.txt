@@ -6,14 +6,14 @@ support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
 add lzma support to node-hash-backup as an optional dependency
 
-update readme.md to match help output
-fix all linter errors
-
 fix info command memory usage
 verify command
 set appropriate files as read only when upgrading v1 to v2
-allow a logger passed in for constructor only because constructor can log
 call hb dispose if program termination
+
+update readme.md to match help output
+fix all linter errors
+ensure test still runs
 
 low prio:
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty

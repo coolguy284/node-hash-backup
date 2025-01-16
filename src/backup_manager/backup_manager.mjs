@@ -166,6 +166,7 @@ class BackupManager {
     awaitLockFileDeletionTimeout = 0,
     autoUpgradeDir = false,
     cacheEnabled = true,
+    logger = null,
     globalLogger = null,
   }) {
     if (typeof backupDirPath != 'string') {
@@ -182,6 +183,10 @@ class BackupManager {
     
     if (typeof cacheEnabled != 'boolean') {
       throw new Error(`cacheEnabled must be boolean, but was: ${typeof cacheEnabled}`);
+    }
+    
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger must be a function or null, but was: ${typeof logger}`);
     }
     
     if (typeof globalLogger != 'function' && globalLogger != null) {
@@ -266,6 +271,7 @@ class BackupManager {
           if (autoUpgradeDir) {
             await upgradeDirToCurrent({
               backupDirPath,
+              logger,
               globalLogger,
             });
             
@@ -851,6 +857,7 @@ class BackupManager {
     awaitLockFileDeletionTimeout = 0,
     autoUpgradeDir = false,
     cacheEnabled = true,
+    logger = null,
     globalLogger = null,
   }) {
     return this.#initManager({
@@ -858,6 +865,7 @@ class BackupManager {
       awaitLockFileDeletionTimeout,
       autoUpgradeDir,
       cacheEnabled,
+      logger,
       globalLogger,
     });
   }
