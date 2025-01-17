@@ -1,6 +1,4 @@
-support sliced hash algos and xof hash funcs with optional extra slicing
-  add hashParams obj to info that has slice param and original length param (for variable length hashes only)
-add lzma support to node-hash-backup as an optional dependency
+add lzma support to node-hash-backup as an optional dependency (https://www.npmjs.com/package/lzma-native)
 
 verify command
 call hb dispose if program termination

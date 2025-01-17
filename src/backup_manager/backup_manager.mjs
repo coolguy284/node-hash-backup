@@ -56,7 +56,8 @@ import {
   fullInfoFileStringify,
   getBackupDirInfo,
   getAndAddBackupEntry,
-  HASH_SIZES,
+  getHashOutputSizeBits,
+  hashAlgoKnown,
   hashBytes,
   hashStream,
   HB_BACKUP_META_DIRECTORY,
@@ -71,6 +72,7 @@ import {
   INSECURE_HASHES,
   metaFileStringify,
   permissiveGetFileType,
+  RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS,
   splitCompressObjectAlgoAndParams,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
@@ -85,6 +87,8 @@ class BackupManager {
   #lockFile = null;
   #backupDirPath = null;
   #hashAlgo = null;
+  #hashParams = null;
+  #hashOutputTrimLength = null;
   #hashSlices = null;
   #hashSliceLength = null;
   #compressionAlgo = null;
@@ -121,23 +125,32 @@ class BackupManager {
   
   #setBackupDirVars({
     hashAlgo,
+    hashParams,
+    hashOutputTrimLength,
     hashSlices,
     hashSliceLength,
     compressionAlgo = null,
     compressionParams = null,
   }) {
     this.#hashAlgo = hashAlgo;
+    this.#hashParams = hashParams;
+    this.#hashOutputTrimLength = hashOutputTrimLength;
     this.#hashSlices = hashSlices;
     this.#hashSliceLength = hashSliceLength;
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
-    this.#hashHexLength = HASH_SIZES.get(this.#hashAlgo) / HEX_CHAR_LENGTH_BITS;
+    this.#hashHexLength =
+      hashOutputTrimLength ?
+        hashOutputTrimLength :
+        getHashOutputSizeBits(this.#hashAlgo, this.#hashParams) / HEX_CHAR_LENGTH_BITS;
     this.#loadedBackupsCache = new Map();
     this.#loadedFileMetasCache = new Map();
   }
   
   #clearBackupDirVars() {
     this.#hashAlgo = null;
+    this.#hashParams = null;
+    this.#hashOutputTrimLength = null;
     this.#hashSlices = null;
     this.#hashSliceLength = null;
     this.#compressionAlgo = null;
@@ -148,11 +161,11 @@ class BackupManager {
   }
   
   async #hashBytes(bytes) {
-    return await hashBytes(bytes, this.#hashAlgo);
+    return await hashBytes(bytes, this.#hashAlgo, this.#hashParams, this.#hashOutputTrimLength);
   }
   
   async #hashStream(stream) {
-    return await hashStream(stream, this.#hashAlgo);
+    return await hashStream(stream, this.#hashAlgo, this.#hashParams, this.#hashOutputTrimLength);
   }
   
   static #lockFilePath(backupDirPath) {
@@ -297,6 +310,8 @@ class BackupManager {
         
         this.#setBackupDirVars({
           hashAlgo: info.hash,
+          hashParams: info.hashParams ?? null,
+          hashOutputTrimLength: info.hashOutputTrimLength ?? null,
           hashSlices: info.hashSlices,
           hashSliceLength: info.hashSliceLength ?? null,
           ...(
@@ -404,7 +419,7 @@ class BackupManager {
     compressionMaximumSizeThreshold,
     logger,
   }) {
-    const fileHashHex = (await this.#hashBytes(fileBytes)).toString('hex');
+    const fileHashHex = await this.#hashBytes(fileBytes);
     
     this.#log(logger, `Hash: ${fileHashHex}`);
     
@@ -648,7 +663,7 @@ class BackupManager {
     }
     
     if (verifyFileHashOnRetrieval) {
-      const storeFileHashHex = (await this.#hashBytes(fileBytes)).toString('hex');
+      const storeFileHashHex = await this.#hashBytes(fileBytes);
       
       if (storeFileHashHex != fileHashHex) {
         throw new Error(`file in store has hash ${storeFileHashHex} != expected hash ${fileHashHex}`);
@@ -902,6 +917,14 @@ class BackupManager {
     return this.#hashAlgo;
   }
   
+  getHashParams() {
+    return this.#hashParams;
+  }
+  
+  getHashOutputTrimLength() {
+    return this.#hashOutputTrimLength;
+  }
+  
   getHashSlices() {
     return this.#hashSlices;
   }
@@ -922,10 +945,13 @@ class BackupManager {
   
   async initBackupDir({
     hashAlgo = 'sha256',
+    hashParams = null,
+    hashOutputTrimLength = null,
     hashSlices = 1,
     hashSliceLength = null,
     compressionAlgo = 'brotli',
     compressionParams = null,
+    treatWarningsAsErrors = false,
     logger = null,
   }) {
     if (this.#disposed) {
@@ -936,8 +962,18 @@ class BackupManager {
       throw new Error(`hashAlgo not string: ${typeof hashAlgo}`);
     }
     
-    if (!HASH_SIZES.has(hashAlgo)) {
+    if (!hashAlgoKnown(hashAlgo)) {
       throw new Error(`hashAlgo unrecognized: ${hashAlgo}`);
+    }
+    
+    if (typeof hashParams != 'object' && hashParams != null) {
+      throw new Error(`hashParams not object or null: ${typeof hashParams}`);
+    }
+    
+    hashParams = hashParams ?? null;
+    
+    if (hashOutputTrimLength != null && (!Number.isSafeInteger(hashOutputTrimLength) || hashOutputTrimLength <= 0)) {
+      throw new Error(`hashOutputTrimLength not positive integer or null: ${hashOutputTrimLength}`);
     }
     
     if (!Number.isSafeInteger(hashSlices) || hashSlices < 0) {
@@ -956,9 +992,27 @@ class BackupManager {
       }
     }
     
+    let rawHashLengthBits;
+    
     if (hashSlices != 0) {
-      const hashLengthBits = HASH_SIZES.get(hashAlgo);
+      rawHashLengthBits = getHashOutputSizeBits(hashAlgo, hashParams);
+      
+      let hashLengthBits;
+      
+      if (hashOutputTrimLength != null) {
+        const hashOutputTrimLengthBits = hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
+        
+        if (hashOutputTrimLengthBits > rawHashLengthBits) {
+          throw new Error(`hashOutputTrimLength (${hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
+        }
+        
+        hashLengthBits = hashOutputTrimLengthBits;
+      } else {
+        hashLengthBits = rawHashLengthBits;
+      }
+      
       const totalHashSliceLengthBits = hashSlices * hashSliceLength * HEX_CHAR_LENGTH_BITS;
+      
       if (totalHashSliceLengthBits > hashLengthBits) {
         throw new Error(
           `hashSlices (${hashSlices}) * hashSliceLength (${hashSliceLength}) * ${HEX_CHAR_LENGTH_BITS} = ${totalHashSliceLengthBits} > hash size in bits (${hashLengthBits})`
@@ -1009,7 +1063,31 @@ class BackupManager {
     }
     
     if (INSECURE_HASHES.has(hashAlgo)) {
-      this.#log(logger, `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`);
+      const warnMsg = `WARNING: insecure hash algorithm used for backup dir: ${hashAlgo}`;
+      
+      if (treatWarningsAsErrors) {
+        throw new Error(warnMsg);
+      } else {
+        this.#log(logger, warnMsg);
+      }
+    }
+    
+    if (hashOutputTrimLength != null && hashOutputTrimLength * HEX_CHAR_LENGTH_BITS < RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS) {
+      const warnMsg = `WARNING: hash output trimmed to an insecurely small size ${hashOutputTrimLength} (${hashOutputTrimLength * HEX_CHAR_LENGTH_BITS} bits) (recommended minimum is ${Math.round(RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS / HEX_CHAR_LENGTH_BITS)} (${RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS} bits))`;
+      
+      if (treatWarningsAsErrors) {
+        throw new Error(warnMsg);
+      } else {
+        this.#log(logger, warnMsg);
+      }
+    } else if (rawHashLengthBits < RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS) {
+      const warnMsg = `WARNING: hash output length is insecurely small: ${rawHashLengthBits} bits, recommended minimum is ${RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS}`;
+      
+      if (treatWarningsAsErrors) {
+        throw new Error(warnMsg);
+      } else {
+        this.#log(logger, warnMsg);
+      }
     }
     
     this.#log(logger, `Initializing backup dir at ${JSON.stringify(this.#backupDirPath)}`);
@@ -1024,6 +1102,8 @@ class BackupManager {
         folderType: 'coolguy284/node-hash-backup',
         version: 2,
         hash: hashAlgo,
+        ...(hashParams != null ? { hashParams } : {}),
+        ...(hashOutputTrimLength != null ? { hashOutputTrimLength } : {}),
         hashSlices: hashSlices,
         ...(hashSliceLength != null ? { hashSliceLength } : {}),
         ...(
@@ -1044,6 +1124,8 @@ class BackupManager {
     
     this.#setBackupDirVars({
       hashAlgo,
+      hashParams,
+      hashOutputTrimLength,
       hashSlices,
       hashSliceLength,
       compressionAlgo,
@@ -2218,6 +2300,8 @@ class BackupManager {
   backupTopologySummary() {
     return {
       hashAlgo: this.getHashAlgo(),
+      hashParams: this.getHashParams(),
+      hashOutputTrimLength: this.getHashOutputTrimLength(),
       hashSlices: this.getHashSlices(),
       hashSliceLength: this.getHashSliceLength(),
       compressionAlgo: this.getCompressionAlgo(),

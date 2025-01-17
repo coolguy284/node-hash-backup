@@ -513,6 +513,8 @@ export async function executeCommandLine({
         await initBackupDir({
           backupDir: keyedArgs.get('backupDir'),
           hash: keyedArgs.get('hashAlgo'),
+          hashParams: keyedArgs.get('hashParams'),
+          hashOutputTrimLength: keyedArgs.get('hashOutputTrimLength'),
           hashSlices: keyedArgs.get('hashSlices'),
           hashSliceLength: keyedArgs.get('hashSliceLength'),
           compressAlgo: compressAlgo == 'none' ? null : compressAlgo,

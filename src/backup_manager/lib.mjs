@@ -111,7 +111,7 @@ export async function isValidBackupDir(backupDirPath) {
   }
 }
 
-export const HASH_SIZES = new ReadOnlyMap(
+const HASH_SIZES = new ReadOnlyMap(
   getHashes()
     .map(hashName => [
       hashName,
@@ -144,11 +144,43 @@ export const COMPRESSION_ALGOS = new ReadOnlySet([
   'brotli',
 ]);
 
-// unused for now:
-// const VARIABLE_LENGTH_HAHSHES = new Set([
-//   'shake128',
-//   'shake256',
-// ]);
+// for these, an outputLength parameter can be passed to hash params
+export const VARIABLE_LENGTH_HAHSHES = new Set([
+  'shake128',
+  'shake256',
+]);
+
+export const RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS = 128;
+
+export function hashAlgoKnown(hashAlgo) {
+  return HASH_SIZES.has(hashAlgo);
+}
+
+export function getHashOutputSizeBits(hashAlgo, hashParams = null) {
+  if (typeof hashAlgo != 'string') {
+    throw new Error(`hashAlgo not string: ${hashAlgo}`);
+  }
+  
+  if (!HASH_SIZES.has(hashAlgo)) {
+    throw new Error(`hashAlgo unrecognized: ${hashAlgo}`);
+  }
+  
+  if (hashParams != null && typeof hashParams != 'object') {
+    throw new Error(`hashParams not object or null: ${hashParams}`);
+  }
+  
+  if (VARIABLE_LENGTH_HAHSHES.has(hashAlgo)) {
+    if (hashParams != null) {
+      if (!Number.isSafeInteger(hashParams.outputLength) || hashParams.outputLength < 0) {
+        throw new Error(`hashParams.outputLength invalid: ${hashParams.outputLength}`);
+      }
+      
+      return hashParams.outputLength * BITS_PER_BYTE;
+    }
+  }
+  
+  return HASH_SIZES.get(hashAlgo);
+}
 
 export function createCompressor(compressionAlgo, compressionParams) {
   if (typeof compressionAlgo != 'string') {
@@ -236,7 +268,7 @@ export async function decompressBytes(compressedBytes, compressionAlgo, compress
   });
 }
 
-function createHasher(hashAlgo) {
+function createHasher(hashAlgo, hashParams) {
   if (typeof hashAlgo != 'string') {
     throw new Error(`hashAlgo not string: ${typeof hashAlgo}`);
   }
@@ -245,7 +277,7 @@ function createHasher(hashAlgo) {
     throw new Error(`hashAlgo unknown: ${hashAlgo}`);
   }
   
-  return createHash(hashAlgo);
+  return createHash(hashAlgo, hashParams);
 }
 
 async function getHasherOutput(hasher) {
@@ -260,14 +292,24 @@ async function getHasherOutput(hasher) {
   });
 }
 
-export async function hashBytes(bytes, hashAlgo) {
+function trimHashOutputAndConvertToHex(hashOutputBuf, hashOutputTrimLength) {
+  const hexString = hashOutputBuf.toString('hex');
+  
+  if (hashOutputTrimLength != null) {
+    return hexString.slice(0, hashOutputTrimLength);
+  } else {
+    return hexString;
+  }
+}
+
+export async function hashBytes(bytes, hashAlgo, hashParams = null, hashOutputTrimLength = null) {
   if (!(bytes instanceof Uint8Array)) {
     throw new Error(`bytes not Uint8Array: ${bytes}`);
   }
   
-  let hasher = createHasher(hashAlgo);
+  let hasher = createHasher(hashAlgo, hashParams);
   
-  return await new Promise((r, j) => {
+  const hasherResult = new Promise((r, j) => {
     let outputChunks = [];
     
     hasher.on('error', err => j(err));
@@ -278,19 +320,21 @@ export async function hashBytes(bytes, hashAlgo) {
     
     hasher.end(bytes);
   });
+  
+  return trimHashOutputAndConvertToHex(await hasherResult, hashOutputTrimLength);
 }
 
-export async function hashStream(stream, hashAlgo) {
-  let hasher = createHasher(hashAlgo);
+export async function hashStream(stream, hashAlgo, hashParams = null, hashOutputTrimLength = null) {
+  let hasher = createHasher(hashAlgo, hashParams);
   
-  let hasherResult = getHasherOutput(hasher);
+  const hasherResult = getHasherOutput(hasher);
   
   await pipeline(
     stream,
     hasher
   );
   
-  return await hasherResult;
+  return trimHashOutputAndConvertToHex(await hasherResult, hashOutputTrimLength);
 }
 
 export function splitCompressObjectAlgoAndParams(compression) {

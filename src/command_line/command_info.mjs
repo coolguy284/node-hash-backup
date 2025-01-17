@@ -75,6 +75,24 @@ export const COMMANDS = new Map(
           ],
           
           [
+            'hashParams',
+            
+            {
+              aliases: ['hash-params'],
+              conversion: toJSONObject,
+            },
+          ],
+          
+          [
+            'hashOutputTrimLength',
+            
+            {
+              aliases: ['hash-output-trim-length'],
+              conversion: toInteger,
+            },
+          ],
+          
+          [
             'hashSlices',
             
             {
@@ -119,6 +137,16 @@ export const COMMANDS = new Map(
               conversion: toInteger,
             },
           ],
+          
+          [
+            'treatWarningsAsErrors',
+            
+            {
+              aliases: ['treat-warnings-as-errors'],
+              defaultValue: 'false',
+              conversion: toBool,
+            },
+          ],
         ],
         
         helpMsg: [
@@ -130,9 +158,13 @@ export const COMMANDS = new Map(
           '        aliases: --backup-dir, --to',
           '    --hashAlgo=<algorithm> (default `sha256`): The hash algorithm to use on the files.',
           '        aliases: --hash-algo, --hash',
-          '    --hashSlices=<number> (default `1`): The number of nested subfolders of hash slices each file should be under.',
+          '    --hashParams=<JSON object, i.e. \'{"outputLength":32}\'>: If necessary, provides parameters for the hash function (such as length of an extensible-output hashing function).',
+          '        aliases: --hash-params',
+          '    --hashOutputTrimLength=<integer >= 1>: If provided, trim hash hex output to the provided size.',
+          '        aliases: --hash-output-trim-length',
+          '    --hashSlices=<integer >= 0> (default `1`): The number of nested subfolders of hash slices each file should be under.',
           '        aliases: --hash-slices',
-          '    --hashSliceLength=<number> (default `2`): The length of the hash slice used to split files into folders.',
+          '    --hashSliceLength=<integer >= 0> (default `2`): The length of the hash slice used to split files into folders.',
           '        aliases: --hash-slice-length',
           '    --compressAlgo=<string> (default `brotli`): The algorithm to compress files (`none` for no compression).',
           '        aliases: --compress-algo',
@@ -140,6 +172,8 @@ export const COMMANDS = new Map(
           '        aliases: --compress-params',
           '    --compressLevel=<integer> (default `6` if compression algorthm is `deflate-raw`, `deflate`, `gzip`, or `brotli`, and --compress-params is left at default (but not if explicitly set to "{}"); unspecified otherwise): The amount to compress files (valid is 1 through 9). Overwrites --compress-params\'s level parameter.',
           '        aliases: --compress-level',
+          '    --treatWarningsAsErrors=<true|false> (default `false`): If true, warnings (about insecure hash or too small hash output trim) during hash backup dir creation will be treated as errors preventing backup dir creation.',
+          '        aliases: --treat-warnings-as-errors',
         ].join('\n'),
       },
     ],

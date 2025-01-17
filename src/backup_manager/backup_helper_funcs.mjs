@@ -11,10 +11,13 @@ import { deleteBackupDirInternal } from './lib.mjs';
 export async function initBackupDir({
   backupDir,
   hash = 'sha256',
+  hashParams = null,
+  hashOutputTrimLength = null,
   hashSlices = 1,
   hashSliceLength = null,
   compressAlgo = 'brotli',
   compressParams = null,
+  treatWarningsAsErrors = false,
   logger = console.log,
 }) {
   let backupMgr = await createBackupManager(backupDir, {
@@ -24,10 +27,13 @@ export async function initBackupDir({
   try {
     await backupMgr.initBackupDir({
       hashAlgo: hash,
+      hashParams,
+      hashOutputTrimLength,
       hashSlices,
       hashSliceLength,
       compressionAlgo: compressAlgo,
       compressionParams: compressParams,
+      treatWarningsAsErrors,
     });
   } finally {
     await backupMgr[Symbol.asyncDispose]();

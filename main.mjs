@@ -28,12 +28,13 @@ export {
   CURRENT_BACKUP_VERSION,
   deleteBackupDirInternal,
   getBackupDirInfo,
-  HASH_SIZES,
+  getHashOutputSizeBits,
   HEX_CHAR_LENGTH_BITS,
   INSECURE_HASHES,
   isValidBackupDir,
   MIN_BACKUP_VERSION,
-  // VARIABLE_LENGTH_HAHSHES,
+  RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS,
+  VARIABLE_LENGTH_HAHSHES,
 } from './src/backup_manager/lib.mjs';
 export { getProgramVersion } from './src/backup_manager/version.mjs';
 export {
