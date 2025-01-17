@@ -1,5 +1,6 @@
 import { start } from 'node:repl';
 
+import { AsyncFunction } from '../lib/async_function.mjs';
 import { SymlinkModes } from '../lib/fs.mjs';
 import {
   createBackupManager,
@@ -142,6 +143,7 @@ export async function performRestore({
   setFileTimes = true,
   createParentFolders = false,
   overwriteExistingRestoreFolderOrFile = false,
+  preserveOutputFolderIfAlreadyExist = true,
   verifyFileHashOnRetrieval = true,
   logger = console.log,
 }) {
@@ -160,6 +162,7 @@ export async function performRestore({
       setFileTimes,
       createParentFolders,
       overwriteExistingRestoreFolderOrFile,
+      preserveOutputFolderIfAlreadyExist,
       verifyFileHashOnRetrieval,
     });
   } finally {
@@ -329,7 +332,7 @@ export async function runInteractiveSession({
     
     try {
       if (stringToEval != null) {
-        eval?.(stringToEval);
+        await (new AsyncFunction(stringToEval))();
       }
       
       await new Promise((r, j) => {
@@ -344,8 +347,6 @@ export async function runInteractiveSession({
         
         mainRepl.once('exit', () => {
           r();
-          
-          
         });
       });
     } finally {

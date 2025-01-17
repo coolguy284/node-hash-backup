@@ -1585,6 +1585,7 @@ class BackupManager {
     setFileTimes: doSetFileTimes = true,
     createParentFolders = false,
     overwriteExistingRestoreFolderOrFile = false,
+    preserveOutputFolderIfAlreadyExist = true,
     verifyFileHashOnRetrieval = true,
     logger = null,
   }) {
@@ -1694,18 +1695,29 @@ class BackupManager {
       }
     }
     
+    let originalDirPreserved = false;
+    
     if (await fileOrFolderExists(outputFileOrFolderPath)) {
       if ((await lstat(outputFileOrFolderPath)).isDirectory()) {
         if ((await readdir(outputFileOrFolderPath)).length != 0) {
           if (overwriteExistingRestoreFolderOrFile) {
             this.#log(logger, `Clearing contents of existing restore folder: ${JSON.stringify(outputFileOrFolderPath)}`);
             
-            await rm(outputFileOrFolderPath, { recursive: true });
+            await Promise.all(
+              (await readdir(outputFileOrFolderPath)).map(
+                async filePath =>
+                  await rm(join(outputFileOrFolderPath, filePath), { recursive: true })
+              )
+            );
             
             this.#log(logger, `Finished clearing contents of existing restore folder: ${JSON.stringify(outputFileOrFolderPath)}`);
           } else {
             throw new Error(`output folder already contains contents: ${JSON.stringify(outputFileOrFolderPath)}`);
           }
+        }
+        
+        if (preserveOutputFolderIfAlreadyExist && backupData[0].type == 'directory') {
+          originalDirPreserved = true;
         } else {
           await rmdir(outputFileOrFolderPath);
         }
@@ -1751,7 +1763,11 @@ class BackupManager {
         case 'directory':
           this.#log(logger, `Restoring ${JSON.stringify(outputPath)} [directory]...`);
           
-          await mkdir(outputPath);
+          if (path != '.' || !originalDirPreserved) {
+            await mkdir(outputPath);
+          } else {
+            this.#log(logger, `Creation of  ${JSON.stringify(outputPath)} [directory] elided as already exists`);
+          }
           break;
         
         case 'symbolic link': {

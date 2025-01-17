@@ -466,6 +466,16 @@ export const COMMANDS = new Map(
           ],
           
           [
+            'preserveOutputFolder',
+            
+            {
+              aliases: ['preserve-output-folder'],
+              defaultValue: 'true',
+              conversion: toBool,
+            },
+          ],
+          
+          [
             'verify',
             
             {
@@ -502,6 +512,7 @@ export const COMMANDS = new Map(
           '        aliases: --create-parent-folders',
           '    --overwriteExisting=<boolean> (default false): If true, overwrite the existing restore location with the restore contents.',
           '        aliases: --overwrite-existing',
+          '    --preserveOutputFolder=<boolean> (default true): If true, output folder will not be deleted and re-created if it already exists and the backup contains a folder at the top-level.',
           '    --verify=<value> (default true): If true, file checksums will be verified as files are copied out.',
         ].join('\n'),
       },
@@ -922,7 +933,7 @@ export const COMMANDS = new Map(
           '        aliases: --backup-dir, --to',
           '    --customData=<anything>: Custom data to pass to the NodeJS REPL.',
           '        aliases: --custom-data, --custom',
-          '    --stringToEval=<anything>: A string to evaluate before starting the NodeJS REPL.',
+          '    --stringToEval=<anything>: A string to evaluate (as the body of an async function) before starting the NodeJS REPL.',
         ].join('\n'),
       },
     ],

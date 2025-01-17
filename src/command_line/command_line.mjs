@@ -733,6 +733,7 @@ export async function executeCommandLine({
           setFileTimes: keyedArgs.get('setFileTimes'),
           createParentFolders: keyedArgs.get('createParentFolders'),
           overwriteExistingRestoreFolderOrFile: keyedArgs.get('overwriteExisting'),
+          preserveOutputFolderIfAlreadyExist: keyedArgs.get('preserveOutputFolder'),
           verifyFileHashOnRetrieval: keyedArgs.get('verify'),
           logger,
         });
