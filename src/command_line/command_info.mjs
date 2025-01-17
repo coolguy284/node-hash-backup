@@ -160,7 +160,7 @@ export const COMMANDS = new Map(
           '        aliases: --hash-algo, --hash',
           '    --hashParams=<JSON object, i.e. \'{"outputLength":32}\'>: If necessary, provides parameters for the hash function (such as length of an extensible-output hashing function).',
           '        aliases: --hash-params',
-          '    --hashOutputTrimLength=<integer >= 1>: If provided, trim hash hex output to the provided size.',
+          '    --hashOutputTrimLength=<integer >= 1>: If provided, trim hash hex output to the provided length in hex chars.',
           '        aliases: --hash-output-trim-length',
           '    --hashSlices=<integer >= 0> (default `1`): The number of nested subfolders of hash slices each file should be under.',
           '        aliases: --hash-slices',
