@@ -519,6 +519,7 @@ export async function executeCommandLine({
           hashSliceLength: keyedArgs.get('hashSliceLength'),
           compressAlgo: compressAlgo == 'none' ? null : compressAlgo,
           compressParams,
+          treatWarningsAsErrors: keyedArgs.get('treatWarningsAsErrors'),
           logger,
         });
         break;
