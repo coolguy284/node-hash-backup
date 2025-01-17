@@ -692,7 +692,7 @@ async function performSubTest({
       await removeDirIfEmpty(TESTS_DIR);
       await removeDirIfEmpty(TEST_DATA_DIR);
       
-      logger('Done');
+      logger('Done with subtest');
       
       // setTimeout(() => {
       //   logger(`Resources keeping process alive:\n` + process.getActiveResourcesInfo().join(', '));
@@ -770,6 +770,8 @@ export async function performMainTest({
       inMemoryCutoffSize: -1,
     });
   }
+  
+  logger('All tests pass');
 }
 
 function arrayParseArgs(args) {
