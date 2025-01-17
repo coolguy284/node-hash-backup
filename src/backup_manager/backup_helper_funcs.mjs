@@ -321,24 +321,36 @@ export async function runInteractiveSession({
       globalThis.custom = custom;
     }
     
-    if (stringToEval != null) {
-      eval?.(stringToEval);
-    }
+    const uncaughtExceptionHandler = err => {
+      console.error('Uncaught listener during interactive session:\n' + err.stack);
+    };
     
-    await new Promise((r, j) => {
-      let mainRepl;
-      
-      try {
-        mainRepl = start();
-      } catch (err) {
-        j(err);
-        throw err;
+    process.on('uncaughtException', uncaughtExceptionHandler);
+    
+    try {
+      if (stringToEval != null) {
+        eval?.(stringToEval);
       }
       
-      mainRepl.once('exit', () => {
-        r();
+      await new Promise((r, j) => {
+        let mainRepl;
+        
+        try {
+          mainRepl = start();
+        } catch (err) {
+          j(err);
+          throw err;
+        }
+        
+        mainRepl.once('exit', () => {
+          r();
+          
+          
+        });
       });
-    });
+    } finally {
+      process.off('uncaughtException', uncaughtExceptionHandler);
+    }
   } finally {
     if (hashBackup != null) {
       await hashBackup[Symbol.asyncDispose]();

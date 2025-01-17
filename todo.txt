@@ -6,13 +6,14 @@ support sliced hash algos and xof hash funcs with optional extra slicing
   add hashParams obj to info that has slice param and original length param (for variable length hashes only)
 add lzma support to node-hash-backup as an optional dependency
 
-fix info command memory usage
 verify command
 call hb dispose if program termination
 
 update readme.md to match help output
 fix all linter errors
 ensure test still runs
+
+backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
 
 todo for any code validation pass after commit:
 update readme.md to match help output
@@ -123,6 +124,15 @@ fix main and exports in package json, shouldnt need main
 add prompt to confirm to delete backup dir contents if backup dir not empty on calling init
 add prompt to confirm deletion of original restore dir contents, instead of just setting it in cli arg
 clean up exports in pkg json a bit
+investigate why using this in fullBackupInfoDump causes 9GB of data to be placed in arraybuffer:
+  const backupInfo = await Promise.all(
+    backupNames.map(
+      async backupName => [
+        backupName,
+        await this.singleBackupInfoDump(backupName, { summary: false }),
+      ]
+    )
+  );
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

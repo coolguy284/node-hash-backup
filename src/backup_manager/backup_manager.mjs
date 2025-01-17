@@ -2271,14 +2271,14 @@ class BackupManager {
   async fullBackupInfoDump() {
     const backupNames = await this.listBackups();
     
-    const backupInfo = await Promise.all(
-      backupNames.map(
-        async backupName => [
-          backupName,
-          await this.singleBackupInfoDump(backupName, { summary: false }),
-        ]
-      )
-    );
+    let backupInfo = [];
+    
+    for (const backupName of backupNames) {
+      backupInfo.push([
+        backupName,
+        await this.singleBackupInfoDump(backupName, { summary: false }),
+      ]);
+    }
     
     let filesTotal = 0,
       foldersTotal = 0,
