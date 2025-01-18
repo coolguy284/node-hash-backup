@@ -1,11 +1,11 @@
-add lzma support to node-hash-backup as an optional dependency (https://www.npmjs.com/package/lzma-native)
-
 verify command
 call hb dispose if program termination
 
 update readme.md to match help output
 fix all linter errors
 ensure test still runs
+
+command to show supported hashes and compression algos; parameters --showhashes=true by default, showcompressionalgos, etc
 
 todo for any code validation pass after commit:
 update readme.md to match help output
@@ -127,6 +127,7 @@ investigate why using this in fullBackupInfoDump causes 9GB of data to be placed
       ]
     )
   );
+add crc32 and crc64 as supported hashes
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

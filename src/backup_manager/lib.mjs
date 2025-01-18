@@ -25,6 +25,12 @@ import {
   createInflateRaw,
 } from 'node:zlib';
 
+let lzmaCreateStream = null;
+
+try {
+  ({ createStream: lzmaCreateStream } = await import('lzma-native'));
+} catch { /* empty */ }
+
 import {
   errorIfPathNotDir,
   fileOrFolderExists,
@@ -142,6 +148,10 @@ export const COMPRESSION_ALGOS = new ReadOnlySet([
   'deflate',
   'gzip',
   'brotli',
+  'lzma-raw',
+  'lzma-stream',
+  'lzma', // LZMA1
+  'xz', // LZMA2
 ]);
 
 // for these, an outputLength parameter can be passed to hash params
@@ -200,6 +210,34 @@ export function createCompressor(compressionAlgo, compressionParams) {
     case 'brotli':
       return createBrotliCompress(compressionParams);
     
+    case 'lzma-raw':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for compressing lzma');
+      }
+      
+      return lzmaCreateStream('rawEncoder', compressionParams);
+    
+    case 'lzma-stream':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for compressing lzma');
+      }
+      
+      return lzmaCreateStream('streamEncoder', compressionParams);
+    
+    case 'lzma':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for compressing lzma');
+      }
+      
+      return lzmaCreateStream('aloneEncoder', compressionParams);
+    
+    case 'xz':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for compressing lzma');
+      }
+      
+      return lzmaCreateStream('easyEncoder', compressionParams);
+    
     default:
       throw new Error(`unknown compression algorithm: ${compressionAlgo}`);
   }
@@ -242,6 +280,34 @@ export function createDecompressor(compressionAlgo, compressionParams) {
     
     case 'brotli':
       return createBrotliDecompress(compressionParams);
+    
+    case 'lzma-raw':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for decompressing lzma');
+      }
+      
+      return lzmaCreateStream('rawDecoder', compressionParams);
+    
+    case 'lzma-stream':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for decompressing lzma');
+      }
+      
+      return lzmaCreateStream('streamDecoder', compressionParams);
+    
+    case 'lzma':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for decompressing lzma');
+      }
+      
+      return lzmaCreateStream('aloneDecoder', compressionParams);
+    
+    case 'xz':
+      if (lzmaCreateStream == null) {
+        throw new Error('lzma-native dependency not installed, required for decompressing lzma');
+      }
+      
+      return lzmaCreateStream('autoDecoder', compressionParams);
     
     default:
       throw new Error(`unknown compression algorithm: ${compressionAlgo}`);

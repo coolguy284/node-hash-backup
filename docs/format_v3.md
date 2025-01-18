@@ -3,7 +3,7 @@
 ```
 backup  .   .   .   .   . the backup directory
   backups   .   .   .   . folder with each "incremental" backup
-    <backup_name>.json [read only (optional)]:
+    <backup_name>.json [read only]:
       object {
         createdAt: string (ISO date of backup creation),
         entries: array [
@@ -25,7 +25,7 @@ backup  .   .   .   .   . the backup directory
         ],
       }
   files .   .   .   .   . folder with the actual files
-    <segment1>/<segment2>/.../<hash of file contents> [read only (optional)]: the location that each file is stored in
+    <segment1>/<segment2>/.../<hash of file contents> [read only]: the location that each file is stored in
   files_meta    .   .   . folder with file metadata
     if number of slices is 0:
       meta.json:
@@ -33,7 +33,7 @@ backup  .   .   .   .   . the backup directory
     else:
       <segment1>/.../<segmentX>.json:
         FILE_META_CONTENT
-  info.json .   .   .   . main hash backup info file [read only (optional)]
+  info.json .   .   .   . main hash backup info file [read only]
     object {
       folderType: string ("coolguy284/node-hash-backup"),
       version: integer > 0 (3),
@@ -52,7 +52,7 @@ backup  .   .   .   .   . the backup directory
         },
       },
     }
-  edit.lock?    .   .   . lock file to prevent more than one BackupManager from accessing the same folder at the same time, only exists when a BackupManager is open (or if an open instance did not close properly)
+  edit.lock?    .   .   . lock file to prevent more than one BackupManager from accessing the same folder at the same time, only exists when a BackupManager is open (or if an open instance did not close properly) [read only]
 
 FILE_META_CONTENT:
   object {

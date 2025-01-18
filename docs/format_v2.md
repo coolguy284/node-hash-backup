@@ -47,7 +47,7 @@ backup  .   .   .   .   . the backup directory
         ... (optional params necessary to compress, depends on the compression algorithm, most likely property is "level")
       }; default { algorithm: "brotli", level: 6 }
     }
-  edit.lock?    .   .   . lock file to prevent more than one BackupManager from accessing the same folder at the same time, only exists when a BackupManager is open (or if an open instance did not close properly)
+  edit.lock?    .   .   . lock file to prevent more than one BackupManager from accessing the same folder at the same time, only exists when a BackupManager is open (or if an open instance did not close properly) [read only (optional)]
 
 FILE_META_CONTENT:
   object {
