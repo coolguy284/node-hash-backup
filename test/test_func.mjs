@@ -200,6 +200,8 @@ class TestManager {
       mkdir(join(basePath, 'folder-readonly')),
       writeFile(join(basePath, 'file.txt'), Buffer.from('Test file.')),
       writeFile(join(basePath, 'file-readonly.txt'), Buffer.from('Test readonly file.')),
+      writeFile(join(basePath, 'file-compressible.txt'), Buffer.from('Test compressible file:\n' + 'contents'.repeat(1304))),
+      writeFile(join(basePath, 'file-incompressible.txt'), Buffer.from('e')),
     ]);
     await Promise.all([
       writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.')),

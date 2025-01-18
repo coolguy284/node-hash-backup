@@ -14,7 +14,25 @@ import {
   auto | noauto = do not pause (auto) or pause (noauto) at end of each test for user input
 */
 
+const KNOWN_ARGS = new Set([
+  'onlyminor',
+  'preserve',
+  'symlink',
+  'nosymlink',
+  'nomodif',
+  'nomem',
+  'nostream',
+  'auto',
+  'noauto',
+]);
+
 const args = new Set(process.argv.slice(2));
+
+for (const arg of args) {
+  if (!KNOWN_ARGS.has(arg)) {
+    throw new Error(`unrecognized arg: ${JSON.stringify(arg)}`);
+  }
+}
 
 if (args.has('onlyminor')) {
   performMinorTests();

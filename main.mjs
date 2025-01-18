@@ -38,11 +38,15 @@ export {
   RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS,
   VARIABLE_LENGTH_HAHSHES,
 } from './src/backup_manager/lib.mjs';
-export { getProgramVersion } from './src/backup_manager/version.mjs';
+export {
+  getLzmaInstalled,
+  getProgramVersion,
+} from './src/backup_manager/version.mjs';
 export {
   executeCommandLine,
   executeCommandLineCollectOutput,
 } from './src/command_line/command_line.mjs';
+export { getVersionString } from './src/command_line/help_info.mjs';
 
 // check for running as main
 

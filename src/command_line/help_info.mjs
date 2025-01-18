@@ -1,9 +1,13 @@
 import { splitLongLinesByWord } from '../lib/command_line.mjs';
-import { getProgramVersion } from '../backup_manager/version.mjs';
+import {
+  getLzmaInstalled,
+  getProgramVersion,
+} from '../backup_manager/version.mjs';
 import { COMMANDS } from './command_info.mjs';
 
 export function getVersionString() {
-  return `NodeJS Hash Backup Tool v${getProgramVersion()}`;
+  return `NodeJS Hash Backup Tool v${getProgramVersion()}\n` +
+    `LZMA Support: ${getLzmaInstalled() ? 'Installed' : 'Not Installed'}`;
 }
 
 export const mainHelpText = splitLongLinesByWord([
