@@ -133,7 +133,7 @@ async function getSymlinkType(symlinkPath) {
   })).toString().split(/\r?\n/).join('\n');
   
   let match;
-  if ((match = /^ Volume in drive .* is .*\n Volume Serial Number is .*\n\n Directory of .*\n\n((?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M (?: {3}<SYMLINK> {5}| {3}<(?:SYMLINKD|JUNCTION)> {4}| {3}<DIR> {9}|[ 0-9,]{17}) .*\n)*(?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M (?: {3}<SYMLINK> {5}| {3}<(?:SYMLINKD|JUNCTION)> {4}| {3}<DIR> {9}|[ 0-9,]{17}) .*))\n {15}[0-9,]+ File\(s\).*\n {15}[0-9,]+ Dir\(s\).*\n$/.exec(commandResult)) == null) {
+  if ((match = /^ Volume in drive .* is .*\n Volume Serial Number is .*\n\n Directory of .*\n\n((?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M (?: {3}<SYMLINK> {5}| {3}<(?:SYMLINKD|JUNCTION)> {4}| {3}<DIR> {9}|[ 0-9,]{17}) .*\n)*(?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M (?: {3}<SYMLINK> {5}| {3}<(?:SYMLINKD|JUNCTION)> {4}| {3}<DIR> {9}|[ 0-9,]{17}) .*))\n[0-9,]+ File\(s\).*\n[0-9,]+ Dir\(s\).*\n$/.exec(commandResult)) == null) {
     throw new Error(`dir command result invalid: ${JSON.stringify(commandResult)}`);
   }
   
