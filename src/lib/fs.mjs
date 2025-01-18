@@ -342,14 +342,14 @@ export async function recursiveReaddir(
   
   return internalResult
     .map(readdirInternalEntry => {
-      const { filePath, stats } = readdirInternalEntry;
+      const { stats } = readdirInternalEntry;
       
       if (!includeDirs && stats.isDirectory()) {
         return null;
       }
       
       if (!entries) {
-        return filePath;
+        return readdirInternalEntry.filePath;
       } else {
         return readdirInternalEntry;
       }
