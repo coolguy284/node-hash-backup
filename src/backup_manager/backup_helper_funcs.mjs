@@ -6,7 +6,14 @@ import {
   createBackupManager,
   DEFAULT_IN_MEMORY_CUTOFF_SIZE,
 } from './backup_manager.mjs';
-import { deleteBackupDirInternal } from './lib.mjs';
+import {
+  COMPRESSION_ALGOS,
+  deleteBackupDirInternal,
+  getHashOutputSizeBits,
+  INSECURE_HASHES,
+  knownHashAlgos,
+  VARIABLE_LENGTH_HAHSHES,
+} from './lib.mjs';
 
 export async function initBackupDir({
   backupDir,
@@ -366,4 +373,28 @@ export async function runInteractiveSession({
   
   delete globalThis.hb;
   delete globalThis.custom;
+}
+
+export function getKnownHashCompress({
+  getHashes = true,
+  getCompressionAlgos = true,
+}) {
+  let result = {};
+  
+  if (getHashes) {
+    result.hashes =
+      knownHashAlgos()
+        .map(hashAlgo => ({
+          name: hashAlgo,
+          insecure: INSECURE_HASHES.has(hashAlgo),
+          variableLength: VARIABLE_LENGTH_HAHSHES.has(hashAlgo),
+          defaultOutputSizeBits: getHashOutputSizeBits(hashAlgo),
+        }));
+  }
+  
+  if (getCompressionAlgos) {
+    result.compressionAlgos = Array.from(COMPRESSION_ALGOS);
+  }
+  
+  return result;
 }

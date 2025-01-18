@@ -28,6 +28,10 @@ export class ReadOnlySet {
     throw new Error('ReadOnlySet is not editable');
   }
   
+  [Symbol.iterator]() {
+    return this.#set[Symbol.iterator]();
+  }
+  
   [Symbol.for('nodejs.util.inspect.custom')](_, inspectOptions, inspect) {
     return `ReadOnly${inspect(this.#set, inspectOptions)}`;
   }

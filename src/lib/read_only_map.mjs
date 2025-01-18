@@ -44,6 +44,10 @@ export class ReadOnlyMap {
     return this.#map.entries();
   }
   
+  [Symbol.iterator]() {
+    return this.#map[Symbol.iterator]();
+  }
+  
   [Symbol.for('nodejs.util.inspect.custom')](_, inspectOptions, inspect) {
     return `ReadOnly${inspect(this.#map, inspectOptions)}`;
   }

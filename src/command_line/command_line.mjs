@@ -8,9 +8,10 @@ import {
   deleteBackupDir,
   getBackupInfo,
   getEntryInfo,
-  getFolderContents,
-  getSubtree,
   getFileStreamByBackupPath,
+  getFolderContents,
+  getKnownHashCompress,
+  getSubtree,
   initBackupDir,
   performBackup,
   performRestore,
@@ -908,6 +909,64 @@ export async function executeCommandLine({
           logger: extraneousLogger,
         });
         break;
+      
+      case 'getKnownHashCompress': {
+        const getHashes = keyedArgs.get('showHashes');
+        const getCompressionAlgos = keyedArgs.get('showCompressionAlgos');
+        
+        const hashCompressResult = getKnownHashCompress({
+          getHashes,
+          getCompressionAlgos,
+        });
+        
+        if (getHashes) {
+          logger('Supported Hash Algorithms:');
+          logger(
+            formatWithEvenColumns([
+              ['Hash', 'Properties', 'Default Output Size (Bits)'],
+              ...hashCompressResult.hashes
+                .sort(({ name: firstName }, { name: lastName }) => {
+                  if (firstName < lastName) {
+                    return -1;
+                  } else if (firstName > lastName) {
+                    return 1;
+                  } else {
+                    return 0;
+                  }
+                })
+                .map(
+                  ({ name, insecure, variableLength, defaultOutputSizeBits }) => {
+                    let properties = [];
+                    
+                    if (insecure) {
+                      properties.push('INSECURE!');
+                    }
+                    
+                    if (variableLength) {
+                      properties.push('Variable Length');
+                    }
+                    
+                    return [name, properties.length > 0 ? properties.join(', ') : '', defaultOutputSizeBits];
+                  }
+                ),
+            ])
+          );
+        }
+        
+        if (getHashes && getCompressionAlgos) {
+          logger();
+        }
+        
+        if (getCompressionAlgos) {
+          logger('Supported Compression Algorithms:');
+          logger(
+            hashCompressResult.compressionAlgos
+              .sort()
+              .join('\n')
+          );
+        }
+        break;
+      }
       
       default:
         throw new Error(`support for command ${JSON.stringify(commandName)} not implemented`);

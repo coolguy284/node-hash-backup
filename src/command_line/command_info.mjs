@@ -973,6 +973,48 @@ export const COMMANDS = new Map(
     ],
     
     [
+      'getKnownHashCompress',
+      
+      {
+        args: [
+          [
+            'showHashes',
+            
+            {
+              aliases: ['show-hashes'],
+              conversion: toBool,
+              defaultValue: 'true',
+            },
+          ],
+          
+          [
+            'showCompressionAlgos',
+            
+            {
+              aliases: ['show-compression-algos'],
+              conversion: toBool,
+              defaultValue: 'true',
+            },
+          ],
+        ],
+        
+        helpMsg: [
+          'Command `getKnownHashCompress`:',
+          '  Prints the known hash algorithms and compress algorithms.',
+          '  ',
+          '  Aliases:',
+          '    get-known-hash-compress',
+          '  ',
+          '  Options:',
+          '    --showHashes=<true|false> (default `true`): If true, will show supported hash algorithms.',
+          '        aliases: --show-hashes',
+          '    --showCompressionAlgos=<true|false> (default `true`): If true, will show supported compression algorithms.',
+          '        aliases: --show-compression-algos',
+        ].join('\n'),
+      },
+    ],
+    
+    [
       'help',
       
       {

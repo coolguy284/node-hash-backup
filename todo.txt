@@ -5,8 +5,6 @@ update readme.md to match help output
 fix all linter errors
 ensure test still runs
 
-command to show supported hashes and compression algos; parameters --showhashes=true by default, showcompressionalgos, etc
-
 todo for any code validation pass after commit:
 update readme.md to match help output
 run "npx eslint ."

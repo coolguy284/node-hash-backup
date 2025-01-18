@@ -162,6 +162,10 @@ export const VARIABLE_LENGTH_HAHSHES = new Set([
 
 export const RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS = 128;
 
+export function knownHashAlgos() {
+  return Array.from(HASH_SIZES.keys());
+}
+
 export function hashAlgoKnown(hashAlgo) {
   return HASH_SIZES.has(hashAlgo);
 }
