@@ -123,7 +123,9 @@ async function getSymlinkType(symlinkPath) {
     return null;
   }
   
-  const containingDir = dirname(symlinkPath);
+  const windowsifiedSymlinkPath = symlinkPath.split('/').join('\\');
+  
+  const containingDir = dirname(windowsifiedSymlinkPath);
   
   const commandResult = (await callProcess({
     processName: 'cmd',
@@ -161,23 +163,23 @@ async function getSymlinkType(symlinkPath) {
     symlinksFound.set(symlinkAndPathString, symlinkType);
   }
   
-  const symlinkDestination = await readlink(symlinkPath);
+  const symlinkDestination = await readlink(windowsifiedSymlinkPath);
   
-  const symlinkName = basename(symlinkPath);
+  const symlinkName = basename(windowsifiedSymlinkPath);
   
-  const symlinkKey1 = `${symlinkName} [${symlinkDestination}]`;
+  const symlinkKeys = [
+    `${symlinkName} [${symlinkDestination}]`,
+    `${symlinkName} [\\\\?\\${symlinkDestination}]`,
+    `${symlinkName} [..]`,
+  ];
   
-  if (symlinksFound.has(symlinkKey1)) {
-    return symlinksFound.get(symlinkKey1);
-  } else {
-    const symlinkKey2 = `${symlinkName} [..]`;
-    
-    if (symlinksFound.has(symlinkKey2)) {
-      return symlinksFound.get(symlinkKey2);
-    } else {
-      throw new Error(`symlink not found by dir command: ${symlinkPath}`);
+  for (const symlinkKey of symlinkKeys) {
+    if (symlinksFound.has(symlinkKey)) {
+      return symlinksFound.get(symlinkKey);
     }
   }
+  
+  throw new Error(`symlink not found by dir command, or could not programmatically find symlink in dir command output: ${symlinkPath}`);
 }
 
 async function recursiveReaddirInternal(
@@ -208,7 +210,7 @@ async function recursiveReaddirInternal(
     
     case SymlinkModes.PRESERVE:
       selfStats = await lstat(fileOrDirPath, { bigint: true });
-      if (process.platform == 'win32') {
+      if (selfStats.isSymbolicLink() && process.platform == 'win32') {
         selfSymlinkType = await getSymlinkType(fileOrDirPath);
       }
       break;
@@ -339,7 +341,9 @@ export async function recursiveReaddir(
   }
   
   return internalResult
-    .map(({ filePath, stats }) => {
+    .map(readdirInternalEntry => {
+      const { filePath, stats } = readdirInternalEntry;
+      
       if (!includeDirs && stats.isDirectory()) {
         return null;
       }
@@ -347,7 +351,7 @@ export async function recursiveReaddir(
       if (!entries) {
         return filePath;
       } else {
-        return { filePath, stats };
+        return readdirInternalEntry;
       }
     })
     .filter(entry => entry != null);
