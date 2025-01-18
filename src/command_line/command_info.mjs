@@ -319,6 +319,16 @@ export const COMMANDS = new Map(
           ],
           
           [
+            'storeSymlinkType',
+            
+            {
+              aliases: ['store-symlink-type'],
+              defaultValue: 'true',
+              conversion: toBool,
+            },
+          ],
+          
+          [
             'inMemoryCutoff',
             
             {
@@ -388,6 +398,8 @@ export const COMMANDS = new Map(
           '        If "ignore", symlinks will be ignored.',
           '        If "passthrough", symlinks will be copied over as regular files (and the modtime of the destination file will be used).',
           '        If "preserve", symlinks will be added to the backup as-is, storing their path.',
+          '    --storeSymlinkType=<true|false> (default `true`): If true, on Windows, the type of a symbolic link will be stored (i.e. whether the symbolic link is a file or directory symbolic link or a directory junction).',
+          '        aliases: --store-symlink-type',
           `    --inMemoryCutoff=<integer >= -1 | Infinity> (default \`${integerToStringWithSeparator(DEFAULT_IN_MEMORY_CUTOFF_SIZE)}\`): Below the cutoff, read file into memory and calculate hash and compressed forms in memory, to minimize hard drive reads/writes.`,
           '        aliases: --in-memory-cutoff',
           '    --compressionMinimumSizeThreshold (default -1): The file size must be greater than or equal to this for compression to activate.',

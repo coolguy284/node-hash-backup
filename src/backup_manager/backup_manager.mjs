@@ -1237,6 +1237,7 @@ class BackupManager {
     excludedFilesOrFolders = [],
     allowBackupDirSubPathOfFileOrFolderPath = false,
     symlinkMode = SymlinkModes.PRESERVE,
+    storeSymlinkType = true,
     inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     compressionMinimumSizeThreshold = -1,
     compressionMaximumSizeThreshold = Infinity,
@@ -1270,6 +1271,10 @@ class BackupManager {
     
     if (!(symlinkMode in SymlinkModes)) {
       throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
+    }
+    
+    if (typeof storeSymlinkType != 'boolean') {
+      throw new Error(`storeSymlinkType not boolean: ${typeof storeSymlinkType}`);
     }
     
     if (inMemoryCutoffSize != Infinity && (!Number.isSafeInteger(inMemoryCutoffSize) || inMemoryCutoffSize < -1)) {
@@ -1342,6 +1347,7 @@ class BackupManager {
       includeDirs: true,
       entries: true,
       symlinkMode,
+      storeSymlinkType,
     });
     
     let newEntries = [];

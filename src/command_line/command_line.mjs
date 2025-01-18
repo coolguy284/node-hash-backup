@@ -717,6 +717,7 @@ export async function executeCommandLine({
           excludedFilesOrFolders: keyedArgs.get('excludedItems'),
           allowBackupDirSubPathOfFileOrFolderPath: keyedArgs.get('allowBackupDirSubPathOfFileOrFolderPath'),
           symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
+          storeSymlinkType: keyedArgs.get('storeSymlinkType'),
           inMemoryCutoffSize: keyedArgs.get('inMemoryCutoff'),
           compressionMinimumSizeThreshold: keyedArgs.get('compressionMinimumSizeThreshold'),
           compressionMaximumSizeThreshold: keyedArgs.get('compressionMaximumSizeThreshold'),

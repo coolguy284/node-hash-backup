@@ -188,6 +188,7 @@ async function recursiveReaddirInternal(
   {
     excludedFilesOrFolders,
     symlinkMode,
+    storeSymlinkType,
   }
 ) {
   let selfStats;
@@ -211,7 +212,7 @@ async function recursiveReaddirInternal(
     
     case SymlinkModes.PRESERVE:
       selfStats = await lstat(fileOrDirPath, { bigint: true });
-      if (selfStats.isSymbolicLink() && process.platform == 'win32') {
+      if (selfStats.isSymbolicLink() && storeSymlinkType && process.platform == 'win32') {
         selfSymlinkType = await getSymlinkType(fileOrDirPath);
       }
       break;
@@ -277,6 +278,7 @@ export async function recursiveReaddir(
     includeDirs = true,
     entries = true,
     symlinkMode = SymlinkModes.PRESERVE,
+    storeSymlinkType = true,
     sorted = false,
   } = {}
 ) {
@@ -314,11 +316,16 @@ export async function recursiveReaddir(
     throw new Error(`symlinkMode not in SymlinkModes: ${symlinkMode}`);
   }
   
+  if (typeof storeSymlinkType != 'boolean') {
+    throw new Error(`storeSymlinkType not boolean: ${typeof storeSymlinkType}`);
+  }
+  
   let internalResult = await recursiveReaddirInternal(
     fileOrDirPath,
     {
       excludedFilesOrFolders,
       symlinkMode,
+      storeSymlinkType,
     }
   );
   
