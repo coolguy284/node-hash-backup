@@ -212,7 +212,8 @@ async function recursiveReaddirInternal(
     
     case SymlinkModes.PRESERVE:
       selfStats = await lstat(fileOrDirPath, { bigint: true });
-      if (selfStats.isSymbolicLink() && storeSymlinkType && process.platform == 'win32') {
+      
+      if (storeSymlinkType && process.platform == 'win32' && selfStats.isSymbolicLink()) {
         selfSymlinkType = await getSymlinkType(fileOrDirPath);
       }
       break;
@@ -259,6 +260,7 @@ async function recursiveReaddirInternal(
             {
               excludedFilesOrFolders: subExcludedFilesOrFolders,
               symlinkMode,
+              storeSymlinkType,
             }
           ))
       ))
