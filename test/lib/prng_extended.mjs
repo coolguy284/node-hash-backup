@@ -64,6 +64,7 @@ export class AdvancedPrng {
   // Returns an object with a Buffer "buf" containing "numBytes" bytes and a bool
   // "raw" indicating whether "buf" is directly sliced from the cache.
   // WARNING: raw == true buffers will change contents when cache is reset, so use synchronously!
+  // (DO NOT store a reference to raw == true buffers to use later!)
   #getRandomBytesInternal(numBytes) {
     if (typeof numBytes == 'bigint') numBytes = Number(numBytes);
     

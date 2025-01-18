@@ -1016,6 +1016,7 @@ export const COMMANDS = new Map(
       },
     ],
     
+    /*
     [
       'verifyBackupDir',
       
@@ -1046,6 +1047,7 @@ export const COMMANDS = new Map(
         ].join('\n'),
       },
     ],
+    */
     
     [
       'help',

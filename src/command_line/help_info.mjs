@@ -17,7 +17,7 @@ export const mainHelpText = splitLongLinesByWord([
   '  Command is optional. Options can be specified in either the format "--argument=value" or "--argument value" (with the space in between meaning there are two separate command line arguments, i.e. ["--argument", "value"]).',
   '',
   'Warning:',
-  '  Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set. Additionally, on Windows, symbolic link type is not stored (i.e. file vs directory vs junction).',
+  '  Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set.',
   '',
   Array.from(COMMANDS.values()).map(({ helpMsg }) => helpMsg).join('\n\n'),
 ].join('\n'));

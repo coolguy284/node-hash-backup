@@ -75,7 +75,7 @@ import {
   INSECURE_HASHES,
   metaFileStringify,
   permissiveGetFileType,
-  RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS,
+  RECOMMENDED_MINIMUM_HASH_LENGTH_BITS,
   splitCompressObjectAlgoAndParams,
 } from './lib.mjs';
 import { upgradeDirToCurrent } from './upgrader.mjs';
@@ -785,6 +785,7 @@ class BackupManager {
     baseFileOrFolderPath,
     subFileOrFolderPath,
     stats,
+    symlinkType,
     inMemoryCutoffSize,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
@@ -795,6 +796,7 @@ class BackupManager {
       baseFileOrFolderPath,
       subFileOrFolderPath,
       stats,
+      symlinkType,
       addingLogger: data => this.#log(logger, data),
       addFileToStoreFunc: async () => {
         // only called if file or something else that will be attempted to be read as a file
@@ -1103,16 +1105,16 @@ class BackupManager {
       }
     }
     
-    if (hashOutputTrimLength != null && hashOutputTrimLength * HEX_CHAR_LENGTH_BITS < RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS) {
-      const warnMsg = `WARNING: hash output trimmed to an insecurely small size ${hashOutputTrimLength} (${hashOutputTrimLength * HEX_CHAR_LENGTH_BITS} bits) (recommended minimum is ${Math.round(RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS / HEX_CHAR_LENGTH_BITS)} (${RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS} bits))`;
+    if (hashOutputTrimLength != null && hashOutputTrimLength * HEX_CHAR_LENGTH_BITS < RECOMMENDED_MINIMUM_HASH_LENGTH_BITS) {
+      const warnMsg = `WARNING: hash output trimmed to an insecurely small size ${hashOutputTrimLength} (${hashOutputTrimLength * HEX_CHAR_LENGTH_BITS} bits) (recommended minimum is ${Math.round(RECOMMENDED_MINIMUM_HASH_LENGTH_BITS / HEX_CHAR_LENGTH_BITS)} (${RECOMMENDED_MINIMUM_HASH_LENGTH_BITS} bits))`;
       
       if (treatWarningsAsErrors) {
         throw new Error(warnMsg);
       } else {
         this.#log(logger, warnMsg);
       }
-    } else if (rawHashLengthBits < RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS) {
-      const warnMsg = `WARNING: hash output length is insecurely small: ${rawHashLengthBits} bits, recommended minimum is ${RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS}`;
+    } else if (rawHashLengthBits < RECOMMENDED_MINIMUM_HASH_LENGTH_BITS) {
+      const warnMsg = `WARNING: hash output length is insecurely small: ${rawHashLengthBits} bits, recommended minimum is ${RECOMMENDED_MINIMUM_HASH_LENGTH_BITS}`;
       
       if (treatWarningsAsErrors) {
         throw new Error(warnMsg);
@@ -1344,7 +1346,7 @@ class BackupManager {
     
     let newEntries = [];
     
-    for (const { filePath, stats } of dirContents) {
+    for (const { filePath, stats, symlinkType } of dirContents) {
       if (ignoreErrors) {
         try {
           newEntries.push(
@@ -1352,6 +1354,7 @@ class BackupManager {
               baseFileOrFolderPath: fileOrFolderPath,
               subFileOrFolderPath: filePath,
               stats,
+              symlinkType,
               inMemoryCutoffSize,
               compressionMinimumSizeThreshold,
               compressionMaximumSizeThreshold,
@@ -1368,6 +1371,7 @@ class BackupManager {
             baseFileOrFolderPath: fileOrFolderPath,
             subFileOrFolderPath: filePath,
             stats,
+            symlinkType,
             inMemoryCutoffSize,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
@@ -2101,11 +2105,19 @@ class BackupManager {
       if (!Number.isSafeInteger(infoJson.hashOutputTrimLength) || infoJson.hashOutputTrimLength < 0) {
         throw new Error(`info.hashOutputTrimLength not positive integer: ${infoJson.hashOutputTrimLength}`);
       }
+      
+      // TODO
     }
+    
+    // TODO
     
     // check files folder
     
+    // TODO
+    
     // check files_meta folder
+    
+    // TODO
     
     // check backups folder
     

@@ -35,7 +35,7 @@ export {
   isValidBackupDir,
   knownHashAlgos,
   MIN_BACKUP_VERSION,
-  RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS,
+  RECOMMENDED_MINIMUM_HASH_LENGTH_BITS,
   VARIABLE_LENGTH_HAHSHES,
 } from './src/backup_manager/lib.mjs';
 export {

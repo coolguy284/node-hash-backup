@@ -27,6 +27,7 @@ Information tracked on symbolic link:
 
 ```
 NodeJS Hash Backup Tool v2.0.0
+LZMA Support: Installed
 
 Usage: node <path to folder of hash backup code> [command] [options]
   Command is optional. Options can be specified in either the format "--argument=value" or
@@ -34,8 +35,7 @@ Usage: node <path to folder of hash backup code> [command] [options]
   arguments, i.e. ["--argument", "value"]).
 
 Warning:
-  Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set. Additionally,
-  on Windows, symbolic link type is not stored (i.e. file vs directory vs junction).
+  Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set.
 
 Command `init`:
   Initalizes an empty hash backup in backup dir.
@@ -45,11 +45,17 @@ Command `init`:
         aliases: --backup-dir, --to
     --hashAlgo=<algorithm> (default `sha256`): The hash algorithm to use on the files.
         aliases: --hash-algo, --hash
-    --hashSlices=<number> (default `1`): The number of nested subfolders of hash slices each
-    file should be under.
+    --hashParams=<JSON object, i.e. '{"outputLength":32}'>: If necessary, provides parameters
+    for the hash function (such as length of an extensible-output hashing function).
+        aliases: --hash-params
+    --hashOutputTrimLength=<integer >= 1>: If provided, trim hash hex output to the provided
+    length in hex chars.
+        aliases: --hash-output-trim-length
+    --hashSlices=<integer >= 0> (default `1`): The number of nested subfolders of hash slices
+    each file should be under.
         aliases: --hash-slices
-    --hashSliceLength=<number> (default `2`): The length of the hash slice used to split files
-    into folders.
+    --hashSliceLength=<integer >= 0> (default `2`): The length of the hash slice used to split
+    files into folders.
         aliases: --hash-slice-length
     --compressAlgo=<string> (default `brotli`): The algorithm to compress files (`none` for
     no compression).
@@ -61,6 +67,10 @@ Command `init`:
     to "{}"); unspecified otherwise): The amount to compress files (valid is 1 through 9).
     Overwrites --compress-params's level parameter.
         aliases: --compress-level
+    --treatWarningsAsErrors=<true|false> (default `false`): If true, warnings (about insecure
+    hash or too small hash output trim) during hash backup dir creation will be treated as
+    errors preventing backup dir creation.
+        aliases: --treat-warnings-as-errors
 
 Command `delete`:
   Removes all files in hash backup dir.
@@ -179,6 +189,8 @@ Command `restore`:
     --overwriteExisting=<boolean> (default false): If true, overwrite the existing restore
     location with the restore contents.
         aliases: --overwrite-existing
+    --preserveOutputFolder=<boolean> (default true): If true, output folder will not be deleted
+    and re-created if it already exists and the backup contains a folder at the top-level.
     --verify=<value> (default true): If true, file checksums will be verified as files are
     copied out.
 
@@ -402,7 +414,34 @@ Command `interactive`:
         aliases: --backup-dir, --to
     --customData=<anything>: Custom data to pass to the NodeJS REPL.
         aliases: --custom-data, --custom
-    --stringToEval=<anything>: A string to evaluate before starting the NodeJS REPL.
+    --stringToEval=<anything>: A string to evaluate (as the body of an async function) before
+    starting the NodeJS REPL.
+
+Command `getKnownHashCompress`:
+  Prints the known hash algorithms and compress algorithms.
+  
+  Aliases:
+    get-known-hash-compress
+  
+  Options:
+    --showHashes=<true|false> (default `true`): If true, will show supported hash algorithms.
+        aliases: --show-hashes
+    --showCompressionAlgos=<true|false> (default `true`): If true, will show supported compression
+    algorithms.
+        aliases: --show-compression-algos
+
+Command `getKnownHashCompress`:
+  Prints the known hash algorithms and compress algorithms.
+  
+  Aliases:
+    get-known-hash-compress
+  
+  Options:
+    --showHashes=<true|false> (default `true`): If true, will show supported hash algorithms.
+        aliases: --show-hashes
+    --showCompressionAlgos=<true|false> (default `true`): If true, will show supported compression
+    algorithms.
+        aliases: --show-compression-algos
 
 Command `help`:
   Prints this help message.

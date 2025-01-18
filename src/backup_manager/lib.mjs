@@ -162,7 +162,7 @@ export const VARIABLE_LENGTH_HAHSHES = new Set([
   'shake256',
 ]);
 
-export const RECOMMENDED_MINIMUM_TRIMMED_HASH_LENGTH_BITS = 128;
+export const RECOMMENDED_MINIMUM_HASH_LENGTH_BITS = 128;
 
 export function knownHashAlgos() {
   return Array.from(HASH_SIZES.keys());
@@ -423,6 +423,7 @@ export async function getAndAddBackupEntry({
   baseFileOrFolderPath,
   subFileOrFolderPath,
   stats,
+  symlinkType,
   addingLogger = null,
   // if null, hash will not be included
   addFileToStoreFunc = null,
@@ -456,7 +457,7 @@ export async function getAndAddBackupEntry({
       birthtime,
     };
   } else if (stats.isSymbolicLink()) {
-    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [symbolic link]`);
+    if (addingLogger != null) addingLogger(`Adding ${JSON.stringify(subFileOrFolderPath)} [symbolic link${symlinkType != null ? `; type = ${symlinkType}` : ''}]`);
     
     const linkPathBuf = await readlink(subFileOrFolderPath, { encoding: 'buffer' });
     const linkPathBase64 = linkPathBuf.toString('base64');
@@ -472,6 +473,11 @@ export async function getAndAddBackupEntry({
           {}
       ),
       symlinkPath: linkPathBase64,
+      ...(
+        symlinkType != null ?
+          { symlinkType } :
+          {}
+      ),
       atime,
       mtime,
       ctime,

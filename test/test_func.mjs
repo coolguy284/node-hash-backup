@@ -397,6 +397,7 @@ class TestManager {
       'type',
       'attributes',
       'symlinkPath',
+      'symlinkType',
       ...(ignoreMTime ? [] : ['mtime']),
       'birthtime',
     ];

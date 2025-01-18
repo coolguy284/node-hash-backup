@@ -5,12 +5,15 @@ import {
   lutimes,
   open,
   readdir,
+  readlink,
   rename,
   stat,
   unlink,
   writeFile,
 } from 'node:fs/promises';
 import {
+  basename,
+  dirname,
   join,
   relative,
   sep,
@@ -115,6 +118,68 @@ export function splitPath(pathToSplit) {
   }
 }
 
+async function getSymlinkType(symlinkPath) {
+  if (process.platform != 'win32') {
+    return null;
+  }
+  
+  const containingDir = dirname(symlinkPath);
+  
+  const commandResult = (await callProcess({
+    processName: 'cmd',
+    processArguments: ['/c', 'dir', '/al', containingDir],
+  })).toString().split(/\r?\n/).join('\n');
+  
+  let match;
+  if ((match = /^ Volume in drive .* is .*\n Volume Serial Number is .*\n\n Directory of .*\n\n((?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M {4}(?:<SYMLINK> {6}|<(?:SYMLINKD|JUNCTION)> {5}).*\n)*(?:\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M {4}(?:<SYMLINK> {6}|<(?:SYMLINKD|JUNCTION)> {5}).*))\n {15}[0-9,]+ File\(s\).*\n {15}[0-9,]+ Dir\(s\).*\n$/.exec(commandResult)) == null) {
+    throw new Error(`dir command result invalid: ${JSON.stringify(commandResult)}`);
+  }
+  
+  const dirData = match[1].split('\n');
+    
+  let symlinksFound = new Map();
+  
+  for (const dirEntry of dirData) {
+    let match2;
+    if ((match2 = /^\d+-\d{2}-\d{2} {2}\d{2}:\d{2} [AP]M {4}(?:<(SYMLINK)> {6}|<(?:(SYMLINKD)|(JUNCTION))> {5})(.*)$/.exec(dirEntry)) == null) {
+      throw new Error(`internal regex error: ${JSON.stringify(dirEntry)}`);
+    }
+    
+    let symlinkType;
+      
+    if (match2[1] != null) {
+      symlinkType = 'file';
+    } else if (match2[2] != null) {
+      symlinkType = 'directory';
+    } else {
+      // match2[3] != null
+      symlinkType = 'junction';
+    }
+    
+    const symlinkAndPathString = match2[4];
+    
+    symlinksFound.set(symlinkAndPathString, symlinkType);
+  }
+  
+  const symlinkDestination = await readlink(symlinkPath);
+  
+  const symlinkName = basename(symlinkPath);
+  
+  const symlinkKey1 = `${symlinkName} [${symlinkDestination}]`;
+  
+  if (symlinksFound.has(symlinkKey1)) {
+    return symlinksFound.get(symlinkKey1);
+  } else {
+    const symlinkKey2 = `${symlinkName} [..]`;
+    
+    if (symlinksFound.has(symlinkKey2)) {
+      return symlinksFound.get(symlinkKey2);
+    } else {
+      throw new Error(`symlink not found by dir command: ${symlinkPath}`);
+    }
+  }
+}
+
 async function recursiveReaddirInternal(
   fileOrDirPath,
   {
@@ -123,6 +188,7 @@ async function recursiveReaddirInternal(
   }
 ) {
   let selfStats;
+  let selfSymlinkType = null;
   
   switch (symlinkMode) {
     case SymlinkModes.IGNORE: {
@@ -142,6 +208,9 @@ async function recursiveReaddirInternal(
     
     case SymlinkModes.PRESERVE:
       selfStats = await lstat(fileOrDirPath, { bigint: true });
+      if (process.platform == 'win32') {
+        selfSymlinkType = await getSymlinkType(fileOrDirPath);
+      }
       break;
     
     default:
@@ -152,6 +221,13 @@ async function recursiveReaddirInternal(
     {
       filePath: fileOrDirPath,
       stats: selfStats,
+      ...(
+        selfSymlinkType != null ?
+          {
+            symlinkType: selfSymlinkType,
+          } :
+          {}
+      ),
     },
   ];
   

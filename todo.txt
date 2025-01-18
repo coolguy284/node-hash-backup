@@ -4,10 +4,6 @@ update readme.md to match help output
 fix all linter errors
 ensure test still runs
 
-improved data storage on windows:
-  support for directory junction / file and directory symlinks
-    remove warning in help about symbolic link type
-
 todo for any code validation pass after commit:
 update readme.md to match help output
 run "npx eslint ."

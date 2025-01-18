@@ -72,10 +72,7 @@ export async function callProcess({
     childProcess.stderr.on('data', c => stderrBufs.push(c));
     
     childProcess.on('close', code => {
-      const stdout =
-        Buffer.concat(stdoutBufs)
-          .toString()
-          .trim();
+      const stdout = Buffer.concat(stdoutBufs);
       
       if (code == 0) {
         r(stdout);
@@ -87,7 +84,7 @@ export async function callProcess({
         
         j(new Error(
           `process failed with exit code ${code}\n` +
-          `stdout:\n${stdout}\n` +
+          `stdout:\n${stdout.toString()}\n` +
           `stderr:\n${stderr}`
         ));
       }
