@@ -284,7 +284,7 @@ export const COMMANDS = new Map(
             'backupDir',
             
             {
-              aliases: ['backup-dir'],
+              aliases: ['backup-dir', 'to'],
               required: true,
             },
           ],
