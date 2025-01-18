@@ -398,3 +398,18 @@ export function getKnownHashCompress({
   
   return result;
 }
+
+export async function verifyHashBackupDir({
+  backupDir,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    await backupMgr.verify();
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}

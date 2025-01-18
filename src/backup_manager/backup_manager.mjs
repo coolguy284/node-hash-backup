@@ -9,6 +9,7 @@ import {
   mkdir,
   open,
   readdir,
+  readFile,
   rename,
   rm,
   rmdir,
@@ -67,8 +68,10 @@ import {
   HB_FILE_META_DIRECTORY,
   HB_FILE_META_FILE_EXTENSION,
   HB_FILE_META_SINGULAR_META_FILE_NAME,
+  HB_FULL_INFO_BACKUP_TYPE,
   HB_FULL_INFO_FILE_NAME,
   HEX_CHAR_LENGTH_BITS,
+  HEX_CHARS_PER_BYTE,
   INSECURE_HASHES,
   metaFileStringify,
   permissiveGetFileType,
@@ -286,7 +289,7 @@ class BackupManager {
         let info = await getBackupDirInfo(backupDirPath);
         
         if (info.version > CURRENT_BACKUP_VERSION) {
-          throw new Error(`backup dir version is for more recent version of program: ${info.version} > ${CURRENT_BACKUP_VERSION}`);
+          throw new Error(`backup dir version is for more recent version of program: info.version (${info.version}) > current program backup version (${CURRENT_BACKUP_VERSION})`);
         } else if (info.version < CURRENT_BACKUP_VERSION) {
           if (autoUpgradeDir) {
             await upgradeDirToCurrent({
@@ -877,6 +880,22 @@ class BackupManager {
     return result;
   }
   
+  static async #validateHashParams(hashAlgo, hashParams) {
+    try {
+      await hashBytes(Buffer.from('test'), hashAlgo, hashParams);
+    } catch {
+      throw new Error(`hashParams invalid: ${JSON.stringify(hashParams)}`);
+    }
+  }
+  
+  static async #validateCompressionParams(compressionAlgo, compressionParams) {
+    try {
+      await compressBytes(Buffer.from('test'), compressionAlgo, compressionParams);
+    } catch {
+      throw new Error(`compressionParams invalid: ${JSON.stringify(compressionParams)}`);
+    }
+  }
+  
   // public funcs
   
   // This function is async as it calls an async helper and returns the corresponding promise
@@ -972,8 +991,22 @@ class BackupManager {
     
     hashParams = hashParams ?? null;
     
+    if (hashParams != null && 'outputLength' in hashParams) {
+      if (!Number.isSafeInteger(hashParams.outputLength) || hashParams.outputLength <= 0) {
+        throw new Error(`hashParams.outputLength not positive integer: ${hashParams.outputLength}`);
+      }
+    }
+    
     if (hashOutputTrimLength != null && (!Number.isSafeInteger(hashOutputTrimLength) || hashOutputTrimLength <= 0)) {
       throw new Error(`hashOutputTrimLength not positive integer or null: ${hashOutputTrimLength}`);
+    }
+    
+    if (hashOutputTrimLength != null && hashParams != null && 'outputLength' in hashParams) {
+      const xofOutputLengthHexChars = hashParams.outputLength * HEX_CHARS_PER_BYTE;
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      if (xofOutputLengthHexChars > hashOutputTrimLength + 1) {
+        throw new Error(`hashParams.outputLength (${hashParams.outputLength}) larger than necessary given hashOutputTrimLength (${hashOutputTrimLength}) (expected hashParams.outputLength: ${Math.ceil(hashOutputTrimLength / HEX_CHARS_PER_BYTE)})`);
+      }
     }
     
     if (!Number.isSafeInteger(hashSlices) || hashSlices < 0) {
@@ -1020,6 +1053,8 @@ class BackupManager {
       }
     }
     
+    await BackupManager.#validateHashParams(hashAlgo, hashParams);
+    
     if (typeof compressionAlgo != 'string' && compressionAlgo != null) {
       throw new Error(`compressionAlgo not string: ${compressionAlgo}`);
     }
@@ -1043,11 +1078,7 @@ class BackupManager {
         }
       }
       
-      try {
-        await compressBytes(Buffer.from('test'), compressionAlgo, compressionParams);
-      } catch {
-        throw new Error(`compressionParams invalid: ${JSON.stringify(compressionParams)}`);
-      }
+      await BackupManager.#validateCompressionParams(compressionAlgo, compressionParams);
     } else {
       if (compressionParams != null) {
         throw new Error(`compressionAlgo null but compressionParams not null: ${JSON.stringify(compressionParams)}`);
@@ -1099,7 +1130,7 @@ class BackupManager {
     await writeFileReplaceWhenDone(
       infoFilePath,
       fullInfoFileStringify({
-        folderType: 'coolguy284/node-hash-backup',
+        folderType: HB_FULL_INFO_BACKUP_TYPE,
         version: 2,
         hash: hashAlgo,
         ...(hashParams != null ? { hashParams } : {}),
@@ -1967,6 +1998,118 @@ class BackupManager {
     }
     
     this.#log(logger, `Finished pruning ${unreferencedFiles.length} unreferenced files out of ${filesInStore.length}, freed ${humanReadableSizeString(totalPrunedCompressedBytes)} compressed bytes, ${humanReadableSizeString(totalPrunedUncompressedBytes)} uncompressed bytes`);
+  }
+  
+  static #EXPECTED_ROOT_DIR_CONTENTS = [
+    HB_BACKUP_META_DIRECTORY,
+    HB_FILE_DIRECTORY,
+    HB_FILE_META_DIRECTORY,
+    HB_FULL_INFO_FILE_NAME,
+  ];
+  static #ALLOWED_ROOT_DIR_CONTENTS = new Set([
+    ...BackupManager.#EXPECTED_ROOT_DIR_CONTENTS,
+    HB_EDIT_LOCK_FILE,
+  ]);
+  static #EXPECTED_INFO_JSON_CONTENTS = [
+    'folderType',
+    'version',
+    'hash',
+    'hashSlices',
+  ];
+  static #ALLOWED_INFO_JSON_CONTENTS = new Set([
+    ...BackupManager.#EXPECTED_INFO_JSON_CONTENTS,
+    'hashParams',
+    'hashOutputTrimLength',
+    'hashSliceLength',
+    'compression',
+  ]);
+  
+  async verify({ logger = null }) {
+    if (typeof logger != 'function' && logger != null) {
+      throw new Error(`logger not function or null: ${typeof logger}`);
+    }
+    
+    this.#ensureBackupDirLive();
+    
+    this.#log(`Verifying backup dir ${JSON.stringify(this.#backupDirPath)}`);
+    
+    // check root
+    
+    const rootDirContents = await readdir(this.#backupDirPath);
+    
+    for (const rootDirEnt of rootDirContents) {
+      if (!BackupManager.#ALLOWED_ROOT_DIR_CONTENTS.has(rootDirEnt.name)) {
+        throw new Error(`unrecognized file / folder in root dir: ${JSON.stringify(rootDirEnt.name)}`);
+      }
+    }
+    
+    const rootDirContentsSet = new Set(rootDirContents);
+    
+    for (const expectedFileName of BackupManager.#EXPECTED_ROOT_DIR_CONTENTS) {
+      if (!rootDirContentsSet.has(expectedFileName)) {
+        throw new Error(`root dir missing expected file / folder: ${JSON.stringify(expectedFileName)}`);
+      }
+    }
+    
+    // check info.json
+    
+    if (!(await lstat(join(this.#backupDirPath, HB_FULL_INFO_FILE_NAME))).isFile()) {
+      throw new Error(`${JSON.stringify(HB_FULL_INFO_FILE_NAME)} not file`);
+    }
+    
+    const infoJson = JSON.parse(await readFile(join(this.#backupDirPath, HB_FULL_INFO_FILE_NAME)));;
+    
+    if (typeof infoJson != 'object' || Array.isArray(infoJson)) {
+      throw new Error(`info.json not object: ${typeof infoJson == 'object' ? 'Array' : typeof infoJson}`);
+    }
+    
+    for (const infoJsonKey of Object.keys(infoJson)) {
+      if (!BackupManager.#ALLOWED_INFO_JSON_CONTENTS.has(infoJsonKey)) {
+        throw new Error(`unrecognized key in info.json: ${JSON.stringify(infoJsonKey)}`);
+      }
+    }
+    
+    if (infoJson.folderType != HB_FULL_INFO_BACKUP_TYPE) {
+      throw new Error(`info.folderType not hash backup dir: was ${JSON.stringify(infoJson.folderType)}, expected ${JSON.stringify(HB_FULL_INFO_BACKUP_TYPE)}`);
+    }
+    
+    if (infoJson.version != CURRENT_BACKUP_VERSION) {
+      throw new Error(`info.version not correct: was ${infoJson.version}, expected ${CURRENT_BACKUP_VERSION}`);
+    }
+    
+    if (typeof infoJson.hash != 'string') {
+      throw new Error(`info.hash not string: ${typeof infoJson.hash}`);
+    }
+    
+    if (!hashAlgoKnown(infoJson.hash)) {
+      throw new Error(`info.hash algorithm not known: ${JSON.stringify(infoJson.hash)}`);
+    }
+    
+    if ('hashParams' in infoJson) {
+      if (typeof infoJson.hashParams != 'object') {
+        throw new Error(`info.hashParams not object or not defined: ${JSON.stringify(infoJson.hashParams)}`);
+      }
+      
+      if ('outputLength' in infoJson.hashParams) {
+        if (!Number.isSafeInteger(infoJson.hashParams.outputLength) || infoJson.hashParams.outputLength < 0) {
+          throw new Error(`info.hashParams.outputLength not positive integer: ${infoJson.hashParams.outputLength}`);
+        }
+      }
+    }
+    
+    if ('hashOutputTrimLength' in infoJson) {
+      if (!Number.isSafeInteger(infoJson.hashOutputTrimLength) || infoJson.hashOutputTrimLength < 0) {
+        throw new Error(`info.hashOutputTrimLength not positive integer: ${infoJson.hashOutputTrimLength}`);
+      }
+    }
+    
+    // check files folder
+    
+    // check files_meta folder
+    
+    // check backups folder
+    
+    this.#log(`Backup dir ${JSON.stringify(this.#backupDirPath)} verification passed`);
   }
   
   async [Symbol.asyncDispose]() {

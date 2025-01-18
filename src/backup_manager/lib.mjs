@@ -60,12 +60,14 @@ export const HB_FILE_DIRECTORY = 'files';
 export const HB_FULL_INFO_FILE_EXTENSION = META_FILE_EXTENSION;
 export const HB_FULL_INFO_FILE_NAME = `info${HB_FULL_INFO_FILE_EXTENSION}`;
 export const HB_EDIT_LOCK_FILE = 'edit.lock';
+export const HB_FULL_INFO_BACKUP_TYPE = 'coolguy284/node-hash-backup';
 
 // more internal constants
 
 export const BACKUP_PATH_SEP = '/';
-export const BITS_PER_BYTE = 8;
 export const HEX_CHAR_LENGTH_BITS = 4;
+export const HEX_CHARS_PER_BYTE = 2;
+export const BITS_PER_BYTE = HEX_CHAR_LENGTH_BITS * HEX_CHARS_PER_BYTE;
 
 export function fullInfoFileStringify(contents) {
   return JSON.stringify(contents, null, 2);
@@ -99,7 +101,7 @@ export async function getBackupDirInfo(backupDirPath) {
     throw new Error(`path is not a backup dir (info.json invalid json): ${backupDirPath}`);
   }
   
-  if (data.folderType != 'coolguy284/node-hash-backup') {
+  if (data.folderType != HB_FULL_INFO_BACKUP_TYPE) {
     throw new Error(`path is not a backup dir (info.json type not hash backup): ${backupDirPath}`);
   }
   

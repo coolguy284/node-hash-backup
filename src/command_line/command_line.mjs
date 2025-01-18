@@ -18,6 +18,7 @@ import {
   pruneUnreferencedFiles,
   renameBackup,
   runInteractiveSession,
+  verifyHashBackupDir,
 } from '../backup_manager/backup_helper_funcs.mjs';
 import {
   formatWithEvenColumns,
@@ -967,6 +968,13 @@ export async function executeCommandLine({
         }
         break;
       }
+      
+      case 'verifyBackupDir':
+        await verifyHashBackupDir({
+          backupDir: keyedArgs.get('backupDir'),
+          logger,
+        });
+        break;
       
       default:
         throw new Error(`support for command ${JSON.stringify(commandName)} not implemented`);

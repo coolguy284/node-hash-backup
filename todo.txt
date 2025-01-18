@@ -1,5 +1,4 @@
 verify command
-call hb dispose if program termination
 
 update readme.md to match help output
 fix all linter errors
@@ -15,6 +14,7 @@ run "npx eslint ."
 run "npm test symlink"
 
 low prio:
+call hb dispose if program termination
 backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
 create native module to do what powershell cannot (replace setFileTimes and getSymlinkType with versions that call native module if it exists)

@@ -976,6 +976,8 @@ export const COMMANDS = new Map(
       'getKnownHashCompress',
       
       {
+        aliases: ['get-known-hash-compress'],
+        
         args: [
           [
             'showHashes',
@@ -1010,6 +1012,37 @@ export const COMMANDS = new Map(
           '        aliases: --show-hashes',
           '    --showCompressionAlgos=<true|false> (default `true`): If true, will show supported compression algorithms.',
           '        aliases: --show-compression-algos',
+        ].join('\n'),
+      },
+    ],
+    
+    [
+      'verifyBackupDir',
+      
+      {
+        aliases: ['verify-backup-dir'],
+        
+        args: [
+          [
+            'backupDir',
+            
+            {
+              aliases: ['backup-dir', 'to'],
+              required: true,
+            },
+          ],
+        ],
+        
+        helpMsg: [
+          'Command `verifyBackupDir`:',
+          '  Fully checks all aspects of a given hash backup dir.',
+          '  ',
+          '  Aliases:',
+          '    verify-backup-dir',
+          '  ',
+          '  Options:',
+          '    --backupDir=<backupDir> (required): The hash backup folder to check.',
+          '        aliases: --backup-dir, --to',
         ].join('\n'),
       },
     ],
