@@ -117,6 +117,10 @@ Command `backup`:
         If "passthrough", symlinks will be copied over as regular files (and the modtime of
         the destination file will be used).
         If "preserve", symlinks will be added to the backup as-is, storing their path.
+    --storeSymlinkType=<true|false> (default `true`): If true, on Windows, the type of a symbolic
+    link will be stored (i.e. whether the symbolic link is a file or directory symbolic link
+    or a directory junction).
+        aliases: --store-symlink-type
     --inMemoryCutoff=<integer >= -1 | Infinity> (default `4_194_304`): Below the cutoff, read
     file into memory and calculate hash and compressed forms in memory, to minimize hard drive
     reads/writes.
