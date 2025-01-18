@@ -35,7 +35,9 @@ Usage: node <path to folder of hash backup code> [command] [options]
   arguments, i.e. ["--argument", "value"]).
 
 Warning:
-  Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set.
+  Restoration of symbolic link timestamps is inaccurate (for the last decimal place or two
+  (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot
+  be set.
 
 Command `init`:
   Initalizes an empty hash backup in backup dir.
@@ -82,28 +84,6 @@ Command `delete`:
     --backupDir=<backupDir> (required): The hash backup dir to remove contents of.
         aliases: --backup-dir, --to
     --confirm=yes (required): Must be set to allow deletion.
-
-Command `delete`:
-  Removes all files in hash backup dir.
-  
-  Aliases:
-    delete-all
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup dir to remove contents of.
-        aliases: --backup-dir, --to
-    --confirm=yes (required): Must be set to allow deletion.
-
-Command `info`:
-  Lists the backups in a given hash backup folder along with detailed information about them.
-  
-  Aliases:
-    list
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get data from.
-        aliases: --backup-dir, --from
-    --name=<name> (optional): If present, only show information about one backup.
 
 Command `info`:
   Lists the backups in a given hash backup folder along with detailed information about them.
@@ -208,44 +188,6 @@ Command `deleteBackup`:
     --pruneFilesAfter=<true|false> (default `true`): If true, prune unused files in the hash
     backup afterward.
 
-Command `deleteBackup`:
-  Deletes a given backup from the backup dir.
-  
-  Aliases:
-    delete-backup
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to delete the backup from.
-        aliases: --backup-dir, --to
-    --name=<name> (required): The name of the backup to delete.
-    --confirm=yes (required): Must be set to allow deletion.
-    --pruneFilesAfter=<true|false> (default `true`): If true, prune unused files in the hash
-    backup afterward.
-
-Command `renameBackup`:
-  Renames a given backup in the backup dir.
-  
-  Aliases:
-    rename-backup, rename
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get information from.
-        aliases: --backup-dir, --to
-    --oldName=<name> (required): The current name of the backup.
-    --newName=<name> (required): The new name of the backup.
-
-Command `renameBackup`:
-  Renames a given backup in the backup dir.
-  
-  Aliases:
-    rename-backup, rename
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get information from.
-        aliases: --backup-dir, --to
-    --oldName=<name> (required): The current name of the backup.
-    --newName=<name> (required): The new name of the backup.
-
 Command `renameBackup`:
   Renames a given backup in the backup dir.
   
@@ -271,34 +213,6 @@ Command `getFolderContents`:
     --pathToFolder=<relativePath> (required): The path inside the backup of the folder to get
     the contents of.
         aliases: path-to-folder
-
-Command `getFolderContents`:
-  Gets a listing of the files/folders in a given folder of the backup.
-  
-  Aliases:
-    get-folder-contents
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get information from.
-        aliases: --backup-dir, --from
-    --name=<name> (required): The name of the backup to get the file from.
-    --pathToFolder=<relativePath> (required): The path inside the backup of the folder to get
-    the contents of.
-        aliases: path-to-folder
-
-Command `getEntryInfo`:
-  Gets detailed information about an entry of the backup.
-  
-  Aliases:
-    get-entry-info
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get information from.
-        aliases: --backup-dir, --from
-    --name=<name> (required): The name of the backup to get the file from.
-    --pathToEntry=<relativePath> (required): The path inside the backup of the item to get
-    information from.
-        aliases: path-to-entry
 
 Command `getEntryInfo`:
   Gets detailed information about an entry of the backup.
@@ -333,25 +247,6 @@ Command `getSubtree`:
     --treeIndent=<integer >= 1> (default `2`): If tree mode is active, the number of spaces
     to the right to indent each level of the tree.
 
-Command `getSubtree`:
-  Gets a listing of the files in a given subtree of the backup.
-  
-  Aliases:
-    get-subtree
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to get information from.
-        aliases: --backup-dir, --from
-    --name=<name> (required): The name of the backup to get the file from.
-    --pathToEntry=<relativePath> (default `.`): The path inside the backup of the file or folder
-    to get information from.
-        aliases: path-to-entry
-    --withEntries=<true|false> (default `false`): If false, a tree of files in backup will
-    be shown. If true, a tree will not be shown and instead detailed information about each
-    entry in the backup will be shown.
-    --treeIndent=<integer >= 1> (default `2`): If tree mode is active, the number of spaces
-    to the right to indent each level of the tree.
-
 Command `getRawFileContents`:
   Directly prints the contents of a file to console.
   
@@ -366,31 +261,6 @@ Command `getRawFileContents`:
         aliases: path-to-file
     --verify=<value> (default true): If true, file checksum will be verified before the file
     is output.
-
-Command `getRawFileContents`:
-  Directly prints the contents of a file to console.
-  
-  Aliases:
-    get-raw-file-contents
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to prune.
-        aliases: --backup-dir, --to
-    --name=<name> (required): The name of the backup to get the file from.
-    --pathToFile=<relativePath> (required): The path inside the backup of the file to access.
-        aliases: path-to-file
-    --verify=<value> (default true): If true, file checksum will be verified before the file
-    is output.
-
-Command `pruneBackupDir`:
-  Removes unreferenced files from the backup dir.
-  
-  Aliases:
-    prune-backup-dir
-  
-  Options:
-    --backupDir=<backupDir> (required): The hash backup folder to prune.
-        aliases: --backup-dir, --to
 
 Command `pruneBackupDir`:
   Removes unreferenced files from the backup dir.
@@ -430,19 +300,6 @@ Command `getKnownHashCompress`:
     algorithms.
         aliases: --show-compression-algos
 
-Command `getKnownHashCompress`:
-  Prints the known hash algorithms and compress algorithms.
-  
-  Aliases:
-    get-known-hash-compress
-  
-  Options:
-    --showHashes=<true|false> (default `true`): If true, will show supported hash algorithms.
-        aliases: --show-hashes
-    --showCompressionAlgos=<true|false> (default `true`): If true, will show supported compression
-    algorithms.
-        aliases: --show-compression-algos
-
 Command `help`:
   Prints this help message.
   
@@ -466,4 +323,4 @@ No command:
 ```
 
 ## Warning
-Restoration of symbolic link timestamps is inaccurate, and the birthtime cannot be set. Additionally, on Windows, symbolic link type is not stored (i.e. file vs directory vs junction).
+Restoration of symbolic link timestamps is inaccurate (for the last decimal place or two (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot be set.

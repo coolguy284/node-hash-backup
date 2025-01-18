@@ -49,6 +49,8 @@ function toJSONObject(value) {
   return jsonValue;
 }
 
+export let ORIGINAL_COMMAND_NAMES = [];
+
 export const COMMANDS = new Map(
   [
     [
@@ -1131,6 +1133,8 @@ export const COMMANDS = new Map(
         },
       ]
     ) => {
+      ORIGINAL_COMMAND_NAMES.push(commandName);
+      
       const commandNames = [commandName, ...aliases];
       
       const commandParams = {
@@ -1143,6 +1147,8 @@ export const COMMANDS = new Map(
       return commandNames.map(aliasCommandName => [aliasCommandName, commandParams]);
     })
 );
+
+Object.freeze(ORIGINAL_COMMAND_NAMES);
 
 function convertCommandArgs(args) {
   let keyedArgs = new Set();
