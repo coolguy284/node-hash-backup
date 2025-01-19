@@ -1022,8 +1022,8 @@ class BackupManager {
     } else {
       hashSliceLength = hashSliceLength ?? 2;
       
-      if (!Number.isSafeInteger(hashSliceLength) || hashSliceLength < 0) {
-        throw new Error(`hashSliceLength not nonnegative integer: ${hashSliceLength}`);
+      if (!Number.isSafeInteger(hashSliceLength) || hashSliceLength <= 0) {
+        throw new Error(`hashSliceLength not positive integer: ${hashSliceLength}`);
       }
     }
     
@@ -1058,7 +1058,7 @@ class BackupManager {
     await BackupManager.#validateHashParams(hashAlgo, hashParams);
     
     if (typeof compressionAlgo != 'string' && compressionAlgo != null) {
-      throw new Error(`compressionAlgo not string: ${compressionAlgo}`);
+      throw new Error(`compressionAlgo not string or null: ${compressionAlgo}`);
     }
     
     if (compressionAlgo != null) {
@@ -2112,10 +2112,72 @@ class BackupManager {
         throw new Error(`info.hashOutputTrimLength not positive integer: ${infoJson.hashOutputTrimLength}`);
       }
       
-      // TODO
+      if (infoJson.hashParams.outputLength * HEX_CHARS_PER_BYTE > infoJson.hashOutputTrimLength + 1) {
+        throw new Error(`info.hashParams.outputLength (${infoJson.hashParams.outputLength}; ${infoJson.hashParams.outputLength} hex chars) unnecessarily large for info.hashOutputTrimLength ${infoJson.hashOutputTrimLength}`);
+      }
     }
     
-    // TODO
+    if (!Number.isSafeInteger(infoJson.hashSlices) || infoJson.hashSlices < 0) {
+      throw new Error(`info.hashSlices not positive integer: ${infoJson.hashSlices}`);
+    }
+    
+    if (infoJson.hashSlices == 0) {
+      if ('hashSliceLength' in infoJson) {
+        throw new Error(`info.hashSlices == 0, but infoJson.hashSliceLength exists: ${infoJson.hashSliceLength}`);
+      }
+    } else {
+      if (!Number.isSafeInteger(infoJson.hashSliceLength) || infoJson.hashSliceLength <= 0) {
+        throw new Error(`info.hashSliceLength must exist but was not positive integer: ${infoJson.hashSliceLength}`);
+      }
+    }
+    
+    let rawHashLengthBits;
+    
+    if (infoJson.hashSlices != 0) {
+      rawHashLengthBits = getHashOutputSizeBits(infoJson.hash, infoJson.hashParams);
+      
+      let hashLengthBits;
+      
+      if ('hashOutputTrimLength' in infoJson) {
+        const hashOutputTrimLengthBits = infoJson.hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
+        
+        if (hashOutputTrimLengthBits > rawHashLengthBits) {
+          throw new Error(`hashOutputTrimLength (${infoJson.hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
+        }
+        
+        hashLengthBits = hashOutputTrimLengthBits;
+      } else {
+        hashLengthBits = rawHashLengthBits;
+      }
+      
+      const totalHashSliceLengthBits = infoJson.hashSlices * infoJson.hashSliceLength * HEX_CHAR_LENGTH_BITS;
+      
+      if (totalHashSliceLengthBits > hashLengthBits) {
+        throw new Error(
+          `hashSlices (${infoJson.hashSlices}) * hashSliceLength (${infoJson.hashSliceLength}) * ${HEX_CHAR_LENGTH_BITS} = ${totalHashSliceLengthBits} > hash size in bits (${hashLengthBits})`
+        );
+      }
+    }
+    
+    await BackupManager.#validateHashParams(infoJson.hash, infoJson.hashParams);
+    
+    if ('compression' in infoJson) {
+      if (typeof infoJson.compression != 'object') {
+        throw new Error(`info.compression exists but is not object: ${typeof infoJson.compression}`);
+      }
+      
+      if (typeof infoJson.compression.algorithm != 'string') {
+        throw new Error(`info.compression.algorithm not string: ${typeof infoJson.compression.algorithm}`);
+      }
+      
+      if (!COMPRESSION_ALGOS.has(infoJson.compression.algorithm)) {
+        throw new Error(`info.compression.algorithm unknown: ${infoJson.compression.algorithm}`);
+      }
+      
+      const { compressionParams } = splitCompressObjectAlgoAndParams(infoJson.compression);
+      
+      await BackupManager.#validateCompressionParams(infoJson.compression.algorithm, compressionParams);
+    }
     
     // check files folder
     

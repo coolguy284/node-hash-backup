@@ -186,6 +186,7 @@ async function getSymlinkType(symlinkPath) {
 async function recursiveReaddirInternal(
   fileOrDirPath,
   {
+    // if this is updated, the recursive call to recursiveReaddirInternal must also have its parameters updated
     excludedFilesOrFolders,
     symlinkMode,
     storeSymlinkType,

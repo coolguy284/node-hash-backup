@@ -8,6 +8,7 @@ todo for any code validation pass after commit:
 update readme.md to match help output
 run "npx eslint ."
 run "npm test symlink"
+run "npm update --save"
 
 low prio:
 call hb dispose if program termination
@@ -29,6 +30,7 @@ internal backup dir command to store file by repeatable stream func or by bytes,
   then function to transfer one/many/all backups from one backupmanager to another; efficiently copies from one backup to another
     with in memory cutoff like usual
   then transmute
+warn when validing backup dir with bad hash algo
 
 if list command is slow: optimize command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 improved data storage:
