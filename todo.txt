@@ -2,12 +2,6 @@ update readme.md to match help output
 fix all linter errors
 ensure test still runs
 
-todo for any code validation pass after commit:
-update readme.md to match help output
-run "npx eslint ."
-run "npm test symlink"
-run "npm update --save"
-
 low prio:
 call hb dispose if program termination
 backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
@@ -131,3 +125,10 @@ check to make sure stopping program halfway does not cause broken data state any
 
 not doing:
 wipe backup dir command should only delete files and dirs with backup content in them
+
+todo for any code validation pass after commit:
+  run "./helpers/update_and_validate_commit.bat", which performs the following actions: 
+    update readme.md to match help output
+    run "npm update --save"
+    run "npx eslint ."
+    run "npm test symlink"

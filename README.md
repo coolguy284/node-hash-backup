@@ -304,6 +304,16 @@ Command `getKnownHashCompress`:
     algorithms.
         aliases: --show-compression-algos
 
+Command `verifyBackupDir`:
+  Fully checks all aspects of a given hash backup dir.
+  
+  Aliases:
+    verify-backup-dir, verify
+  
+  Options:
+    --backupDir=<backupDir> (required): The hash backup folder to check.
+        aliases: --backup-dir, --to
+
 Command `help`:
   Prints this help message.
   
