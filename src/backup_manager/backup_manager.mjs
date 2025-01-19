@@ -145,7 +145,7 @@ class BackupManager {
     this.#hashHexLength =
       hashOutputTrimLength ?
         hashOutputTrimLength :
-        getHashOutputSizeBits(this.#hashAlgo, this.#hashParams) / HEX_CHAR_LENGTH_BITS;
+        Math.round(getHashOutputSizeBits(this.#hashAlgo, this.#hashParams) / HEX_CHAR_LENGTH_BITS);
     this.#loadedBackupsCache = new Map();
     this.#loadedFileMetasCache = new Map();
   }
@@ -1027,25 +1027,23 @@ class BackupManager {
       }
     }
     
-    let rawHashLengthBits;
+    const rawHashLengthBits = getHashOutputSizeBits(hashAlgo, hashParams);;
     
-    if (hashSlices != 0) {
-      rawHashLengthBits = getHashOutputSizeBits(hashAlgo, hashParams);
+    let hashLengthBits;
+    
+    if (hashOutputTrimLength != null) {
+      const hashOutputTrimLengthBits = hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
       
-      let hashLengthBits;
-      
-      if (hashOutputTrimLength != null) {
-        const hashOutputTrimLengthBits = hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
-        
-        if (hashOutputTrimLengthBits > rawHashLengthBits) {
-          throw new Error(`hashOutputTrimLength (${hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
-        }
-        
-        hashLengthBits = hashOutputTrimLengthBits;
-      } else {
-        hashLengthBits = rawHashLengthBits;
+      if (hashOutputTrimLengthBits > rawHashLengthBits) {
+        throw new Error(`hashOutputTrimLength (${hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
       }
       
+      hashLengthBits = hashOutputTrimLengthBits;
+    } else {
+      hashLengthBits = rawHashLengthBits;
+    }
+    
+    if (hashSlices != 0) {
       const totalHashSliceLengthBits = hashSlices * hashSliceLength * HEX_CHAR_LENGTH_BITS;
       
       if (totalHashSliceLengthBits > hashLengthBits) {
@@ -2131,25 +2129,23 @@ class BackupManager {
       }
     }
     
-    let rawHashLengthBits;
+    const rawHashLengthBits = getHashOutputSizeBits(infoJson.hash, infoJson.hashParams);
     
-    if (infoJson.hashSlices != 0) {
-      rawHashLengthBits = getHashOutputSizeBits(infoJson.hash, infoJson.hashParams);
+    let hashLengthBits;
+    
+    if ('hashOutputTrimLength' in infoJson) {
+      const hashOutputTrimLengthBits = infoJson.hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
       
-      let hashLengthBits;
-      
-      if ('hashOutputTrimLength' in infoJson) {
-        const hashOutputTrimLengthBits = infoJson.hashOutputTrimLength * HEX_CHAR_LENGTH_BITS;
-        
-        if (hashOutputTrimLengthBits > rawHashLengthBits) {
-          throw new Error(`hashOutputTrimLength (${infoJson.hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
-        }
-        
-        hashLengthBits = hashOutputTrimLengthBits;
-      } else {
-        hashLengthBits = rawHashLengthBits;
+      if (hashOutputTrimLengthBits > rawHashLengthBits) {
+        throw new Error(`hashOutputTrimLength (${infoJson.hashOutputTrimLength}) in bits (${hashOutputTrimLengthBits}) > hash size in bits (${rawHashLengthBits})`);
       }
       
+      hashLengthBits = hashOutputTrimLengthBits;
+    } else {
+      hashLengthBits = rawHashLengthBits;
+    }
+    
+    if (infoJson.hashSlices != 0) {
       const totalHashSliceLengthBits = infoJson.hashSlices * infoJson.hashSliceLength * HEX_CHAR_LENGTH_BITS;
       
       if (totalHashSliceLengthBits > hashLengthBits) {
@@ -2179,6 +2175,36 @@ class BackupManager {
       await BackupManager.#validateCompressionParams(infoJson.compression.algorithm, compressionParams);
     }
     
+    // check files
+    
+    const allFilesHex = await this._getFilesHexInStore();
+    
+    const hashHexLength = hashLengthBits / HEX_CHAR_LENGTH_BITS;
+    
+    let encounteredFilesHex = new Set();
+    
+    for (const fileHex of allFilesHex) {
+      if (fileHex.length != hashHexLength) {
+        throw new Error(`fileHex wrong length: ${fileHex}, length ${fileHex.length}, expected ${hashHexLength}`);
+      }
+      
+      if (!/^[0-9a-f]*$/.test(fileHex)) {
+        throw new Error(`fileHex not hex: ${fileHex}`);
+      }
+      
+      if (encounteredFilesHex.has(fileHex)) {
+        throw new Error(`duplicate fileHex in list: ${fileHex}`);
+      }
+      
+      const trueFileHex = await this.#hashStream(await this._getFileStream(fileHex));
+      
+      if (fileHex != trueFileHex) {
+        throw new Error(`file in store with hash index ${fileHex} actually has hash ${trueFileHex}`);
+      }
+      
+      encounteredFilesHex.add(fileHex);
+    }
+    
     // check files folder
     
     // TODO
@@ -2188,6 +2214,8 @@ class BackupManager {
     // TODO
     
     // check backups folder
+    
+    // TODO
     
     this.#log(`Backup dir ${JSON.stringify(this.#backupDirPath)} verification passed`);
   }
