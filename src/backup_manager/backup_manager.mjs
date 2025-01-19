@@ -1026,7 +1026,7 @@ class BackupManager {
         throw new Error(`empty meta folder found: ${JSON.stringify(subfolder)}`);
       }
       
-      if (currentDepth < this.#hashSlices) {
+      if (currentDepth < this.#hashSlices - 1) {
         for (const folderContent of folderContents) {
           const newSubfolder = join(subfolder, folderContent.name);
           
@@ -2267,7 +2267,7 @@ class BackupManager {
     'junction',
   ]);
   
-  async verify({ logger = null }) {
+  async verify({ logger = null } = {}) {
     if (typeof logger != 'function' && logger != null) {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
@@ -2282,9 +2282,9 @@ class BackupManager {
     
     const rootDirContents = await readdir(this.#backupDirPath);
     
-    for (const rootDirEnt of rootDirContents) {
-      if (!BackupManager.#ALLOWED_ROOT_DIR_CONTENTS.has(rootDirEnt.name)) {
-        throw new Error(`unrecognized file / folder in root dir: ${JSON.stringify(rootDirEnt.name)}`);
+    for (const rootDirName of rootDirContents) {
+      if (!BackupManager.#ALLOWED_ROOT_DIR_CONTENTS.has(rootDirName)) {
+        throw new Error(`unrecognized file / folder in root dir: ${JSON.stringify(rootDirName)}`);
       }
     }
     
@@ -2443,7 +2443,7 @@ class BackupManager {
         throw new Error(`duplicate fileHex in list: ${fileHex}`);
       }
       
-      const fileStream = await this._getFileStream(fileHex);
+      const fileStream = await this._getFileStream(fileHex, { verifyFileHashOnRetrieval: false });
       
       const counterStream = new CounterStream();
       
@@ -2501,7 +2501,7 @@ class BackupManager {
         throw new Error(`backup ${JSON.stringify(backupFilePath)} not object: ${backupContents}`);
       }
       
-      for (const topLevelProperty of backupContents) {
+      for (const topLevelProperty in backupContents) {
         if (!BackupManager.#ALLOWED_BACKUP_META_CONTENTS.has(topLevelProperty)) {
           throw new Error(`backup ${JSON.stringify(backupFilePath)} unrecognized property: ${JSON.stringify(topLevelProperty)}`);
         }
@@ -2520,13 +2520,13 @@ class BackupManager {
       }
       
       for (let i = 0; i < backupContents.entries.length; i++) {
-        const backupEntry = backupContents[i];
+        const backupEntry = backupContents.entries[i];
         
         if (typeof backupEntry != 'object' || Array.isArray(backupEntry)) {
           throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] not object: ${backupEntry}`);
         }
         
-        for (const property of backupEntry) {
+        for (const property in backupEntry) {
           if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS.has(property)) {
             throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
           }
@@ -2578,7 +2578,7 @@ class BackupManager {
         
         switch (backupEntry.type) {
           case 'file':
-            for (const property of backupEntry) {
+            for (const property in backupEntry) {
               if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_FILE.has(property)) {
                 throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
               }
@@ -2594,7 +2594,7 @@ class BackupManager {
             break;
           
           case 'directory':
-            for (const property of backupEntry) {
+            for (const property in backupEntry) {
               if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_FOLDER.has(property)) {
                 throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
               }
@@ -2604,7 +2604,7 @@ class BackupManager {
             break;
           
           case 'symbolic link':
-            for (const property of backupEntry) {
+            for (const property in backupEntry) {
               if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_SYMLINK.has(property)) {
                 throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
               }
@@ -2754,7 +2754,7 @@ class BackupManager {
     return deepObjectClone(await this.#getFileMeta(fileHashHex));
   }
   
-  async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true }) {
+  async _getFileBytes(fileHashHex, { verifyFileHashOnRetrieval = true } = {}) {
     this.#ensureBackupDirLive();
     
     if (typeof fileHashHex != 'string') {
@@ -2782,7 +2782,7 @@ class BackupManager {
     return fileBytes;
   }
   
-  async _getFileStream(fileHashHex, { verifyFileHashOnRetrieval = true }) {
+  async _getFileStream(fileHashHex, { verifyFileHashOnRetrieval = true } = {}) {
     this.#ensureBackupDirLive();
     
     if (typeof fileHashHex != 'string') {
