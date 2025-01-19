@@ -4,6 +4,7 @@ import {
 } from 'node:crypto';
 import {
   lstat,
+  readdir,
   readFile,
   readlink,
   rm,
@@ -396,14 +397,21 @@ export async function hashBytes(bytes, hashAlgo, hashParams = null, hashOutputTr
   return trimHashOutputAndConvertToHex(await hasherResult, hashOutputTrimLength);
 }
 
-export async function hashStream(stream, hashAlgo, hashParams = null, hashOutputTrimLength = null) {
+export async function hashStream(
+  stream,
+  hashAlgo,
+  hashParams = null,
+  hashOutputTrimLength = null,
+  additionalIntermediaryStreams = [],
+) {
   let hasher = createHasher(hashAlgo, hashParams);
   
   const hasherResult = getHasherOutput(hasher);
   
   await pipeline(
     stream,
-    hasher
+    ...additionalIntermediaryStreams,
+    hasher,
   );
   
   return trimHashOutputAndConvertToHex(await hasherResult, hashOutputTrimLength);
@@ -634,4 +642,22 @@ export async function awaitFileDeletion(filePath, timeout = null) {
       throw err;
     }
   }
+}
+
+export async function ensureNoEmptyFolders(folderPath, emptyRootAllowed = true) {
+  const dirContents = await readdir(folderPath, { withFileTypes: true });
+  
+  if (dirContents.length == 0 && !emptyRootAllowed) {
+    throw new Error(`empty folder found: ${JSON.stringify(folderPath)}`);
+  }
+  
+  for (const subDirEntry of dirContents) {
+    if (subDirEntry.isDirectory()) {
+      await ensureNoEmptyFolders(join(folderPath, subDirEntry.name), false);
+    }
+  }
+}
+
+export function isHex(string) {
+  return /^[0-9a-f]*$/.test(string);
 }

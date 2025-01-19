@@ -24,6 +24,7 @@ import {
 } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 
+import { CounterStream } from '../lib/counter_stream.mjs';
 import { deepObjectClone } from '../lib/deep_clone.mjs';
 import {
   errorIfPathNotDir,
@@ -54,6 +55,7 @@ import {
   CURRENT_BACKUP_VERSION,
   decompressBytes,
   deleteBackupDirInternal,
+  ensureNoEmptyFolders,
   fullInfoFileStringify,
   getBackupDirInfo,
   getAndAddBackupEntry,
@@ -73,6 +75,7 @@ import {
   HEX_CHAR_LENGTH_BITS,
   HEX_CHARS_PER_BYTE,
   INSECURE_HASHES,
+  isHex,
   metaFileStringify,
   permissiveGetFileType,
   RECOMMENDED_MINIMUM_HASH_LENGTH_BITS,
@@ -167,8 +170,14 @@ class BackupManager {
     return await hashBytes(bytes, this.#hashAlgo, this.#hashParams, this.#hashOutputTrimLength);
   }
   
-  async #hashStream(stream) {
-    return await hashStream(stream, this.#hashAlgo, this.#hashParams, this.#hashOutputTrimLength);
+  async #hashStream(stream, additionalIntermediaryStreams = []) {
+    return await hashStream(
+      stream,
+      this.#hashAlgo,
+      this.#hashParams,
+      this.#hashOutputTrimLength,
+      additionalIntermediaryStreams,
+    );
   }
   
   static #lockFilePath(backupDirPath) {
@@ -895,6 +904,163 @@ class BackupManager {
       await compressBytes(Buffer.from('test'), compressionAlgo, compressionParams);
     } catch {
       throw new Error(`compressionParams invalid: ${JSON.stringify(compressionParams)}`);
+    }
+  }
+  
+  static #ALLOWED_FILE_META_PROPERTIES = new Set([
+    'size',
+    'compressedSize',
+    'compression',
+  ]);
+  
+  async #validateMetaFile({
+    metaFilePath,
+    fileHexPrefix = '',
+    encounteredFilesHex,
+  }) {
+    const metaFileContents = JSON.parse(await readLargeFile(metaFilePath));
+    
+    if (typeof metaFileContents != 'object' || Array.isArray(metaFileContents)) {
+      throw new Error(`meta file contents not object: file ${JSON.stringify(metaFilePath)}, contents ${metaFileContents}`);
+    }
+    
+    for (const fileHex in metaFileContents) {
+      if (!encounteredFilesHex.has(fileHex)) {
+        throw new Error(`meta file content hex unrecognized: file ${JSON.stringify(metaFilePath)}, hex ${JSON.stringify(fileHex)}`);
+      }
+      
+      if (!fileHex.startsWith(fileHexPrefix)) {
+        throw new Error(`meta file content hex wrong prefix: file ${JSON.stringify(metaFilePath)}, hex ${JSON.stringify(fileHex)}, expected prefix ${JSON.stringify(fileHexPrefix)}`);
+      }
+      
+      const metaEntry = metaFileContents[fileHex];
+      
+      if (typeof metaEntry != 'object' || Array.isArray(metaEntry)) {
+        throw new Error(`meta entry not object: file ${JSON.stringify(metaFilePath)}, hex ${JSON.stringify(fileHex)}, entry ${metaEntry}`);
+      }
+      
+      for (const metaProperty in metaEntry) {
+        if (!BackupManager.#ALLOWED_FILE_META_PROPERTIES.has(metaProperty)) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}] unrecognized property: ${JSON.stringify(metaProperty)}`);
+        }
+      }
+      
+      if (!Number.isSafeInteger(metaEntry.size) || metaEntry.size < 0) {
+        throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}].size not nonnegative integer: ${metaEntry.size}`);
+      }
+      
+      const backupFileStats = await lstat(this.#getPathOfFile(fileHex));
+      
+      if (!backupFileStats.isFile()) {
+        throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}] referenced file not file`);
+      }
+      
+      const trueFileSize = backupFileStats.size;
+      
+      if ('compression' in metaEntry) {
+        const uncompressedFileSize = encounteredFilesHex.get(fileHex);
+        
+        if (!Number.isSafeInteger(metaEntry.compressedSize) || metaEntry.compressedSize < 0) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}].compressedSize not nonnegative integer: ${metaEntry.compressedSize}`);
+        }
+        
+        if (metaEntry.size != uncompressedFileSize) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}].size not uncompressed file size: meta reported size ${metaEntry.size}, uncompressed file size ${uncompressedFileSize}`);
+        }
+        
+        if (metaEntry.compressedSize != trueFileSize) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}].compressedSize not compressed file size: meta reported size ${metaEntry.compressedSize}, compressed file size ${trueFileSize}`);
+        }
+        
+        // no need to check compression object because decompression was successful
+      } else {
+        if ('compressedSize' in metaEntry) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}] unrecognized property: "compressedSize"`);
+        }
+        
+        if (metaEntry.size != trueFileSize) {
+          throw new Error(`files_meta ${JSON.stringify(metaFilePath)}[${JSON.stringify(fileHex)}].size not true file size: meta reported size ${metaEntry.size}, true size ${trueFileSize}`);
+        }
+      }
+    }
+  }
+  
+  async #validateFilesMetaFolder({
+    subfolder = join(this.#backupDirPath, HB_FILE_META_DIRECTORY),
+    currentDepth = 0,
+    currentPrefix = '',
+    encounteredFilesHex,
+  } = {}) {
+    const folderContents = await readdir(subfolder, { withFileTypes: true });
+    
+    if (this.#hashSlices == 0) {
+      if (folderContents.length == 0) {
+        // passes
+      } else if (folderContents.length == 1) {
+        if (folderContents[0].name != HB_FILE_META_SINGULAR_META_FILE_NAME) {
+          throw new Error(`files_meta content wrong name: ${JSON.stringify(folderContents[0].name)}, expected ${JSON.stringify(HB_FILE_META_SINGULAR_META_FILE_NAME)}`);
+        }
+        
+        if (!folderContents[0].isFile()) {
+          throw new Error(`files_meta ${JSON.stringify(HB_FILE_META_SINGULAR_META_FILE_NAME)} type not file`);
+        }
+        
+        await this.#validateMetaFile({
+          metaFilePath: join(subfolder, HB_FILE_META_SINGULAR_META_FILE_NAME),
+          encounteredFilesHex,
+        });
+      } else {
+        throw new Error(`too many contents in root files_meta folder: ${folderContents.map(x => x.name).join(', ')}, expected at most 1 entry`);
+      }
+    } else {
+      if (folderContents.length == 0 && currentDepth > 0) {
+        throw new Error(`empty meta folder found: ${JSON.stringify(subfolder)}`);
+      }
+      
+      if (currentDepth < this.#hashSlices) {
+        for (const folderContent of folderContents) {
+          const newSubfolder = join(subfolder, folderContent.name);
+          
+          if (!folderContent.isDirectory()) {
+            throw new Error(`files_meta content not folder: ${JSON.stringify(newSubfolder)}`);
+          }
+          
+          if (folderContent.name.length != this.#hashSliceLength || !isHex(folderContent.name)) {
+            throw new Error(`files_meta content not valid prefix: ${JSON.stringify(newSubfolder)}`);
+          }
+          
+          await this.#validateFilesMetaFolder({
+            subfolder: newSubfolder,
+            currentDepth: currentDepth + 1,
+            currentPrefix: currentPrefix + folderContent.name,
+            encounteredFilesHex,
+          });
+        }
+      } else {
+        for (const folderContent of folderContents) {
+          const newSubfile = join(subfolder, folderContent.name);
+          
+          if (!folderContent.isFile()) {
+            throw new Error(`files_meta content not file: ${JSON.stringify(newSubfile)}`);
+          }
+          
+          if (!folderContent.name.endsWith(HB_FILE_META_FILE_EXTENSION)) {
+            throw new Error(`files_meta content invalid filename: ${JSON.stringify(newSubfile)}`);
+          }
+          
+          const fileNonExtName = folderContent.name.slice(0, -HB_BACKUP_META_FILE_EXTENSION.length);
+          
+          if (fileNonExtName.length != this.#hashSliceLength || !isHex(fileNonExtName)) {
+            throw new Error(`files_meta content invalid filename: ${JSON.stringify(newSubfile)}`);
+          }
+          
+          await this.#validateMetaFile({
+            metaFilePath: newSubfile,
+            fileHexPrefix: currentPrefix + fileNonExtName,
+            encounteredFilesHex,
+          });
+        }
+      }
     }
   }
   
@@ -2181,14 +2347,14 @@ class BackupManager {
     
     const hashHexLength = hashLengthBits / HEX_CHAR_LENGTH_BITS;
     
-    let encounteredFilesHex = new Set();
+    let encounteredFilesHex = new Map();
     
     for (const fileHex of allFilesHex) {
       if (fileHex.length != hashHexLength) {
         throw new Error(`fileHex wrong length: ${fileHex}, length ${fileHex.length}, expected ${hashHexLength}`);
       }
       
-      if (!/^[0-9a-f]*$/.test(fileHex)) {
+      if (!isHex(fileHex)) {
         throw new Error(`fileHex not hex: ${fileHex}`);
       }
       
@@ -2196,22 +2362,26 @@ class BackupManager {
         throw new Error(`duplicate fileHex in list: ${fileHex}`);
       }
       
-      const trueFileHex = await this.#hashStream(await this._getFileStream(fileHex));
+      const fileStream = await this._getFileStream(fileHex);
+      
+      const counterStream = new CounterStream();
+      
+      const trueFileHex = await this.#hashStream(fileStream, [counterStream]);
       
       if (fileHex != trueFileHex) {
         throw new Error(`file in store with hash index ${fileHex} actually has hash ${trueFileHex}`);
       }
       
-      encounteredFilesHex.add(fileHex);
+      encounteredFilesHex.set(fileHex, counterStream.getLengthCounted());
     }
     
-    // check files folder
+    // check files folder for empty folders (only thing left to check i think)
     
-    // TODO
+    await ensureNoEmptyFolders(join(this.#backupDirPath, HB_FILE_DIRECTORY));
     
     // check files_meta folder
     
-    // TODO
+    await this.#validateFilesMetaFolder({ encounteredFilesHex });
     
     // check backups folder
     
@@ -2263,7 +2433,7 @@ class BackupManager {
       throw new Error(`fileHashHexPrefix length (${fileHashHexPrefix.length}) > hash length (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]*$/.test(fileHashHexPrefix)) {
+    if (!isHex(fileHashHexPrefix)) {
       throw new Error(`fileHashHexPrefix not hex: ${fileHashHexPrefix}`);
     }
     
@@ -2303,7 +2473,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
+    if (!isHex(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -2321,7 +2491,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
+    if (!isHex(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -2343,7 +2513,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
+    if (!isHex(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
@@ -2371,7 +2541,7 @@ class BackupManager {
       throw new Error(`fileHashHex length (${fileHashHex.length}) not expected (${this.#hashHexLength})`);
     }
     
-    if (!/^[0-9a-f]*$/.test(fileHashHex)) {
+    if (!isHex(fileHashHex)) {
       throw new Error(`fileHashHex not hex: ${fileHashHex}`);
     }
     
