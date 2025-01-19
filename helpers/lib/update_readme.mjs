@@ -3,7 +3,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import { executeCommandLineCollectOutput } from '../src/command_line/command_line.mjs';
+import { executeCommandLineCollectOutput } from '../../src/command_line/command_line.mjs';
 
 const README_FILE = 'README.md';
 

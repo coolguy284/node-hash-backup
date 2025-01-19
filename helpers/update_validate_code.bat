@@ -1,9 +1,9 @@
 @echo off
 
-cd "%0/../.."
+cd /D "%0/../.."
 
 echo Updating README.md...
-node helpers/update_readme.mjs
+node helpers/lib/update_readme.mjs
 if errorlevel 1 (echo Error updating readme & exit /b %errorlevel%)
 echo README.md updated
 echo.
@@ -21,8 +21,9 @@ echo Code passes
 echo.
 
 echo Testing hash backup...
-echo unimplemented
-exit /b 0
-npm test symlink
-if errorlevel 1 (echo Error in symlink test & pause & exit /b %errorlevel%)
+rem https://stackoverflow.com/questions/19098101/how-to-open-an-elevated-cmd-using-command-line-for-windows/32216421#32216421
+powershell -Command "Start-Process helpers/lib/admin_test_runner.bat -Verb RunAs -Wait"
+if errorlevel 1 (echo Error creating hash backup test process & exit /b %errorlevel%)
+echo If the spawned window closed automatically, hash backup test was a success.
+echo Otherwise, hash backup test failed.
 echo.
