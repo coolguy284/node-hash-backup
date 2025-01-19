@@ -1,5 +1,3 @@
-verify command
-
 update readme.md to match help output
 fix all linter errors
 ensure test still runs

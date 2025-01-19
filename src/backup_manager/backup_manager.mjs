@@ -917,7 +917,10 @@ class BackupManager {
     metaFilePath,
     fileHexPrefix = '',
     encounteredFilesHex,
+    logger,
   }) {
+    this.#log(logger, `Validating file metadata file ${JSON.stringify(metaFilePath)}`);
+    
     const metaFileContents = JSON.parse(await readLargeFile(metaFilePath));
     
     if (typeof metaFileContents != 'object' || Array.isArray(metaFileContents)) {
@@ -983,6 +986,8 @@ class BackupManager {
         }
       }
     }
+    
+    this.#log(logger, `File metadata file ${JSON.stringify(metaFilePath)} valid`);
   }
   
   async #validateFilesMetaFolder({
@@ -990,7 +995,10 @@ class BackupManager {
     currentDepth = 0,
     currentPrefix = '',
     encounteredFilesHex,
+    logger,
   } = {}) {
+    this.#log(logger, `Validating file metadata folder ${JSON.stringify(subfolder)}`);
+    
     const folderContents = await readdir(subfolder, { withFileTypes: true });
     
     if (this.#hashSlices == 0) {
@@ -1008,6 +1016,7 @@ class BackupManager {
         await this.#validateMetaFile({
           metaFilePath: join(subfolder, HB_FILE_META_SINGULAR_META_FILE_NAME),
           encounteredFilesHex,
+          logger,
         });
       } else {
         throw new Error(`too many contents in root files_meta folder: ${folderContents.map(x => x.name).join(', ')}, expected at most 1 entry`);
@@ -1034,6 +1043,7 @@ class BackupManager {
             currentDepth: currentDepth + 1,
             currentPrefix: currentPrefix + folderContent.name,
             encounteredFilesHex,
+            logger,
           });
         }
       } else {
@@ -1058,10 +1068,13 @@ class BackupManager {
             metaFilePath: newSubfile,
             fileHexPrefix: currentPrefix + fileNonExtName,
             encounteredFilesHex,
+            logger,
           });
         }
       }
     }
+    
+    this.#log(logger, `File metadata folder ${JSON.stringify(subfolder)} valid`);
   }
   
   // public funcs
@@ -2261,9 +2274,11 @@ class BackupManager {
     
     this.#ensureBackupDirLive();
     
-    this.#log(`Verifying backup dir ${JSON.stringify(this.#backupDirPath)}`);
+    this.#log(logger, `Verifying backup dir ${JSON.stringify(this.#backupDirPath)}...`);
     
     // check root
+    
+    this.#log(logger, 'Checking root backup dir...');
     
     const rootDirContents = await readdir(this.#backupDirPath);
     
@@ -2281,7 +2296,11 @@ class BackupManager {
       }
     }
     
+    this.#log(logger, 'Root backup dir valid');
+    
     // check info.json
+    
+    this.#log(logger, `Checking informational file (${JSON.stringify(HB_FULL_INFO_FILE_NAME)})...`);
     
     if (!(await lstat(join(this.#backupDirPath, HB_FULL_INFO_FILE_NAME))).isFile()) {
       throw new Error(`${JSON.stringify(HB_FULL_INFO_FILE_NAME)} not file`);
@@ -2397,7 +2416,11 @@ class BackupManager {
       await BackupManager.#validateCompressionParams(infoJson.compression.algorithm, compressionParams);
     }
     
+    this.#log(logger, 'Informational file valid');
+    
     // check files
+    
+    this.#log(logger, 'Checking stored files...');
     
     const allFilesHex = await this._getFilesHexInStore();
     
@@ -2406,6 +2429,8 @@ class BackupManager {
     let encounteredFilesHex = new Map();
     
     for (const fileHex of allFilesHex) {
+      this.#log(logger, `Checking file with hex ${JSON.stringify(fileHex)}...`);
+      
       if (fileHex.length != hashHexLength) {
         throw new Error(`fileHex wrong length: ${fileHex}, length ${fileHex.length}, expected ${hashHexLength}`);
       }
@@ -2429,22 +2454,38 @@ class BackupManager {
       }
       
       encounteredFilesHex.set(fileHex, counterStream.getLengthCounted());
+      
+      this.#log(logger, `File with hex ${JSON.stringify(fileHex)} valid`);
     }
+    
+    this.#log(logger, 'Stored files valid');
     
     // check files folder for empty folders (only thing left to check i think)
     
+    this.#log(logger, 'Checking for empty subfolders in files dir...');
+    
     await ensureNoEmptyFolders(join(this.#backupDirPath, HB_FILE_DIRECTORY));
+    
+    this.#log(logger, 'No empty subfolders found in files dir');
     
     // check files_meta folder
     
-    await this.#validateFilesMetaFolder({ encounteredFilesHex });
+    this.#log(logger, 'Checking file metadata folder...');
+    
+    await this.#validateFilesMetaFolder({ encounteredFilesHex, logger });
+    
+    this.#log(logger, 'File metadata folder valid');
     
     // check backups folder
+    
+    this.#log(logger, 'Checking backup metadata folder...');
     
     const backupFolderEntries = await readdir(join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY), { withFileTypes: true });
     
     for (const backupFolderEntry of backupFolderEntries) {
       const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, backupFolderEntry.name);
+      
+      this.#log(logger, `Checking backup metadata file ${JSON.stringify(backupFilePath)}...`);
       
       if (!backupFolderEntry.isFile()) {
         throw new Error(`backup meta file not file: ${JSON.stringify(backupFilePath)}`);
@@ -2592,9 +2633,13 @@ class BackupManager {
             throw new Error(`unhandled case, internal error: ${JSON.stringify(backupEntry.type)}`);
         }
       }
+      
+      this.#log(logger, `Backup metadata file ${JSON.stringify(backupFilePath)} valid`);
     }
     
-    this.#log(`Backup dir ${JSON.stringify(this.#backupDirPath)} verification passed`);
+    this.#log(logger, 'Backup metadata folder valid');
+    
+    this.#log(logger, `Backup dir ${JSON.stringify(this.#backupDirPath)} verification passed`);
   }
   
   async [Symbol.asyncDispose]() {
