@@ -1,5 +1,3 @@
-ensure test still runs
-
 low prio:
 call hb dispose if program termination
 backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
@@ -21,6 +19,7 @@ internal backup dir command to store file by repeatable stream func or by bytes,
     with in memory cutoff like usual
   then transmute
 warn when validing backup dir with bad hash algo
+investigate why symlink time restore is sometimes off by 0.000_1 despite just calling lutimes
 
 if list command is slow: optimize command to run much faster, potentially cache info in an indexed manner, putting into backupinfo.json inside cache folder in backup
 improved data storage:

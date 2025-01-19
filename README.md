@@ -22,6 +22,7 @@ Information tracked on files:
 
 Information tracked on symbolic link:
 - exact bytes of symlink target
+- symlink type (on Windows; file symlink, directory symlink, or directory junction)
 
 ## Help
 

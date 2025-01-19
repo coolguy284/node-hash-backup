@@ -2,6 +2,8 @@
 
 cd /D "%0/../.."
 
+rem goto test
+
 echo Updating README.md...
 node helpers/lib/update_readme.mjs
 if errorlevel 1 (echo Error updating readme & exit /b %errorlevel%)
@@ -20,6 +22,7 @@ if errorlevel 1 (echo Error in eslint & exit /b %errorlevel%)
 echo Code passes
 echo.
 
+:test
 echo Testing hash backup...
 rem https://stackoverflow.com/questions/19098101/how-to-open-an-elevated-cmd-using-command-line-for-windows/32216421#32216421
 powershell -Command "Start-Process helpers/lib/admin_test_runner.bat -Verb RunAs -Wait"
