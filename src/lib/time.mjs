@@ -22,7 +22,13 @@ export function unixSecStringToUnixNSInt(unixSecString) {
   if ((match = /^(-)?(\d+)(?:\.(\d+))?/.exec(unixSecString)) != null) {
     const [ sign, integer, fractional ] = match.slice(1);
     
-    return (sign != null ? -1n : 1n) * (BigInt(integer) * 1_000_000_000n + BigInt(fractional));
+    if (fractional.length > 9) {
+      throw new Error(`fractional too big for nanosecond: ${fractional.length} > 9`);
+    }
+    
+    const paddedFractional = fractional.padEnd(9, '0');
+    
+    return (sign != null ? -1n : 1n) * (BigInt(integer) * 1_000_000_000n + BigInt(paddedFractional));
   } else {
     throw new Error(`unixSecString invalid format: ${unixSecString}`);
   }

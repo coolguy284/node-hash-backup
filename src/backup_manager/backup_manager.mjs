@@ -2197,6 +2197,62 @@ class BackupManager {
     'hashSliceLength',
     'compression',
   ]);
+  static #ALLOWED_BACKUP_META_CONTENTS = new Set([
+    'createdAt',
+    'entries',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_CONTENTS = new Set([
+    'path',
+    'type',
+    'attributes',
+    'hash',
+    'symlinkType',
+    'symlinkPath',
+    'atime',
+    'mtime',
+    'ctime',
+    'birthtime',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_TYPES = new Set([
+    'file',
+    'directory',
+    'symbolic link',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_CONTENTS_FILE = new Set([
+    'path',
+    'type',
+    'attributes',
+    'hash',
+    'atime',
+    'mtime',
+    'ctime',
+    'birthtime',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_CONTENTS_FOLDER = new Set([
+    'path',
+    'type',
+    'attributes',
+    'atime',
+    'mtime',
+    'ctime',
+    'birthtime',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_CONTENTS_SYMLINK = new Set([
+    'path',
+    'type',
+    'attributes',
+    'symlinkType',
+    'symlinkPath',
+    'atime',
+    'mtime',
+    'ctime',
+    'birthtime',
+  ]);
+  static #ALLOWED_BACKUP_ENTRY_SYMLINK_TYPES = new Set([
+    'file',
+    'directory',
+    'junction',
+  ]);
   
   async verify({ logger = null }) {
     if (typeof logger != 'function' && logger != null) {
@@ -2385,7 +2441,158 @@ class BackupManager {
     
     // check backups folder
     
-    // TODO
+    const backupFolderEntries = await readdir(join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY), { withFileTypes: true });
+    
+    for (const backupFolderEntry of backupFolderEntries) {
+      const backupFilePath = join(this.#backupDirPath, HB_BACKUP_META_DIRECTORY, backupFolderEntry.name);
+      
+      if (!backupFolderEntry.isFile()) {
+        throw new Error(`backup meta file not file: ${JSON.stringify(backupFilePath)}`);
+      }
+      
+      if (!backupFolderEntry.name.endsWith(HB_BACKUP_META_FILE_EXTENSION)) {
+        throw new Error(`backup meta file not metadata file type: ${JSON.stringify(backupFilePath)}`);
+      }
+      
+      const backupContents = JSON.parse(await readLargeFile(backupFilePath));
+      
+      if (typeof backupContents != 'object' || Array.isArray(backupContents)) {
+        throw new Error(`backup ${JSON.stringify(backupFilePath)} not object: ${backupContents}`);
+      }
+      
+      for (const topLevelProperty of backupContents) {
+        if (!BackupManager.#ALLOWED_BACKUP_META_CONTENTS.has(topLevelProperty)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)} unrecognized property: ${JSON.stringify(topLevelProperty)}`);
+        }
+      }
+      
+      if (typeof backupContents.createdAt != 'string') {
+        throw new Error(`backup ${JSON.stringify(backupFilePath)}.createdAt not string: ${typeof backupContents.createdAt}`);
+      }
+      
+      if (!/^-?\d+-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(backupContents.createdAt)) {
+        throw new Error(`backup ${JSON.stringify(backupFilePath)}.createdAt invalid: ${backupContents.createdAt}`);
+      }
+      
+      if (!Array.isArray(backupContents.entries)) {
+        throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries not array: ${backupContents.entries}`);
+      }
+      
+      for (let i = 0; i < backupContents.entries.length; i++) {
+        const backupEntry = backupContents[i];
+        
+        if (typeof backupEntry != 'object' || Array.isArray(backupEntry)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] not object: ${backupEntry}`);
+        }
+        
+        for (const property of backupEntry) {
+          if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS.has(property)) {
+            throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
+          }
+        }
+          
+        if (typeof backupEntry.path != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].path not string: ${typeof backupEntry.path}`);
+        }
+          
+        if (typeof backupEntry.type != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].type not string: ${typeof backupEntry.type}`);
+        }
+        
+        if (!BackupManager.#ALLOWED_BACKUP_ENTRY_TYPES.has(backupEntry.type)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].type unknown: ${backupEntry.type}`);
+        }
+        
+        if (typeof backupEntry.atime != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].atime not string: ${typeof backupEntry.atime}`);
+        }
+        
+        if (!/^-?\d+(?:\.\d+)?$/.test(backupEntry.atime)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].atime not valid: ${backupEntry.atime}`);
+        }
+        
+        if (typeof backupEntry.mtime != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].mtime not string: ${typeof backupEntry.mtime}`);
+        }
+        
+        if (!/^-?\d+(?:\.\d+)?$/.test(backupEntry.mtime)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].mtime not valid: ${backupEntry.mtime}`);
+        }
+        
+        if (typeof backupEntry.ctime != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].ctime not string: ${typeof backupEntry.ctime}`);
+        }
+        
+        if (!/^-?\d+(?:\.\d+)?$/.test(backupEntry.ctime)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].ctime not valid: ${backupEntry.ctime}`);
+        }
+        
+        if (typeof backupEntry.birthtime != 'string') {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].birthtime not string: ${typeof backupEntry.birthtime}`);
+        }
+        
+        if (!/^-?\d+(?:\.\d+)?$/.test(backupEntry.birthtime)) {
+          throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].birthtime not valid: ${backupEntry.birthtime}`);
+        }
+        
+        switch (backupEntry.type) {
+          case 'file':
+            for (const property of backupEntry) {
+              if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_FILE.has(property)) {
+                throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
+              }
+            }
+            
+            if (typeof backupEntry.hash != 'string') {
+              throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].hash not string: ${typeof backupEntry.hash}`);
+            }
+            
+            if (backupEntry.hash.length != this.#hashHexLength || !isHex(backupEntry.hash)) {
+              throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].hash invalid: ${backupEntry.hash}`);
+            }
+            break;
+          
+          case 'directory':
+            for (const property of backupEntry) {
+              if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_FOLDER.has(property)) {
+                throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
+              }
+            }
+            
+            // no extra properties to check
+            break;
+          
+          case 'symbolic link':
+            for (const property of backupEntry) {
+              if (!BackupManager.#ALLOWED_BACKUP_ENTRY_CONTENTS_SYMLINK.has(property)) {
+                throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}] unrecognized property: ${JSON.stringify(property)}`);
+              }
+            }
+            
+            if (typeof backupEntry.symlinkPath != 'string') {
+              throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].symlinkPath not string: ${typeof backupEntry.symlinkPath}`);
+            }
+            
+            if (!/^[a-zA-Z0-9+/]*=*$/.test(backupEntry.symlinkPath)) {
+              throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].symlinkPath invalid base64: ${backupEntry.symlinkPath}`);
+            }
+            
+            if ('symlinkType' in backupEntry) {
+              if (typeof backupEntry.symlinkType != 'string') {
+                throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].symlinkType not string: ${typeof backupEntry.symlinkType}`);
+              }
+        
+              if (!BackupManager.#ALLOWED_BACKUP_ENTRY_SYMLINK_TYPES.has(backupEntry.symlinkType)) {
+                throw new Error(`backup ${JSON.stringify(backupFilePath)}.entries[${i}].symlinkType unknown: ${backupEntry.symlinkType}`);
+              }
+            }
+            break;
+          
+          default:
+            throw new Error(`unhandled case, internal error: ${JSON.stringify(backupEntry.type)}`);
+        }
+      }
+    }
     
     this.#log(`Backup dir ${JSON.stringify(this.#backupDirPath)} verification passed`);
   }

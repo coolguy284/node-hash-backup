@@ -1030,12 +1030,11 @@ export const COMMANDS = new Map(
       },
     ],
     
-    /*
     [
       'verifyBackupDir',
       
       {
-        aliases: ['verify-backup-dir'],
+        aliases: ['verify-backup-dir', 'verify'],
         
         args: [
           [
@@ -1053,7 +1052,7 @@ export const COMMANDS = new Map(
           '  Fully checks all aspects of a given hash backup dir.',
           '  ',
           '  Aliases:',
-          '    verify-backup-dir',
+          '    verify-backup-dir, verify',
           '  ',
           '  Options:',
           '    --backupDir=<backupDir> (required): The hash backup folder to check.',
@@ -1061,7 +1060,6 @@ export const COMMANDS = new Map(
         ].join('\n'),
       },
     ],
-    */
     
     [
       'help',
