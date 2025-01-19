@@ -1,5 +1,3 @@
-update readme.md to match help output
-fix all linter errors
 ensure test still runs
 
 low prio:
@@ -127,7 +125,7 @@ not doing:
 wipe backup dir command should only delete files and dirs with backup content in them
 
 todo for any code validation pass after commit:
-  run "./helpers/update_and_validate_commit.bat", which performs the following actions: 
+  run "./helpers/update_validate_code.bat", which performs the following actions: 
     update readme.md to match help output
     run "npm update --save"
     run "npx eslint ."
