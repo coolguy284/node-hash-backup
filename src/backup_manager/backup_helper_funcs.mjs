@@ -62,6 +62,21 @@ export async function deleteBackupDir({
   });
 }
 
+export async function listBackups({
+  backupDir,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    return await backupMgr.listBackups();
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
+
 export async function performBackup({
   backupDir,
   name,

@@ -8,6 +8,7 @@ export {
   getFileStreamByBackupPath,
   getFolderContents,
   getSubtree,
+  listBackups,
   deleteBackup,
   deleteBackupDir,
   performBackup,
