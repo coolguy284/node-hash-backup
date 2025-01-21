@@ -533,7 +533,7 @@ class BackupManager {
           try {
             const compressedFilePath = join(tmpDirPath, fileHashHex);
             const fileStream = BackupManager.#reusablyGetReadStream(fileHandle);
-            const compressor = createCompressor(this.#compressionAlgo, this.#compressionParams);
+            const compressor = createCompressor(this.#compressionAlgo, this.#compressionParams, fileSize);
             const compressedFile = createWriteStream(compressedFilePath);
             
             await pipeline(

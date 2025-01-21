@@ -257,28 +257,56 @@ function convertCompressionParams(compressionAlgo, compressionParams, originalFi
     case 'gzip':
       return compressionParams;
     
-    case 'brotli':
-      return {
-        params: {
-          [zlibConstants.BROTLI_PARAM_QUALITY]: compressionParams.level,
-          [zlibConstants.BROTLI_PARAM_SIZE_HINT]: originalFileSize,
-          ...compressionParams.params,
-        },
-        ...Object.fromEntries(Object.entries(compressionParams).map(([key, _]) => key != 'params')),
+    case 'brotli': {
+      const newParamsSubKey = {
+        ...(
+          compressionParams.level != null ?
+            { [zlibConstants.BROTLI_PARAM_QUALITY]: compressionParams.level } :
+            {}
+        ),
+        ...(
+          originalFileSize != null ?
+            { [zlibConstants.BROTLI_PARAM_SIZE_HINT]: originalFileSize } :
+            {}
+        ),
+        ...compressionParams.params,
       };
+      
+      const newParams = {
+        ...(
+          Object.keys(newParamsSubKey).length > 0 ?
+            { params: newParamsSubKey } :
+            {}
+        ),
+        ...Object.fromEntries(Object.entries(compressionParams).filter(([key, _]) => key != 'params')),
+      };
+      
+      if (Object.keys(newParams).length == 0) {
+        return null;
+      } else {
+        return newParams;
+      }
+    }
     
     case 'lzma-raw':
     case 'lzma-stream':
     case 'lzma':
-    case 'xz':
-      return {
+    case 'xz': {
+      const newParams = {
         ...(
-          'level' in compressionParams ?
+          compressionParams.level != null ?
             { preset: compressionParams.level } :
             {}
         ),
         ...compressionParams,
       };
+      
+      if (Object.keys(newParams).length == 0) {
+        return null;
+      } else {
+        return newParams;
+      }
+    }
   }
 }
 
