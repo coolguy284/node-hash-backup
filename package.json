@@ -1,7 +1,7 @@
 {
   "name": "hash-backup",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A hash based incremental file backupper.",
   "main": "main.mjs",
   "exports": {
@@ -33,6 +33,6 @@
     "eslint": "^9.18.0",
     "globals": "^15.14.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.21.0"
   }
 }
