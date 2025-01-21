@@ -2,7 +2,7 @@
   "name": "hash-backup",
   "type": "module",
   "version": "2.1.0",
-  "description": "A hash based incremental file backupper.",
+  "description": "A deduplicating backup system that stores each file by its hash, but also stores metadata (only timestamps for now), aiming to be perfect storage.",
   "main": "main.mjs",
   "exports": {
     ".": "./main.mjs",
