@@ -399,7 +399,7 @@ function sortSubtree(splitSubtree) {
 function formatTree(splitSubtree, formatParams = {}) {
   const { indent = 2 } = formatParams;
   
-  // unicode chars definitely not taken from the windows "tree" command:
+  // unicode chars definitely not taken from the Windows "tree" command:
   // ─└├│
   
   const {

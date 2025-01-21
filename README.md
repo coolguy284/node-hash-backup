@@ -1,6 +1,6 @@
 # Hash Backup Tool
 
-This program is used to create backups of a given folder tree by referencing each file by its hash. Each additional backup to the same backup dir will only add new files that have a different hash, so space is conserved. All file and folder timestamps (that are made available to node.js) are preserved (although only atime, mtime, and birthtime (windows only) can be restored), and so are empty folders.
+This program is used to create backups of a given folder tree by referencing each file by its hash. Each additional backup to the same backup dir will only add new files that have a different hash, so space is conserved. All file and folder timestamps (that are made available to node.js) are preserved (although only atime, mtime, and birthtime (Windows only) can be restored), and so are empty folders.
 
 # Usage
 
