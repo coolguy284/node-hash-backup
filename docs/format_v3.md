@@ -61,7 +61,10 @@ FILE_META_CONTENT:
       compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
       compression?: object (property only exists if there is compression) {
         algorithm: string,
-        params?: object (optional params necessary to decompress, depends on the compression algorithm),
+        params?: object (
+          optional params necessary to decompress, depends on the compression algorithm;
+          compression params explicitly stripped when setting this
+        ),
       }
     }
   }

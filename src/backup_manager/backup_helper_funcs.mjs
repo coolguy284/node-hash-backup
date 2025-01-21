@@ -7,7 +7,7 @@ import {
   DEFAULT_IN_MEMORY_CUTOFF_SIZE,
 } from './backup_manager.mjs';
 import {
-  COMPRESSION_ALGOS,
+  DEFAULT_COMPRESS_PARAMS,
   deleteBackupDirInternal,
   getHashOutputSizeBits,
   INSECURE_HASHES,
@@ -410,7 +410,7 @@ export function getKnownHashCompress({
   }
   
   if (getCompressionAlgos) {
-    result.compressionAlgos = Array.from(COMPRESSION_ALGOS);
+    result.compressionAlgos = Array.from(DEFAULT_COMPRESS_PARAMS.keys());
   }
   
   return result;

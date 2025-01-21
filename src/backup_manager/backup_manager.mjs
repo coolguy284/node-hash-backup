@@ -51,9 +51,10 @@ import {
   createCompressor,
   createDecompressor,
   compressBytes,
-  COMPRESSION_ALGOS,
+  convertCompressionParamsToDecompression,
   CURRENT_BACKUP_VERSION,
   decompressBytes,
+  DEFAULT_COMPRESS_PARAMS,
   deleteBackupDirInternal,
   ensureNoEmptyFolders,
   fullInfoFileStringify,
@@ -99,6 +100,7 @@ class BackupManager {
   #hashSliceLength = null;
   #compressionAlgo = null;
   #compressionParams = null;
+  #decompressionParams = null;
   #hashHexLength = null;
   #cacheEnabled;
   #loadedBackupsCache = null;
@@ -145,6 +147,7 @@ class BackupManager {
     this.#hashSliceLength = hashSliceLength;
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
+    this.#decompressionParams = convertCompressionParamsToDecompression(compressionAlgo, compressionParams);
     this.#hashHexLength =
       hashOutputTrimLength ?
         hashOutputTrimLength :
@@ -161,6 +164,7 @@ class BackupManager {
     this.#hashSliceLength = null;
     this.#compressionAlgo = null;
     this.#compressionParams = null;
+    this.#decompressionParams = null;
     this.#hashHexLength = null;
     this.#loadedBackupsCache = null;
     this.#loadedFileMetasCache = null;
@@ -405,7 +409,7 @@ class BackupManager {
             compressedSize,
             compression: {
               algorithm: this.#compressionAlgo,
-              ...this.#compressionParams,
+              ...this.#decompressionParams,
             },
           } :
           {}
@@ -1239,7 +1243,7 @@ class BackupManager {
     }
     
     if (compressionAlgo != null) {
-      if (!COMPRESSION_ALGOS.has(compressionAlgo)) {
+      if (!DEFAULT_COMPRESS_PARAMS.has(compressionAlgo)) {
         throw new Error(`compressionAlgo unknown: ${compressionAlgo}`);
       }
       
@@ -2407,7 +2411,7 @@ class BackupManager {
         throw new Error(`info.compression.algorithm not string: ${typeof infoJson.compression.algorithm}`);
       }
       
-      if (!COMPRESSION_ALGOS.has(infoJson.compression.algorithm)) {
+      if (!DEFAULT_COMPRESS_PARAMS.has(infoJson.compression.algorithm)) {
         throw new Error(`info.compression.algorithm unknown: ${infoJson.compression.algorithm}`);
       }
       

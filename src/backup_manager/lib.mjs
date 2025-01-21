@@ -16,6 +16,7 @@ import {
 } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import {
+  constants as zlibConstants,
   createBrotliCompress,
   createBrotliDecompress,
   createDeflate,
@@ -146,15 +147,65 @@ export const INSECURE_HASHES = new ReadOnlySet(
     )
 );
 
-export const COMPRESSION_ALGOS = new ReadOnlySet([
-  'deflate-raw',
-  'deflate',
-  'gzip',
-  'brotli',
-  'lzma-raw',
-  'lzma-stream',
-  'lzma', // LZMA1
-  'xz', // LZMA2
+export const DEFAULT_COMPRESS_PARAMS = new ReadOnlyMap([
+  [
+    'deflate-raw',
+    {
+      level: 6,
+      memLevel: 9,
+    },
+  ],
+  
+  [
+    'deflate',
+    {
+      level: 6,
+      memLevel: 9,
+    },
+  ],
+  
+  [
+    'gzip',
+    {
+      level: 6,
+      memLevel: 9,
+    },
+  ],
+  
+  [
+    'brotli',
+    {
+      level: 6,
+    },
+  ],
+  
+  [
+    'lzma-raw',
+    {
+      level: 6,
+    },
+  ],
+  
+  [
+    'lzma-stream',
+    {
+      level: 6,
+    },
+  ],
+  
+  [
+    'lzma', // LZMA1
+    {
+      level: 6,
+    },
+  ],
+  
+  [
+    'xz', // LZMA2
+    {
+      level: 6,
+    },
+  ],
 ]);
 
 // for these, an outputLength parameter can be passed to hash params
@@ -199,10 +250,103 @@ export function getHashOutputSizeBits(hashAlgo, hashParams = null) {
   return HASH_SIZES.get(hashAlgo);
 }
 
-export function createCompressor(compressionAlgo, compressionParams) {
+function convertCompressionParams(compressionAlgo, compressionParams, originalFileSize = null) {
+  switch (compressionAlgo) {
+    case 'deflate-raw':
+    case 'deflate':
+    case 'gzip':
+      return compressionParams;
+    
+    case 'brotli':
+      return {
+        params: {
+          [zlibConstants.BROTLI_PARAM_QUALITY]: compressionParams.level,
+          [zlibConstants.BROTLI_PARAM_SIZE_HINT]: originalFileSize,
+          ...compressionParams.params,
+        },
+        ...Object.fromEntries(Object.entries(compressionParams).map(([key, _]) => key != 'params')),
+      };
+    
+    case 'lzma-raw':
+    case 'lzma-stream':
+    case 'lzma':
+    case 'xz':
+      return {
+        ...(
+          'level' in compressionParams ?
+            { preset: compressionParams.level } :
+            {}
+        ),
+        ...compressionParams,
+      };
+  }
+}
+
+export function convertCompressionParamsToDecompression(compressionAlgo, compressionParams) {
+  if (compressionParams == null) {
+    return compressionParams;
+  }
+  
+  switch (compressionAlgo) {
+    case 'deflate-raw':
+    case 'deflate':
+    case 'gzip': {
+      let result = { ...compressionParams };
+      
+      delete result.level;
+      delete result.memLevel;
+      delete result.strategy;
+      
+      if (Object.keys(result).length == 0) {
+        return null;
+      } else {
+        return result;
+      }
+    }
+    
+    case 'brotli':
+      if (typeof compressionParams.params != 'object' || Array.isArray(compressionParams.params)) {
+        return compressionParams;
+      } else {
+        let resultParams = { ...compressionParams.params };
+        
+        delete resultParams[zlibConstants.BROTLI_PARAM_MODE];
+        delete resultParams[zlibConstants.BROTLI_PARAM_QUALITY];
+        delete resultParams[zlibConstants.BROTLI_PARAM_SIZE_HINT];
+        delete resultParams[zlibConstants.BROTLI_PARAM_LGWIN];
+        delete resultParams[zlibConstants.BROTLI_PARAM_LGBLOCK];
+        delete resultParams[zlibConstants.BROTLI_PARAM_DISABLE_LITERAL_CONTEXT_MODELING];
+        delete resultParams[zlibConstants.BROTLI_PARAM_LARGE_WINDOW];
+        delete resultParams[zlibConstants.BROTLI_PARAM_NPOSTFIX];
+        delete resultParams[zlibConstants.BROTLI_PARAM_NDIRECT];
+        
+        let result = { ...compressionParams };
+        
+        if (Object.keys(resultParams).length == 0) {
+          delete result.params;
+        }
+        
+        if (Object.keys(result).length == 0) {
+          return null;
+        } else {
+          return result;
+        }
+      }
+    
+    case 'lzma-raw':
+    case 'lzma-stream':
+    case 'lzma':
+    case 'xz':
+      return compressionParams;
+  }
+}
+
+export function createCompressor(compressionAlgo, compressionParams, originalFileSize = null) {
   if (typeof compressionAlgo != 'string') {
     throw new Error(`compressionAlgo not string: ${typeof compressionAlgo}`);
   }
+  
+  compressionParams = convertCompressionParams(compressionAlgo, compressionParams, originalFileSize);
   
   switch (compressionAlgo) {
     case 'deflate-raw':
@@ -255,7 +399,7 @@ export async function compressBytes(bytes, compressionAlgo, compressionParams) {
     throw new Error(`bytes not Uint8Array: ${bytes}`);
   }
   
-  let compressor = createCompressor(compressionAlgo, compressionParams);
+  let compressor = createCompressor(compressionAlgo, compressionParams, bytes.length);
   
   return await new Promise((r, j) => {
     let outputChunks = [];
@@ -274,6 +418,8 @@ export function createDecompressor(compressionAlgo, compressionParams) {
   if (typeof compressionAlgo != 'string') {
     throw new Error(`compressionAlgo not string: ${typeof compressionAlgo}`);
   }
+  
+  compressionParams = convertCompressionParams(compressionAlgo, compressionParams);
   
   switch (compressionAlgo) {
     case 'deflate-raw':

@@ -25,8 +25,8 @@ export { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from './src/backup_manager/backup_manag
 export {
   BACKUP_PATH_SEP,
   BITS_PER_BYTE,
-  COMPRESSION_ALGOS,
   CURRENT_BACKUP_VERSION,
+  DEFAULT_COMPRESS_PARAMS,
   deleteBackupDirInternal,
   getBackupDirInfo,
   getHashOutputSizeBits,
