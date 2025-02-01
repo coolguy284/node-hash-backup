@@ -27,7 +27,7 @@ Information tracked on symbolic link:
 ## Help
 
 ```
-NodeJS Hash Backup Tool v2.0.0
+NodeJS Hash Backup Tool v2.2.0
 LZMA Support: Installed
 
 Usage: node <path to folder of hash backup code> [command] [options]
