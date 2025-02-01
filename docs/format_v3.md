@@ -63,7 +63,8 @@ FILE_META_CONTENT:
         algorithm: string,
         params?: object (
           optional params necessary to decompress, depends on the compression algorithm;
-          compression params explicitly stripped when setting this
+          params used for compression are still included in this to know if further compression
+          is needed when transmuting backup dir
         ),
       }
     }

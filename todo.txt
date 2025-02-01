@@ -35,7 +35,6 @@ more options to define backup granularity:
 option to reset access times after finishing backing up a folder
 sort metafiles as adding new entries to them
 version 3
-  update route strips compress-only params from file meta
   handle duplicate hashes
     //'    --check-duplicate-hashes (default false): If true, check for whether files are truly equal if their hashes are (false not implemented yet, true will error if hashes match as duplicate hash handling not implemented yet).\n'
   use "./path" for all paths not root to remove edge case

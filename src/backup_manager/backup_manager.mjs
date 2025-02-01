@@ -51,7 +51,6 @@ import {
   createCompressor,
   createDecompressor,
   compressBytes,
-  convertCompressionParamsToDecompression,
   CURRENT_BACKUP_VERSION,
   decompressBytes,
   DEFAULT_COMPRESS_PARAMS,
@@ -100,7 +99,6 @@ class BackupManager {
   #hashSliceLength = null;
   #compressionAlgo = null;
   #compressionParams = null;
-  #decompressionParams = null;
   #hashHexLength = null;
   #cacheEnabled;
   #loadedBackupsCache = null;
@@ -147,7 +145,6 @@ class BackupManager {
     this.#hashSliceLength = hashSliceLength;
     this.#compressionAlgo = compressionAlgo;
     this.#compressionParams = compressionParams;
-    this.#decompressionParams = convertCompressionParamsToDecompression(compressionAlgo, compressionParams);
     this.#hashHexLength =
       hashOutputTrimLength ?
         hashOutputTrimLength :
@@ -164,7 +161,6 @@ class BackupManager {
     this.#hashSliceLength = null;
     this.#compressionAlgo = null;
     this.#compressionParams = null;
-    this.#decompressionParams = null;
     this.#hashHexLength = null;
     this.#loadedBackupsCache = null;
     this.#loadedFileMetasCache = null;
@@ -409,7 +405,7 @@ class BackupManager {
             compressedSize,
             compression: {
               algorithm: this.#compressionAlgo,
-              ...this.#decompressionParams,
+              ...this.#compressionParams,
             },
           } :
           {}

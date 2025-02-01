@@ -56,7 +56,11 @@ FILE_META_CONTENT:
       compressedSize?: integer (compressed file size in bytes, property only exists if there is compression),
       compression?: object (property only exists if there is compression) {
         algorithm: string,
-        ... (optional params necessary to decompress, depends on the compression algorithm)
+        ... (
+          optional params necessary to decompress, depends on the compression algorithm;
+          params used for compression are still included in this to know if further compression
+          is needed when transmuting backup dir
+        )
       }
     }
   }

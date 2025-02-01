@@ -310,65 +310,6 @@ function convertCompressionParams(compressionAlgo, compressionParams, originalFi
   }
 }
 
-export function convertCompressionParamsToDecompression(compressionAlgo, compressionParams) {
-  if (compressionParams == null) {
-    return compressionParams;
-  }
-  
-  switch (compressionAlgo) {
-    case 'deflate-raw':
-    case 'deflate':
-    case 'gzip': {
-      let result = { ...compressionParams };
-      
-      delete result.level;
-      delete result.memLevel;
-      delete result.strategy;
-      
-      if (Object.keys(result).length == 0) {
-        return null;
-      } else {
-        return result;
-      }
-    }
-    
-    case 'brotli':
-      if (typeof compressionParams.params != 'object' || Array.isArray(compressionParams.params)) {
-        return compressionParams;
-      } else {
-        let resultParams = { ...compressionParams.params };
-        
-        delete resultParams[zlibConstants.BROTLI_PARAM_MODE];
-        delete resultParams[zlibConstants.BROTLI_PARAM_QUALITY];
-        delete resultParams[zlibConstants.BROTLI_PARAM_SIZE_HINT];
-        delete resultParams[zlibConstants.BROTLI_PARAM_LGWIN];
-        delete resultParams[zlibConstants.BROTLI_PARAM_LGBLOCK];
-        delete resultParams[zlibConstants.BROTLI_PARAM_DISABLE_LITERAL_CONTEXT_MODELING];
-        delete resultParams[zlibConstants.BROTLI_PARAM_LARGE_WINDOW];
-        delete resultParams[zlibConstants.BROTLI_PARAM_NPOSTFIX];
-        delete resultParams[zlibConstants.BROTLI_PARAM_NDIRECT];
-        
-        let result = { ...compressionParams };
-        
-        if (Object.keys(resultParams).length == 0) {
-          delete result.params;
-        }
-        
-        if (Object.keys(result).length == 0) {
-          return null;
-        } else {
-          return result;
-        }
-      }
-    
-    case 'lzma-raw':
-    case 'lzma-stream':
-    case 'lzma':
-    case 'xz':
-      return compressionParams;
-  }
-}
-
 export function createCompressor(compressionAlgo, compressionParams, originalFileSize = null) {
   if (typeof compressionAlgo != 'string') {
     throw new Error(`compressionAlgo not string: ${typeof compressionAlgo}`);
