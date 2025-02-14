@@ -1,7 +1,7 @@
 {
   "name": "hash-backup",
   "type": "module",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "A deduplicating backup system that stores each file by its hash, but also stores metadata (timestamps, readonly attribute, and type of symlink (on Windows)), aiming to be perfect storage.",
   "main": "main.mjs",
   "exports": {
