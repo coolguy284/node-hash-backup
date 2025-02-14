@@ -15,4 +15,5 @@ code_dir=$(dirname $0)
   fi
 )
 
-node $code_dir $*
+# https://stackoverflow.com/questions/3811345/how-to-pass-all-arguments-passed-to-my-bash-script-to-a-function-of-mine/3816747#3816747
+node $code_dir "$@"
