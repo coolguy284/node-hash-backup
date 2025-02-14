@@ -1,7 +1,7 @@
 {
   "name": "hash-backup",
   "type": "module",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "A deduplicating backup system that stores each file by its hash, but also stores metadata (timestamps, readonly attribute, and type of symlink (on Windows)), aiming to be perfect storage.",
   "main": "main.mjs",
   "exports": {
@@ -27,12 +27,12 @@
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.19.0",
-    "@stylistic/eslint-plugin": "^3.0.1",
-    "@types/node": "^22.13.0",
-    "eslint": "^9.19.0",
-    "globals": "^15.14.0",
+    "@eslint/js": "^9.20.0",
+    "@stylistic/eslint-plugin": "^3.1.0",
+    "@types/node": "^22.13.4",
+    "eslint": "^9.20.1",
+    "globals": "^15.15.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0"
+    "typescript-eslint": "^8.24.0"
   }
 }
