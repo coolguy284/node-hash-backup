@@ -11,11 +11,11 @@ set "code_dir=%cd%"
 if not exist node_modules (goto do_install) else (goto run)
 
 :do_install
-call npm i --omit dev
+call npm i --omit=dev --include=optional
 if errorlevel 1 (goto do_install_no_optional) else (goto run)
 
 :do_install_no_optional
-call npm i --omit dev --omit optional
+call npm i --omit=dev --omit=optional
 if errorlevel 1 (echo Error installing modules & exit /b %errorlevel%) else (echo Error installing optional modules, but regular modules worked)
 
 :run
