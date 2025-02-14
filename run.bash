@@ -1,6 +1,9 @@
 set -e
 
-cd $(dirname $0)
+original_cd=$(pwd)
+code_dir=$(dirname $0)
+
+cd $code_dir
 
 if [[ ! -d node_modules ]]; then
   npm i --omit=dev --include=optional || (
@@ -11,4 +14,6 @@ if [[ ! -d node_modules ]]; then
   )
 fi
 
-node . $*
+cd $original_cd
+
+node $code_dir $*
