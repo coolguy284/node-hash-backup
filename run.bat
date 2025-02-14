@@ -5,8 +5,8 @@ set "original_cd=%cd%"
 set "code_dir=%~dp0"
 
 cd /D %code_dir%
-echo %code_dir%
-echo %cd%
+rem strips trailing slash
+set "code_dir=%cd%"
 
 if not exist node_modules (goto do_install) else (goto run)
 
@@ -20,7 +20,4 @@ if errorlevel 1 (echo Error installing modules & exit /b %errorlevel%) else (ech
 
 :run
 cd /D "%original_cd%"
-node test.mjs
-node test.mjs "%code_dir%" %*
-exit
-node " %code_dir% " %*
+node "%code_dir%" %*
