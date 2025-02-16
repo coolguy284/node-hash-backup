@@ -1776,10 +1776,13 @@ class BackupManager {
       throw new Error(`no subtree found in backup ${JSON.stringify(backupName)} with prefix ${JSON.stringify(backupFileOrFolderPath)}`);
     }
     
-    return await Promise.all(
-      resultEntries
-        .map(async entry => await this.#processFileOrFolderEntry(entry))
-    );
+    let finalResults = [];
+    
+    for (const entry of resultEntries) {
+      finalResults.push(await this.#processFileOrFolderEntry(entry));
+    }
+    
+    return finalResults;
   }
   
   async getFileBytesFromBackup({
