@@ -737,6 +737,7 @@ export async function executeCommandLine({
           symlinkMode: keyedArgs.get('symlinkHandling').toUpperCase(),
           inMemoryCutoffSize: keyedArgs.get('imMemoryCutoff'),
           setFileTimes: keyedArgs.get('setFileTimes'),
+          lowAccuracyFileTimes: keyedArgs.get('lowAccuracyFileTimes'),
           createParentFolders: keyedArgs.get('createParentFolders'),
           overwriteExistingRestoreFolderOrFile: keyedArgs.get('overwriteExisting'),
           preserveOutputFolderIfAlreadyExist: keyedArgs.get('preserveOutputFolder'),

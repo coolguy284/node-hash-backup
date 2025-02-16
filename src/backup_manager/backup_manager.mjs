@@ -1886,6 +1886,7 @@ class BackupManager {
     symlinkMode = SymlinkModes.PRESERVE,
     inMemoryCutoffSize = DEFAULT_IN_MEMORY_CUTOFF_SIZE,
     setFileTimes: doSetFileTimes = true,
+    lowAccuracyFileTimes = false,
     createParentFolders = false,
     overwriteExistingRestoreFolderOrFile = false,
     preserveOutputFolderIfAlreadyExist = true,
@@ -2137,7 +2138,8 @@ class BackupManager {
                 createTimeUnixNSInt: unixSecStringToUnixNSInt(birthtime),
               };
             })
-            .reverse()
+            .reverse(),
+          lowAccuracyFileTimes,
         );
       }
     }
