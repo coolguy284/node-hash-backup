@@ -472,7 +472,7 @@ class BackupManager {
         fileHashHex,
         size: fileBytes.length,
         compressionUsed,
-        compressedSize: compressedBytes.length,
+        compressedSize: compressedBytes?.length,
       });
       
       await mkdir(dirname(newFilePath), { recursive: true });
