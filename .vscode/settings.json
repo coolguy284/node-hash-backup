@@ -2,8 +2,10 @@
   "files.exclude": {
     "node_modules": true,
     "subpkgs/hb_native_fs/build/Release/obj": true,
+    "subpkgs/hb_native_fs/build/Release/hb_native_fs.exp": true,
     "subpkgs/hb_native_fs/build/Release/hb_native_fs.iobj": true,
     "subpkgs/hb_native_fs/build/Release/hb_native_fs.ipdb": true,
+    "subpkgs/hb_native_fs/build/Release/hb_native_fs.lib": true,
     "subpkgs/hb_native_fs/build/Release/hb_native_fs.pdb": true,
     "subpkgs/hb_native_fs/build/binding.sln": true,
     "subpkgs/hb_native_fs/build/config.gypi": true,
