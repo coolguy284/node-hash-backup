@@ -5,6 +5,7 @@
       "sources": [
         "main.cpp",
         "napi_helper.cpp",
+        "native_code.cpp",
       ],
     },
   ],
