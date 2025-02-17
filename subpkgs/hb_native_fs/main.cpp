@@ -1,6 +1,7 @@
 #include "napi_helper.hpp"
 #include "native_code.hpp"
 #include <string>
+#include <sstream>
 #include <memory>
 
 // https://nodejs.org/docs/latest/api/n-api.html#usage
@@ -31,9 +32,14 @@ napi_value getItemAttributesJS(napi_env env, napi_callback_info info) {
   std::wstring itemPath = std::wstring(itemPathBufWchar.get(), itemPathLength);
   
   ItemAttributes itemAttributes;
+  unsigned long errorCode;
   
-  if (!getItemAttributes(itemPath, &itemAttributes)) {
-    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "getitemattributes call failed"));
+  if (!getItemAttributes(itemPath, &itemAttributes, &errorCode)) {
+    std::stringstream message;
+    message << "getitemattributes call failed with code ";
+    message << errorCode;
+    
+    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, message.str().c_str()));
     return nullptr;
   }
   

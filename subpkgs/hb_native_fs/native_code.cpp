@@ -1,9 +1,10 @@
 #include "native_code.hpp"
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes) {
+bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, unsigned long* errorCode) {
   DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
   
   if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
+    *errorCode = GetLastError();
     return false;
   }
   

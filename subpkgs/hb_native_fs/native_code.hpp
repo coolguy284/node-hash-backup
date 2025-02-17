@@ -9,4 +9,4 @@ struct ItemAttributes {
   bool compressed;
 };
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes);
+bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, unsigned long* errorCode);
