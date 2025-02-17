@@ -16,4 +16,7 @@
   // not needed once vscode realizes the project is an eslint-enabled project
   // but it helps to get the message across faster
   "eslint.enable": true,
+  "files.associations": {
+    "functional": "cpp"
+  },
 }
