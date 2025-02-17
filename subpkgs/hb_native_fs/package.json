@@ -1,0 +1,26 @@
+{
+  "name": "hash-backup-native-fs",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "A native addon for node-hash-backup that adds support for platform specific operations base NodeJS does not provide.",
+  "main": "main.mjs",
+  "exports": {
+    ".": "./main.mjs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coolguy284/node-hash-backup.git",
+    "directory": "subpkgs/hb_native_fs"
+  },
+  "author": "coolguy284 <coolguy284v64@gmail.com> (https://github.com/coolguy284)",
+  "license": "(MIT OR Unlicense)",
+  "bugs": {
+    "url": "https://github.com/coolguy284/node-hash-backup/issues"
+  },
+  "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
+  "gypfile": true
+}
