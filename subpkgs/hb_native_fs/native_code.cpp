@@ -60,7 +60,7 @@ FILETIME uLongLongIntToFileTime(ULONGLONG fileTimeInt) {
 
 constexpr uint64_t NUM_100NS_IN_SEC = 10000000u;
 constexpr size_t NUM_100NS_IN_SEC_LOG10 = 7;
-constexpr uint64_t UNIX_TO_MS_SEC_FACTOR = 11644473600u;
+constexpr int64_t UNIX_TO_MS_SEC_FACTOR = 11644473600;
 
 bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultTime, std::string* errorMessage) {
   // unix string is string with decimal point (optional) represening seconds since Jan 1, 1970 UTC
@@ -96,7 +96,7 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
       dateNegative = unixSecInt < 0;
       
       if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
-        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        *errorMessage = std::string("string causes overflow of unixSecInt: ") + unixSecString;
         return false;
       }
       
@@ -111,7 +111,7 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
       
       // https://stackoverflow.com/questions/1815367/catch-and-compute-overflow-during-multiplication-of-two-large-integers/1815371#1815371
       if (fileTimeInt / NUM_100NS_IN_SEC != msSecInt) {
-        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        *errorMessage = std::string("string causes overflow of fileTimeInt: ") + unixSecString;
         return false;
       }
     } catch (std::invalid_argument) {
@@ -142,7 +142,7 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
       dateNegative = unixSecInt < 0;
       
       if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
-        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        *errorMessage = std::string("string causes overflow of unixSecInt: ") + unixSecString;
         return false;
       }
       
@@ -157,7 +157,7 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
       
       // https://stackoverflow.com/questions/1815367/catch-and-compute-overflow-during-multiplication-of-two-large-integers/1815371#1815371
       if (fileTimeInt / NUM_100NS_IN_SEC != msSecInt) {
-        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        *errorMessage = std::string("string causes overflow of fileTimeInt: ") + unixSecString;
         return false;
       }
     } catch (std::invalid_argument) {
@@ -189,7 +189,7 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
         
         if (dateNegative) {
           if (fileTimeInt < unixFracSecInt) {
-            *errorMessage = std::string("string fraction causes overflow: ") + unixSecString;
+            *errorMessage = std::string("string fraction causes underflow: ") + unixSecString;
             return false;
           }
           
