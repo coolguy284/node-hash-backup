@@ -4,4 +4,5 @@ import { createRequire } from 'node:module';
 export const {
   getItemAttributes,
   getSymlinkType,
+  unixSecStringToWindowsFiletime: _unixSecStringToWindowsFiletime,
 } = createRequire(import.meta.url)('./build/Release/hb_native_fs.node');

@@ -1,6 +1,8 @@
 #include <string>
 #include "Windows.h"
 
+bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultTime, std::string* errorMessage);
+
 struct ItemAttributes {
   bool readonly;
   bool hidden;
