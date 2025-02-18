@@ -68,6 +68,8 @@ bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, 
   
 }
 
+#include <iostream>
+
 bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(symlinkPath.c_str());
   
@@ -103,6 +105,17 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   union {
     byte outputBuf[65536];
     REPARSE_GUID_DATA_BUFFER reparseData;
+    struct {
+      DWORD Symlink_ReparseTag;
+      WORD Symlink_ReparseDataLength;
+      WORD Symlink_Reserved;
+      WORD Symlink_SubstituteNameOffset;
+      WORD Symlink_SubstituteNameLength;
+      WORD Symlink_PrintNameOffset;
+      WORD Symlink_PrintNameLength;
+      DWORD Symlink_Flags;
+      WCHAR Symlink_PathBuffer[1];
+    };
   };
   
   DWORD bytesReturned;
@@ -123,7 +136,40 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   
   switch (reparseData.ReparseTag) {
     case IO_REPARSE_TAG_SYMLINK:
-      *symlinkType = SymlinkType::FILE;
+      if (itemAttributesResult & FILE_ATTRIBUTE_DIRECTORY) {
+        *symlinkType = SymlinkType::DIRECTORY;
+      } else {
+        *symlinkType = SymlinkType::FILE;
+      }
+      // std::cout << "Symlink Bytes: ";
+      // for (WORD i = 0; i < reparseData.ReparseDataLength; i++) {
+      //   std::cout << reparseData.GenericReparseBuffer.DataBuffer[i] << " ";
+      // }
+      // std::cout << "\n";
+      std::wcout << "Flags: " << Symlink_Flags << "\n";
+      std::wcout << "Expected Data Length: " << (Symlink_SubstituteNameLength + Symlink_PrintNameLength) << "\n";
+      std::wcout << "Data Length: " << reparseData.ReparseDataLength << "\n";
+      std::wcout << "SubstituteNameOffset: " << Symlink_SubstituteNameOffset << "\n";
+      std::wcout << "SubstituteNameLength: " << Symlink_SubstituteNameLength << "\n";
+      std::wcout << "PrintNameOffset: " << Symlink_PrintNameOffset << "\n";
+      std::wcout << "PrintNameLength: " << Symlink_PrintNameLength << "\n";
+      std::wcout << "SubstituteName: ";
+      for (WORD i = 0; i < Symlink_SubstituteNameLength / 2; i++) {
+        std::wcout << (Symlink_PathBuffer[Symlink_SubstituteNameOffset / 2 + i]);
+      }
+      std::wcout << "\n";
+      std::wcout << "PrintName: ";
+      for (WORD i = 0; i < Symlink_PrintNameLength / 2; i++) {
+        std::wcout << (Symlink_PathBuffer[Symlink_PrintNameOffset / 2 + i]);
+      }
+      std::wcout << "\n";
+      std::wcout << "FullBufferLength: " << reparseData.ReparseDataLength << "\n";
+      std::wcout << "FullBuffer: ";
+      for (WORD i = 0; i < reparseData.ReparseDataLength - 12; i++) {
+        std::wcout << (char) (reparseData.GenericReparseBuffer.DataBuffer[i]);
+      }
+      std::wcout << "\n";
+      //std::wcout << "PrintName: " << std::wstring(Symlink_PathBuffer[Symlink_PrintNameOffset / 2], Symlink_PrintNameLength / 2) << "\n";
       break;
     
     case IO_REPARSE_TAG_MOUNT_POINT:
