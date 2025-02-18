@@ -75,6 +75,72 @@ napi_value getItemAttributesJS(napi_env env, napi_callback_info info) {
   return result;
 }
 
+napi_value getSymlinkTypeJS(napi_env env, napi_callback_info info) {
+  napi_value arguments[1];
+  size_t numArgs = 1;
+  NAPI_CALL_RETURN(env, napi_get_cb_info(env, info, &numArgs, arguments, nullptr, nullptr));
+  
+  if (numArgs < 1) {
+    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "expected string path for first parameter"));
+    return nullptr;
+  }
+  
+  napi_value itemPathObj = arguments[0];
+  
+  napi_valuetype itemPathType;
+  NAPI_CALL_RETURN(env, napi_typeof(env, itemPathObj, &itemPathType));
+  if (itemPathType != napi_string) {
+    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "expected string path for first parameter"));
+    return nullptr;
+  }
+  
+  size_t itemPathLength;
+  NAPI_CALL_RETURN(env, napi_get_value_string_utf16(env, itemPathObj, nullptr, 0, &itemPathLength));
+  
+  std::unique_ptr<char16_t> itemPathBuf(new char16_t[itemPathLength + 1]);
+  size_t _;
+  NAPI_CALL_RETURN(env, napi_get_value_string_utf16(env, itemPathObj, itemPathBuf.get(), itemPathLength + 1, &_));
+  std::unique_ptr<wchar_t> itemPathBufWchar(new wchar_t[itemPathLength]);
+  for (size_t i = 0; i < itemPathLength; i++) {
+    itemPathBufWchar.get()[i] = itemPathBuf.get()[i];
+  }
+  std::wstring itemPath = std::wstring(itemPathBufWchar.get(), itemPathLength);
+  
+  SymlinkType symlinkType;
+  unsigned long errorCode;
+  
+  if (!getSymlinkType(itemPath, &symlinkType, &errorCode)) {
+    std::stringstream message;
+    message << "getSymlinkType call failed with code " << errorCode;
+    
+    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, message.str().c_str()));
+    return nullptr;
+  }
+  
+  napi_value result;
+  std::string symlinkTypeString;
+  switch (symlinkType) {
+    case SymlinkType::FILE:
+      symlinkTypeString = "file";
+      break;
+    
+    case SymlinkType::DIRECTORY:
+      symlinkTypeString = "directory";
+      break;
+    
+    case SymlinkType::DIRECTORY_JUNCTION:
+      symlinkTypeString = "junction";
+      break;
+    
+    default:
+      NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "symlinkType not found"));
+      return nullptr;
+  }
+  NAPI_CALL_RETURN(env, napi_create_string_latin1(env, symlinkTypeString.c_str(), NAPI_AUTO_LENGTH, &result));
+  
+  return result;
+}
+
 napi_value create_addon(napi_env env) {
   napi_value exports;
   NAPI_CALL_RETURN(env, napi_create_object(env, &exports));
@@ -82,6 +148,10 @@ napi_value create_addon(napi_env env) {
   napi_value getItemAttributesObj;
   NAPI_CALL_RETURN(env, napi_create_function(env, "getItemAttributes", NAPI_AUTO_LENGTH, getItemAttributesJS, nullptr, &getItemAttributesObj));
   napi_set_named_property(env, exports, "getItemAttributes", getItemAttributesObj);
+  
+  napi_value getSymlinkTypeObj;
+  NAPI_CALL_RETURN(env, napi_create_function(env, "getSymlinkType", NAPI_AUTO_LENGTH, getSymlinkTypeJS, nullptr, &getSymlinkTypeObj));
+  napi_set_named_property(env, exports, "getSymlinkType", getSymlinkTypeObj);
   
   return exports;
 }
