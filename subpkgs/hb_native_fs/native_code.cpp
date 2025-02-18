@@ -68,9 +68,6 @@ bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, 
   
 }
 
-// TODO remove
-#include <iostream>
-
 bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(symlinkPath.c_str());
   
@@ -103,7 +100,10 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   
   WindowsHandleCloser fileHandleCloser = WindowsHandleCloser(fileHandle);
   
-  REPARSE_GUID_DATA_BUFFER reparseData;
+  union {
+    byte outputBuf[65536];
+    REPARSE_GUID_DATA_BUFFER reparseData;
+  };
   
   DWORD bytesReturned;
   
@@ -112,8 +112,8 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
     FSCTL_GET_REPARSE_POINT,
     nullptr,
     0,
-    &reparseData,
-    sizeof(REPARSE_GUID_DATA_BUFFER),
+    &outputBuf,
+    65536,
     &bytesReturned,
     nullptr
   )) {
@@ -121,13 +121,22 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
     return false;
   }
   
-  // TODO remove
-  std::cout << "length: " << reparseData.ReparseDataLength << "\n";
-  std::cout << "length: " << reparseData.ReparseTag << "\n";
-  std::cout << "length: " << reparseData.Reserved << "\n";
-  std::cout << "length: " << reparseData.ReparseDataLength << "\n";
-  
-  *symlinkType = SymlinkType::FILE;
+  switch (reparseData.ReparseTag) {
+    case IO_REPARSE_TAG_SYMLINK:
+      *symlinkType = SymlinkType::FILE;
+      break;
+    
+    case IO_REPARSE_TAG_MOUNT_POINT:
+      *symlinkType = SymlinkType::DIRECTORY_JUNCTION;
+      break;
+    
+    default: {
+      std::stringstream errorMessageStream;
+      errorMessageStream << "unrecognized reparse tag value: " << reparseData.ReparseTag;
+      *errorMessage = errorMessageStream.str();
+      return false;
+    }
+  }
   
   return true;
 }
