@@ -47,8 +47,173 @@ class WindowsHandleCloser {
     }
 };
 
+FILETIME uLongLongIntToFileTime(ULONGLONG fileTimeInt) {
+  ULARGE_INTEGER filetimeConverter;
+  filetimeConverter.QuadPart = fileTimeInt;
+  
+  FILETIME result;
+  result.dwHighDateTime = filetimeConverter.HighPart;
+  result.dwLowDateTime = filetimeConverter.LowPart;
+  
+  return result;
+}
+
+constexpr uint64_t NUM_100NS_IN_SEC = 10000000u;
+constexpr size_t NUM_100NS_IN_SEC_LOG10 = 7;
+constexpr uint64_t UNIX_TO_MS_SEC_FACTOR = 11644473600u;
+
 bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultTime, std::string* errorMessage) {
-  return false;
+  // unix string is string with decimal point (optional) represening seconds since Jan 1, 1970 UTC
+  // windows file time is 64 bit value representing 100-ns ticks since Jan 1, 1601 UTC
+  // unix is 134774 days or 11644473600 seconds later (python: datetime.date(1970,1,1)-datetime.date(1601,1,1))
+  // https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime
+  // truncates digits after the ending decimal
+  
+  ULONGLONG fileTimeInt = 0;
+  
+  size_t decimalLocation = unixSecString.find_first_of('.');
+  
+  bool dateNegative = false;
+  
+  if (decimalLocation == unixSecString.npos) {
+    // no decimal point
+    
+    for (size_t i = 0; i < unixSecString.length(); i++) {
+      char strChar = unixSecString[i];
+      
+      if (
+        i == 0 ?
+          ((strChar < '0' || strChar > '9') && strChar != '-') :
+          (strChar < '0' || strChar > '9')
+      ) {
+        *errorMessage = std::string("string invalid format: ") + unixSecString;
+        return false;
+      }
+    }
+    
+    try {
+      int64_t unixSecInt = std::stoll(unixSecString);
+      dateNegative = unixSecInt < 0;
+      
+      if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
+        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        return false;
+      }
+      
+      int64_t msSecInt = unixSecInt + UNIX_TO_MS_SEC_FACTOR;
+      
+      if (msSecInt < 0) {
+        *errorMessage = std::string("string time before Jan 1, 1601: ") + unixSecString;
+        return false;
+      }
+      
+      fileTimeInt = msSecInt * NUM_100NS_IN_SEC;
+      
+      // https://stackoverflow.com/questions/1815367/catch-and-compute-overflow-during-multiplication-of-two-large-integers/1815371#1815371
+      if (fileTimeInt / NUM_100NS_IN_SEC != msSecInt) {
+        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        return false;
+      }
+    } catch (std::invalid_argument) {
+      *errorMessage = std::string("string invalid format: ") + unixSecString;
+      return false;
+    } catch (std::out_of_range) {
+      *errorMessage = std::string("string too large: ") + unixSecString;
+      return false;
+    }
+  } else {
+    // yes decimal point
+    
+    for (size_t i = 0; i < decimalLocation; i++) {
+      char strChar = unixSecString[i];
+      
+      if (
+        i == 0 ?
+          ((strChar < '0' || strChar > '9') && strChar != '-') :
+          (strChar < '0' || strChar > '9')
+      ) {
+        *errorMessage = std::string("string invalid format: ") + unixSecString;
+        return false;
+      }
+    }
+    
+    try {
+      int64_t unixSecInt = std::stoll(unixSecString.substr(0, decimalLocation));
+      dateNegative = unixSecInt < 0;
+      
+      if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
+        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        return false;
+      }
+      
+      int64_t msSecInt = unixSecInt + UNIX_TO_MS_SEC_FACTOR;
+      
+      if (msSecInt < 0) {
+        *errorMessage = std::string("string time before Jan 1, 1601: ") + unixSecString;
+        return false;
+      }
+      
+      fileTimeInt = msSecInt * NUM_100NS_IN_SEC;
+      
+      // https://stackoverflow.com/questions/1815367/catch-and-compute-overflow-during-multiplication-of-two-large-integers/1815371#1815371
+      if (fileTimeInt / NUM_100NS_IN_SEC != msSecInt) {
+        *errorMessage = std::string("string causes overflow: ") + unixSecString;
+        return false;
+      }
+    } catch (std::invalid_argument) {
+      *errorMessage = std::string("string invalid format: ") + unixSecString;
+      return false;
+    } catch (std::out_of_range) {
+      *errorMessage = std::string("string too large: ") + unixSecString;
+      return false;
+    }
+    
+    if (decimalLocation + 1 < unixSecString.length()) {
+      for (size_t i = decimalLocation + 1; i < unixSecString.length() && i < decimalLocation + 1 + NUM_100NS_IN_SEC_LOG10; i++) {
+        char strChar = unixSecString[i];
+        
+        if (strChar < '0' || strChar > '9') {
+          *errorMessage = std::string("string invalid format: ") + unixSecString;
+          return false;
+        }
+      }
+      
+      try {
+        size_t maxSubstringLength = unixSecString.length() - (decimalLocation + 1);
+        size_t substringLength = maxSubstringLength < NUM_100NS_IN_SEC_LOG10 ? maxSubstringLength : NUM_100NS_IN_SEC_LOG10;
+        
+        uint64_t unixFracSecInt = std::stoull(unixSecString.substr(decimalLocation + 1, substringLength));
+        for (size_t i = substringLength; i < NUM_100NS_IN_SEC_LOG10; i++) {
+          unixFracSecInt *= 10;
+        }
+        
+        if (dateNegative) {
+          if (fileTimeInt < unixFracSecInt) {
+            *errorMessage = std::string("string fraction causes overflow: ") + unixSecString;
+            return false;
+          }
+          
+          fileTimeInt -= unixFracSecInt;
+        } else {
+          if (fileTimeInt > UINT64_MAX - unixFracSecInt) {
+            *errorMessage = std::string("string fraction causes overflow: ") + unixSecString;
+            return false;
+          }
+          
+          fileTimeInt += unixFracSecInt;
+        }
+      } catch (std::invalid_argument) {
+        *errorMessage = std::string("string invalid format: ") + unixSecString;
+        return false;
+      } catch (std::out_of_range) {
+        *errorMessage = std::string("string too large: ") + unixSecString;
+        return false;
+      }
+    }
+  }
+  
+  *resultTime = uLongLongIntToFileTime(fileTimeInt);
+  return true;
 }
 
 bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage) {
