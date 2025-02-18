@@ -25,8 +25,8 @@ struct ItemAttributesSet {
   std::string createTimeString = "";
 };
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, unsigned long* errorCode);
-bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, unsigned long* errorCode);
+bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage);
+bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, std::string* errorMessage);
 
 enum class SymlinkType {
   FILE,
@@ -34,4 +34,4 @@ enum class SymlinkType {
   DIRECTORY_JUNCTION,
 };
 
-bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, unsigned long* errorCode);
+bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage);

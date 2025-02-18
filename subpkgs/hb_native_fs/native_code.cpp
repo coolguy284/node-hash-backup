@@ -1,4 +1,34 @@
 #include "native_code.hpp"
+#include <sstream>
+
+std::string getWindowsErrorMessage() {
+  std::stringstream errorMessage;
+  
+  DWORD errorCode = GetLastError();
+  
+  errorMessage << "Error code " << errorCode;
+  
+  CHAR resultBuf[65536];
+  
+  DWORD outputLength = FormatMessageA(
+    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    nullptr,
+    errorCode,
+    0,
+    resultBuf,
+    65536,
+    nullptr
+  );
+  
+  if (outputLength == 0) {
+    errorMessage << "; description inaccessible (resulted in error code " << GetLastError() << ")";
+  } else {
+    std::string resultString = std::string(resultBuf, outputLength);
+    errorMessage << "; description: " << resultString;
+  }
+  
+  return errorMessage.str();
+}
 
 class WindowsHandleCloser {
   private:
@@ -14,11 +44,11 @@ class WindowsHandleCloser {
     }
 };
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, unsigned long* errorCode) {
+bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
   
   if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
-    *errorCode = GetLastError();
+    *errorMessage = getWindowsErrorMessage();
     return false;
   }
   
@@ -31,22 +61,23 @@ bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, un
   return true;
 }
 
-bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, unsigned long* errorCode) {
+bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, std::string* errorMessage) {
   
 }
 
+// TODO remove
 #include <iostream>
 
-bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, unsigned long* errorCode) {
+bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(symlinkPath.c_str());
   
   if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
-    *errorCode = GetLastError();
+    *errorMessage = getWindowsErrorMessage();
     return false;
   }
   
   if (!(itemAttributesResult & FILE_ATTRIBUTE_REPARSE_POINT)) {
-    *errorCode = 1000;
+    *errorMessage = "file path not a symlink / reparse point";
     return false;
   }
   
@@ -63,7 +94,7 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, unsigned
   );
   
   if (fileHandle == INVALID_HANDLE_VALUE) {
-    *errorCode = GetLastError();
+    *errorMessage = getWindowsErrorMessage();
     return false;
   }
   
@@ -83,10 +114,11 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, unsigned
     &bytesReturned,
     nullptr
   )) {
-    *errorCode = GetLastError();
+    *errorMessage = getWindowsErrorMessage();
     return false;
   }
   
+  // TODO remove
   std::cout << "length: " << reparseData.ReparseDataLength << "\n";
   std::cout << "length: " << reparseData.ReparseTag << "\n";
   std::cout << "length: " << reparseData.Reserved << "\n";

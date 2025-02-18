@@ -1,7 +1,6 @@
 #include "napi_helper.hpp"
 #include "native_code.hpp"
 #include <string>
-#include <sstream>
 #include <memory>
 #include <iostream>
 
@@ -39,13 +38,10 @@ napi_value getItemAttributesJS(napi_env env, napi_callback_info info) {
   std::wstring itemPath = std::wstring(itemPathBufWchar.get(), itemPathLength);
   
   ItemAttributes itemAttributes;
-  unsigned long errorCode;
+  std::string errorMessage;
   
-  if (!getItemAttributes(itemPath, &itemAttributes, &errorCode)) {
-    std::stringstream message;
-    message << "getItemAttributes call failed with code " << errorCode;
-    
-    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, message.str().c_str()));
+  if (!getItemAttributes(itemPath, &itemAttributes, &errorMessage)) {
+    NAPI_CALL_RETURN(env, napi_throw_error(env, nullptr, errorMessage.c_str()));
     return nullptr;
   }
   
@@ -107,13 +103,10 @@ napi_value getSymlinkTypeJS(napi_env env, napi_callback_info info) {
   std::wstring itemPath = std::wstring(itemPathBufWchar.get(), itemPathLength);
   
   SymlinkType symlinkType;
-  unsigned long errorCode;
+  std::string errorMessage;
   
-  if (!getSymlinkType(itemPath, &symlinkType, &errorCode)) {
-    std::stringstream message;
-    message << "getSymlinkType call failed with code " << errorCode;
-    
-    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, message.str().c_str()));
+  if (!getSymlinkType(itemPath, &symlinkType, &errorMessage)) {
+    NAPI_CALL_RETURN(env, napi_throw_error(env, nullptr, errorMessage.c_str()));
     return nullptr;
   }
   
