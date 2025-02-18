@@ -84,7 +84,9 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   HANDLE fileHandle = CreateFileW(
     symlinkPath.c_str(),
     0,
-    FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+    FILE_SHARE_DELETE |
+      FILE_SHARE_READ |
+      FILE_SHARE_WRITE,
     nullptr,
     OPEN_EXISTING,
     FILE_FLAG_BACKUP_SEMANTICS |
@@ -103,17 +105,6 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   union {
     byte outputBuf[65536];
     REPARSE_GUID_DATA_BUFFER reparseData;
-    struct {
-      DWORD Symlink_ReparseTag;
-      WORD Symlink_ReparseDataLength;
-      WORD Symlink_Reserved;
-      WORD Symlink_SubstituteNameOffset;
-      WORD Symlink_SubstituteNameLength;
-      WORD Symlink_PrintNameOffset;
-      WORD Symlink_PrintNameLength;
-      DWORD Symlink_Flags;
-      WCHAR Symlink_PathBuffer[1];
-    };
   };
   
   DWORD bytesReturned;
