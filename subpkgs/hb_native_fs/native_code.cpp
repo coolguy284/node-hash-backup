@@ -73,8 +73,6 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
   
   size_t decimalLocation = unixSecString.find_first_of('.');
   
-  bool dateNegative = false;
-  
   if (decimalLocation == unixSecString.npos) {
     // no decimal point
     
@@ -93,7 +91,6 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
     
     try {
       int64_t unixSecInt = std::stoll(unixSecString);
-      dateNegative = unixSecInt < 0;
       
       if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
         *errorMessage = std::string("string causes overflow of unixSecInt: ") + unixSecString;
@@ -137,9 +134,11 @@ bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultT
       }
     }
     
+    bool dateNegative = false;
+    
     try {
       int64_t unixSecInt = std::stoll(unixSecString.substr(0, decimalLocation));
-      dateNegative = unixSecInt < 0;
+      dateNegative = unixSecString.length() > 0 && unixSecString[0] == '-';
       
       if (unixSecInt > INT64_MAX - UNIX_TO_MS_SEC_FACTOR) {
         *errorMessage = std::string("string causes overflow of unixSecInt: ") + unixSecString;
