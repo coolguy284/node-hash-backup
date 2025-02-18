@@ -10,18 +10,21 @@ struct ItemAttributes {
 };
 
 struct ItemAttributesSet {
-  bool set_readonly = false;
+  bool setReadonly = false;
   bool readonly = false;
-  bool set_hidden = false;
+  bool setHidden = false;
   bool hidden = false;
-  bool set_system = false;
+  bool setSystem = false;
   bool system = false;
-  bool set_archive = false;
+  bool setArchive = false;
   bool archive = false;
-  bool set_compressed = false;
+  bool setCompressed = false;
   bool compressed = false;
+  bool setAccessTime = false;
   std::string accessTimeString = "";
+  bool setModifyTime = false;
   std::string modifyTimeString = "";
+  bool setCreateTime = false;
   std::string createTimeString = "";
 };
 

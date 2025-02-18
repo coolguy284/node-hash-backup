@@ -47,11 +47,15 @@ class WindowsHandleCloser {
     }
 };
 
+bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultTime, std::string* errorMessage) {
+  return false;
+}
+
 bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
   
   if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
-    *errorMessage = getWindowsErrorMessage();
+    *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
@@ -64,15 +68,134 @@ bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, st
   return true;
 }
 
+constexpr DWORD IGNORE_TIMESTAMP_WORD = 0xffffffff;
+
 bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, std::string* errorMessage) {
+  FILETIME accessTime;
+  FILETIME modifyTime;
+  FILETIME createTime;
   
+  if (itemAttributes.setAccessTime) {
+    std::string subErrorMessage = "";
+    if (!unixSecStringToWindowsFiletime(itemAttributes.accessTimeString, &accessTime, &subErrorMessage)) {
+      *errorMessage = std::string("error parsing access time: ") + subErrorMessage;
+      return false;
+    }
+  } else {
+    accessTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
+    accessTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
+  }
+  
+  if (itemAttributes.setModifyTime) {
+    std::string subErrorMessage = "";
+    if (!unixSecStringToWindowsFiletime(itemAttributes.modifyTimeString, &modifyTime, &subErrorMessage)) {
+      *errorMessage = std::string("error parsing modify time: ") + subErrorMessage;
+      return false;
+    }
+  } else {
+    modifyTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
+    modifyTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
+  }
+  
+  if (itemAttributes.setCreateTime) {
+    std::string subErrorMessage = "";
+    if (!unixSecStringToWindowsFiletime(itemAttributes.createTimeString, &createTime, &subErrorMessage)) {
+      *errorMessage = std::string("error parsing create time: ") + subErrorMessage;
+      return false;
+    }
+  } else {
+    createTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
+    createTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
+  }
+  
+  DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
+  
+  if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
+    *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
+    return false;
+  }
+  
+  if (itemAttributes.setReadonly) {
+    itemAttributesResult &= ~FILE_ATTRIBUTE_READONLY;
+    if (itemAttributes.readonly) {
+      itemAttributesResult |= FILE_ATTRIBUTE_READONLY;
+    }
+  }
+  
+  if (itemAttributes.setHidden) {
+    itemAttributesResult &= ~FILE_ATTRIBUTE_HIDDEN;
+    if (itemAttributes.hidden) {
+      itemAttributesResult |= FILE_ATTRIBUTE_HIDDEN;
+    }
+  }
+  
+  if (itemAttributes.setSystem) {
+    itemAttributesResult &= ~FILE_ATTRIBUTE_SYSTEM;
+    if (itemAttributes.system) {
+      itemAttributesResult |= FILE_ATTRIBUTE_SYSTEM;
+    }
+  }
+  
+  if (itemAttributes.setArchive) {
+    itemAttributesResult &= ~FILE_ATTRIBUTE_ARCHIVE;
+    if (itemAttributes.archive) {
+      itemAttributesResult |= FILE_ATTRIBUTE_ARCHIVE;
+    }
+  }
+  
+  if (itemAttributes.setCompressed) {
+    itemAttributesResult &= ~FILE_ATTRIBUTE_COMPRESSED;
+    if (itemAttributes.compressed) {
+      itemAttributesResult |= FILE_ATTRIBUTE_COMPRESSED;
+    }
+  }
+  
+  if (!SetFileAttributesW(itemPath.c_str(), itemAttributesResult)) {
+    *errorMessage = std::string("error setting item attributes: ") + getWindowsErrorMessage();
+    return false;
+  }
+  
+  if (itemAttributes.setAccessTime || itemAttributes.setModifyTime || itemAttributes.setCreateTime) {
+    HANDLE fileHandle = CreateFileW(
+      itemPath.c_str(),
+      0,
+      FILE_SHARE_DELETE |
+        FILE_SHARE_READ |
+        FILE_SHARE_WRITE,
+      nullptr,
+      OPEN_EXISTING,
+      FILE_FLAG_BACKUP_SEMANTICS |
+        FILE_FLAG_OPEN_REPARSE_POINT |
+        FILE_FLAG_POSIX_SEMANTICS,
+      nullptr
+    );
+  
+    if (fileHandle == INVALID_HANDLE_VALUE) {
+      *errorMessage = std::string("error opening file to set timestamps: ") + getWindowsErrorMessage();
+      return false;
+    }
+    
+    WindowsHandleCloser fileHandleCloser = WindowsHandleCloser(fileHandle);
+    
+    if (!SetFileTime(
+      fileHandle,
+      &createTime,
+      &accessTime,
+      &modifyTime
+    )) {
+      *errorMessage = std::string("error setting timestamps on file: ") + getWindowsErrorMessage();
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
   DWORD itemAttributesResult = GetFileAttributesW(symlinkPath.c_str());
   
   if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
-    *errorMessage = getWindowsErrorMessage();
+    *errorMessage = std::string("error getting symlink attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
@@ -96,7 +219,7 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   );
   
   if (fileHandle == INVALID_HANDLE_VALUE) {
-    *errorMessage = getWindowsErrorMessage();
+    *errorMessage = std::string("error opening file to read reparse data: ") + getWindowsErrorMessage();
     return false;
   }
   
@@ -119,7 +242,7 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
     &bytesReturned,
     nullptr
   )) {
-    *errorMessage = getWindowsErrorMessage();
+    *errorMessage = std::string("error reading reparse data: ") + getWindowsErrorMessage();
     return false;
   }
   
