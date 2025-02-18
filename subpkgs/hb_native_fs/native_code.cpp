@@ -6,24 +6,27 @@ std::string getWindowsErrorMessage() {
   
   DWORD errorCode = GetLastError();
   
-  errorMessage << "Error code " << errorCode;
+  errorMessage << "error code " << errorCode;
   
-  CHAR resultBuf[65536];
+  LPVOID resultBuf;
   
   DWORD outputLength = FormatMessageA(
-    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    FORMAT_MESSAGE_FROM_SYSTEM |
+      FORMAT_MESSAGE_ALLOCATE_BUFFER |
+      FORMAT_MESSAGE_IGNORE_INSERTS,
     nullptr,
     errorCode,
     0,
-    resultBuf,
-    65536,
+    (LPSTR) &resultBuf,
+    0,
     nullptr
   );
   
   if (outputLength == 0) {
     errorMessage << "; description inaccessible (resulted in error code " << GetLastError() << ")";
   } else {
-    std::string resultString = std::string(resultBuf, outputLength);
+    std::string resultString = std::string((LPSTR) resultBuf, outputLength);
+    LocalFree(resultBuf);
     errorMessage << "; description: " << resultString;
   }
   
