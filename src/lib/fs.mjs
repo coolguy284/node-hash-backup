@@ -442,101 +442,134 @@ export async function setFileTimes(fileTimeEntries, lowAccuracyFileTimes = false
     }
   } else {
     if (process.platform == 'win32') {
-      let fileTimeEntriesRegular = [],
-        fileTimeEntriesSymbolicLink = [];
-      
-      await Promise.all(
-        fileTimeEntries
-          .map(async entry => {
-            const fileStats = await lstat(entry.filePath, { bigint: true });
-            if (fileStats.isSymbolicLink()) {
-              fileTimeEntriesSymbolicLink.push({
-                ...entry,
-                atimeNs: fileStats.atimeNs,
-                mtimeNs: fileStats.mtimeNs,
-              });
-            } else {
-              fileTimeEntriesRegular.push({
-                ...entry,
-                readOnly: await isReadOnly(entry.filePath),
-              });
-            }
-          })
-      );
-      
-      // powershell cannot set timestamps of symbolic links, must use utimes and accept inaccuracy
-      for (let {
-        filePath,
-        accessTimeUnixNSInt = null,
-        modifyTimeUnixNSInt = null,
-        atimeNs,
-        mtimeNs,
-      } of fileTimeEntriesSymbolicLink) {
-        if (accessTimeUnixNSInt == null) {
-          accessTimeUnixNSInt = atimeNs;
-        }
-        
-        if (modifyTimeUnixNSInt == null) {
-          modifyTimeUnixNSInt = mtimeNs;
-        }
-        
-        await lutimes(
+      if (setItemMetaNative != null) {
+        for (let {
           filePath,
-          unixNSIntToUnixSecString(accessTimeUnixNSInt),
-          unixNSIntToUnixSecString(modifyTimeUnixNSInt)
-        );
-      }
-      
-      let environmentVars = {};
-      
-      const commandString =
-        '$ErrorActionPreference = "Stop"\n' +
-        fileTimeEntriesRegular
-          .map(({
+          accessTimeUnixNSInt = null,
+          modifyTimeUnixNSInt = null,
+          createTimeUnixNSInt = null,
+          atimeNs,
+          mtimeNs,
+          birthtimeNs,
+        } of fileTimeEntries) {
+          if (accessTimeUnixNSInt == null) {
+            accessTimeUnixNSInt = atimeNs;
+          }
+          
+          if (modifyTimeUnixNSInt == null) {
+            modifyTimeUnixNSInt = mtimeNs;
+          }
+          
+          if (createTimeUnixNSInt == null) {
+            createTimeUnixNSInt = birthtimeNs;
+          }
+          
+          setItemMetaNative(
             filePath,
-            accessTimeUnixNSInt = null,
-            modifyTimeUnixNSInt = null,
-            createTimeUnixNSInt = null,
-          }, i) => {
-            if (accessTimeUnixNSInt == null && modifyTimeUnixNSInt == null && createTimeUnixNSInt == null) {
-              return null;
-            } else {
-              environmentVars[`C284_${i}_F`] = filePath;
-              if (createTimeUnixNSInt != null) environmentVars[`C284_${i}_C`] = unixNSIntToUTCTimeString(createTimeUnixNSInt);
-              if (modifyTimeUnixNSInt != null) environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTimeUnixNSInt);
-              if (accessTimeUnixNSInt != null) environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTimeUnixNSInt);
-              
-              return [
-                `$file = Get-Item $Env:C284_${i}_F`,
-                createTimeUnixNSInt != null ? `$file.CreationTime = Get-Date $Env:C284_${i}_C` : '',
-                modifyTimeUnixNSInt != null ? `$file.LastWriteTime = Get-Date $Env:C284_${i}_M` : '',
-                accessTimeUnixNSInt != null ? `$file.LastAccessTime = Get-Date $Env:C284_${i}_A` : '',
-              ].join('\n');
-            }
-          })
-          .filter(fileSetCode => fileSetCode != null)
-          .join('\n');
-      
-      // must manually unset files as readonly then set them back afterward because powershell
-      // refuses to alter the file times if a file is readonly, even though nodejs fs.utimes
-      // can do it fine
-      
-      for (const { filePath, readOnly } of fileTimeEntriesRegular) {
-        if (readOnly) {
-          await setReadOnly(filePath, false);
+            {
+              accessTime: unixNSIntToUnixSecString(accessTimeUnixNSInt),
+              modifyTime: unixNSIntToUnixSecString(modifyTimeUnixNSInt),
+              createTime: unixNSIntToUnixSecString(createTimeUnixNSInt),
+            },
+          );
         }
-      }
-      
-      await callProcess({
-        processName: 'powershell',
-        processArguments: ['-Command', '-'],
-        environmentVars,
-        stdin: commandString,
-      });
-      
-      for (const { filePath, readOnly } of fileTimeEntriesRegular) {
-        if (readOnly) {
-          await setReadOnly(filePath, true);
+      } else {
+        let fileTimeEntriesRegular = [],
+          fileTimeEntriesSymbolicLink = [];
+        
+        await Promise.all(
+          fileTimeEntries
+            .map(async entry => {
+              const fileStats = await lstat(entry.filePath, { bigint: true });
+              if (fileStats.isSymbolicLink()) {
+                fileTimeEntriesSymbolicLink.push({
+                  ...entry,
+                  atimeNs: fileStats.atimeNs,
+                  mtimeNs: fileStats.mtimeNs,
+                });
+              } else {
+                fileTimeEntriesRegular.push({
+                  ...entry,
+                  readOnly: await isReadOnly(entry.filePath),
+                });
+              }
+            })
+        );
+        
+        // powershell cannot set timestamps of symbolic links, must use utimes and accept inaccuracy and inability to set creation time
+        for (let {
+          filePath,
+          accessTimeUnixNSInt = null,
+          modifyTimeUnixNSInt = null,
+          atimeNs,
+          mtimeNs,
+        } of fileTimeEntriesSymbolicLink) {
+          if (accessTimeUnixNSInt == null) {
+            accessTimeUnixNSInt = atimeNs;
+          }
+          
+          if (modifyTimeUnixNSInt == null) {
+            modifyTimeUnixNSInt = mtimeNs;
+          }
+          
+          await lutimes(
+            filePath,
+            unixNSIntToUnixSecString(accessTimeUnixNSInt),
+            unixNSIntToUnixSecString(modifyTimeUnixNSInt)
+          );
+        }
+        
+        let environmentVars = {};
+        
+        const commandString =
+          '$ErrorActionPreference = "Stop"\n' +
+          fileTimeEntriesRegular
+            .map(({
+              filePath,
+              accessTimeUnixNSInt = null,
+              modifyTimeUnixNSInt = null,
+              createTimeUnixNSInt = null,
+            }, i) => {
+              if (accessTimeUnixNSInt == null && modifyTimeUnixNSInt == null && createTimeUnixNSInt == null) {
+                return null;
+              } else {
+                environmentVars[`C284_${i}_F`] = filePath;
+                if (createTimeUnixNSInt != null) environmentVars[`C284_${i}_C`] = unixNSIntToUTCTimeString(createTimeUnixNSInt);
+                if (modifyTimeUnixNSInt != null) environmentVars[`C284_${i}_M`] = unixNSIntToUTCTimeString(modifyTimeUnixNSInt);
+                if (accessTimeUnixNSInt != null) environmentVars[`C284_${i}_A`] = unixNSIntToUTCTimeString(accessTimeUnixNSInt);
+                
+                return [
+                  `$file = Get-Item $Env:C284_${i}_F`,
+                  createTimeUnixNSInt != null ? `$file.CreationTime = Get-Date $Env:C284_${i}_C` : '',
+                  modifyTimeUnixNSInt != null ? `$file.LastWriteTime = Get-Date $Env:C284_${i}_M` : '',
+                  accessTimeUnixNSInt != null ? `$file.LastAccessTime = Get-Date $Env:C284_${i}_A` : '',
+                ].join('\n');
+              }
+            })
+            .filter(fileSetCode => fileSetCode != null)
+            .join('\n');
+        
+        // must manually unset files as readonly then set them back afterward because powershell
+        // refuses to alter the file times if a file is readonly, even though nodejs fs.utimes
+        // can do it fine
+        
+        for (const { filePath, readOnly } of fileTimeEntriesRegular) {
+          if (readOnly) {
+            await setReadOnly(filePath, false);
+          }
+        }
+        
+        await callProcess({
+          processName: 'powershell',
+          processArguments: ['-Command', '-'],
+          environmentVars,
+          stdin: commandString,
+        });
+        
+        for (const { filePath, readOnly } of fileTimeEntriesRegular) {
+          if (readOnly) {
+            await setReadOnly(filePath, true);
+          }
         }
       }
     } else {
@@ -642,7 +675,7 @@ export async function setAttributes(filePath, { readonly, hidden, system, archiv
     throw new Error(`filePath not string: ${filePath}`);
   }
   
-  if (process.platform == 'win32' && getItemMetaNative) {
+  if (process.platform == 'win32' && setItemMetaNative != null) {
     setItemMetaNative(filePath, { readonly, hidden, system, archive, compressed });
   } else {
     await setReadOnly(filePath, readonly);

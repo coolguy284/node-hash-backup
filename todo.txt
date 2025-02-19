@@ -1,6 +1,3 @@
-native module:
-  replace setFileTimes with version that calls native module if it exists
-
 low prio:
 fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd
 remove all promise.all's as they cause nodejs to take up 10s of GB of ram for whatever reason
