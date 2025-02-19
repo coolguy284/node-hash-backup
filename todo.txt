@@ -9,7 +9,7 @@ native module:
   alternate data streams support
   flock support
 improved data storage on windows:
-  save hidden, system flags
+  save hidden, system, compressed, archive? flags
   detect alternate file streams on windows; store as path with ':'
 list command:
   add percentage compression to list command as the ratio between compressed size and size; add pseudo percentage compression as the ratio between total (deduplicated total; not grand total) and artifical sum; also percentage as the ratio between regular total and grand total, so percentage of all file bytes that is not meta

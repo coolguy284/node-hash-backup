@@ -206,7 +206,7 @@ class TestManager {
     await Promise.all([
       writeFile(join(basePath, 'folder', 'file.txt'), Buffer.from('Test file in folder updated.')),
       mkdir(join(basePath, 'folder', 'subfolder')),
-      setReadOnly(join(basePath, 'file-readonly.txt')),
+      setReadOnly(join(basePath, 'file-readonly.txt'), true),
     ]);
     await writeFile(join(basePath, 'folder', 'subfolder', 'file.txt'), Buffer.from('Test file in sub folder.'));
     
@@ -222,9 +222,9 @@ class TestManager {
         symlink(join(basePath, 'folder'), join(basePath, 'dir-junction-absolute-readonly'), 'junction'),
       ]);
       await Promise.all([
-        setReadOnly(join(basePath, 'file-symlink-relative-readonly.txt')),
-        setReadOnly(join(basePath, 'dir-symlink-relative-readonly')),
-        setReadOnly(join(basePath, 'dir-junction-absolute-readonly')),
+        setReadOnly(join(basePath, 'file-symlink-relative-readonly.txt'), true),
+        setReadOnly(join(basePath, 'dir-symlink-relative-readonly'), true),
+        setReadOnly(join(basePath, 'dir-junction-absolute-readonly'), true),
       ]);
     }
     
