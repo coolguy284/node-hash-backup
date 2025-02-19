@@ -105,9 +105,9 @@ napi_value setItemMetaJS(napi_env env, napi_callback_info info) {
   napi_value itemMetaObj = arguments[1];
   
   napi_valuetype itemMetaType;
-  NAPI_CALL_RETURN(env, napi_typeof(env, itemPathObj, &itemMetaType));
+  NAPI_CALL_RETURN(env, napi_typeof(env, itemMetaObj, &itemMetaType));
   if (itemMetaType != napi_object) {
-    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "expected attributes object for first parameter"));
+    NAPI_CALL_RETURN(env, napi_throw_type_error(env, nullptr, "expected attributes object for second parameter"));
     return nullptr;
   }
   
@@ -292,8 +292,8 @@ napi_value create_addon(napi_env env) {
   napi_set_named_property(env, exports, "getItemMeta", getItemMetaObj);
   
   napi_value setItemMetaObj;
-  NAPI_CALL_RETURN(env, napi_create_function(env, "setSymlinkType", NAPI_AUTO_LENGTH, setItemMetaJS, nullptr, &setItemMetaObj));
-  napi_set_named_property(env, exports, "setSymlinkType", setItemMetaObj);
+  NAPI_CALL_RETURN(env, napi_create_function(env, "setItemMeta", NAPI_AUTO_LENGTH, setItemMetaJS, nullptr, &setItemMetaObj));
+  napi_set_named_property(env, exports, "setItemMeta", setItemMetaObj);
   
   napi_value getSymlinkTypeObj;
   NAPI_CALL_RETURN(env, napi_create_function(env, "getSymlinkType", NAPI_AUTO_LENGTH, getSymlinkTypeJS, nullptr, &getSymlinkTypeObj));
