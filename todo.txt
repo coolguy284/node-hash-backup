@@ -1,10 +1,18 @@
-remove all promise.all's as they cause nodejs to take up 10s of GB of ram for whatever reason
+native module:
+  replace setFileTimes and getSymlinkType with versions that call native module if it exists
+  rename itemattrib to meta
+  replace set item attributes struct with std optional
+  convert to node-addon-api api
+fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd
 
 low prio:
+remove all promise.all's as they cause nodejs to take up 10s of GB of ram for whatever reason
 call hb dispose if program termination
 backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
 use flock to ensure that only current process/(specific backup manager instance?) has control over edit.lock, and allow edit.lock to already exist as long as it is empty
-create native module to do what powershell cannot (replace setFileTimes and getSymlinkType with versions that call native module if it exists)
+native module:
+  alternate data streams support
+  flock support
 improved data storage on windows:
   save hidden, system flags
   detect alternate file streams on windows; store as path with ':'

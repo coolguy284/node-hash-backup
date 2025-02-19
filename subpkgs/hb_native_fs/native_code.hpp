@@ -1,8 +1,6 @@
 #include <string>
 #include "Windows.h"
 
-bool unixSecStringToWindowsFiletime(std::string unixSecString, FILETIME* resultTime, std::string* errorMessage);
-
 struct ItemAttributes {
   bool readonly;
   bool hidden;
@@ -23,11 +21,11 @@ struct ItemAttributesSet {
   bool setCompressed = false;
   bool compressed = false;
   bool setAccessTime = false;
-  std::string accessTimeString = "";
+  uint64_t accessTime = 0u;
   bool setModifyTime = false;
-  std::string modifyTimeString = "";
+  uint64_t modifyTime = 0u;
   bool setCreateTime = false;
-  std::string createTimeString = "";
+  uint64_t createTime = 0u;
 };
 
 bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage);
