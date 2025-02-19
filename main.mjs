@@ -41,6 +41,7 @@ export {
 } from './src/backup_manager/lib.mjs';
 export {
   getLzmaInstalled,
+  getNativeLibInstalled,
   getProgramVersion,
 } from './src/backup_manager/version.mjs';
 export {

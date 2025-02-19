@@ -338,4 +338,4 @@ No command:
 ```
 
 ## Warning
-Restoration of symbolic link timestamps is inaccurate (for the last decimal place or two (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot be set.
+If the native helper library is not installed (hash-backup-native-fs in dependencies), restoration of symbolic link timestamps is inaccurate (for the last decimal place or two (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot be set.
