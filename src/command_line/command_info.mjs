@@ -1,6 +1,7 @@
 import { DEFAULT_IN_MEMORY_CUTOFF_SIZE } from '../backup_manager/backup_manager.mjs';
 import { splitLongLinesByWord } from '../lib/command_line.mjs';
 import { integerToStringWithSeparator } from '../lib/number.mjs';
+import { getNativeLibInstalled } from '../backup_manager/version.mjs';
 
 function toBool(string) {
   switch (string.toLowerCase()) {
@@ -566,7 +567,7 @@ export const COMMANDS = new Map(
           '        aliases: --in-memory-cutoff',
           '    --setFileTimes=<boolean> (default true): If true, file access, modification, and creation times (creation time only on supported systems) will be set at end of restore.',
           '        aliases: --set-file-times',
-          '    --lowAccuracyFileTimes=<boolean> (default false): If true, file timestamps will be restored using a quicker but less accurate method. WARNING: This method does not restore file creation times! The quicker method uses a nodejs function instead of a shell process creation, which is phenomenally quicker but causes precision loss after milliseconds generally due to double precision floating point loss of unix timestamp seconds in libuv.',
+          `    --lowAccuracyFileTimes=<boolean> (default false): If true, file timestamps will be restored using a quicker but less accurate method. ${getNativeLibInstalled() ? 'The native helper library is installed, so this option should not be used, as file time restore will be fast without needing to set this option.' : 'If the native helper library is installed, file time restore will be fast without needing to set this option.'} WARNING: This method does not restore file creation times! The quicker method uses a nodejs function instead of a shell process creation, which is phenomenally quicker but causes precision loss after milliseconds generally due to double precision floating point loss of unix timestamp seconds in libuv.`,
           '        aliases: --low-accuracy-file-times',
           '    --createParentFolders=<boolean> (default false): If true, the parent folders of the restore folder will be created.',
           '        aliases: --create-parent-folders',

@@ -4,7 +4,7 @@ This program is used to create backups of a given folder tree by referencing eac
 
 # Usage
 
-Download this repository as a zip file and place anywhere. Run `node <path to extracted folder>` to see available commands. Run `node <path to extracted folder> <command parameters>` to run a command.
+Download this repository as a zip file and place anywhere. Run `./<path to run.bat>` to see available commands. Run `./<path to run.bat> <command parameters>` to run a command. On linux, use `run.bash` instead of `run.bat`.
 
 ## What does node-hash-backup store?
 
@@ -24,22 +24,21 @@ Information tracked on symbolic link:
 - exact bytes of symlink target
 - symlink type (on Windows; file symlink, directory symlink, or directory junction)
 
+## Warning
+
+If the native helper library is not installed (hash-backup-native-fs in dependencies), restoration of symbolic link timestamps is inaccurate (for the last decimal place or two (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot be set.
+
 ## Help
 
 ```
 NodeJS Hash Backup Tool v2.3.0
 LZMA Support: Installed
-Native FS Library: Not Installed
+Native FS Library: Installed
 
 Usage: node <path to folder of hash backup code> [command] [options]
   Command is optional. Options can be specified in either the format "--argument=value" or
   "--argument value" (with the space in between meaning there are two separate command line
   arguments, i.e. ["--argument", "value"]).
-
-Warning:
-  Restoration of symbolic link timestamps is inaccurate (for the last decimal place or two
-  (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot
-  be set.
 
 Command `init`:
   Initalizes an empty hash backup in backup dir.
@@ -170,10 +169,12 @@ Command `restore`:
     times (creation time only on supported systems) will be set at end of restore.
         aliases: --set-file-times
     --lowAccuracyFileTimes=<boolean> (default false): If true, file timestamps will be restored
-    using a quicker but less accurate method. WARNING: This method does not restore file creation
-    times! The quicker method uses a nodejs function instead of a shell process creation, which
-    is phenomenally quicker but causes precision loss after milliseconds generally due to double
-    precision floating point loss of unix timestamp seconds in libuv.
+    using a quicker but less accurate method. The native helper library is installed, so this
+    option should not be used, as file time restore will be fast without needing to set this
+    option. WARNING: This method does not restore file creation times! The quicker method uses
+    a nodejs function instead of a shell process creation, which is phenomenally quicker but
+    causes precision loss after milliseconds generally due to double precision floating point
+    loss of unix timestamp seconds in libuv.
         aliases: --low-accuracy-file-times
     --createParentFolders=<boolean> (default false): If true, the parent folders of the restore
     folder will be created.
@@ -343,6 +344,3 @@ No command:
     --version (mutually exclusive with --help): Prints the version of the hash backup program.
     No option passed: Prints this help message.
 ```
-
-## Warning
-If the native helper library is not installed (hash-backup-native-fs in dependencies), restoration of symbolic link timestamps is inaccurate (for the last decimal place or two (or maybe more) on Windows's 7 decimal-digit precision timestamps), and the birthtime cannot be set.

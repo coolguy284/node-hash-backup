@@ -12,7 +12,7 @@ try {
 
 try {
   await import('hash-backup-native-fs');
-  nativeLibInstalled = false;
+  nativeLibInstalled = true;
 } catch { /* empty */ }
 
 export function getProgramVersion() {
