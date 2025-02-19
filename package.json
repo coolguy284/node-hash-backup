@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
   "optionalDependencies": {
-    "hash-backup-native-fs": "https://gitpkg.vercel.app/coolguy284/node-hash-backup/subpkgs/hb_native_fs?9aef1986e3f51b12800dbf0fbc08a51a84464e40",
+    "hash-backup-native-fs": "https://gitpkg.vercel.app/coolguy284/node-hash-backup/subpkgs/hb_native_fs?c231213bbe77e5a6d1a1fd8660850a50e4829255",
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
