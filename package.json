@@ -1,7 +1,7 @@
 {
   "name": "hash-backup",
   "type": "module",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A deduplicating backup system that stores each file by its hash, but also stores metadata (timestamps, readonly attribute, and type of symlink (on Windows)), aiming to be perfect storage.",
   "main": "main.mjs",
   "exports": {
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
   "optionalDependencies": {
-    "hash-backup-native-fs": "https://gitpkg.vercel.app/coolguy284/node-hash-backup/subpkgs/hb_native_fs?9d6edb434123e6f83572762635553af3053ef19e",
+    "hash-backup-native-fs": "https://gitpkg.vercel.app/coolguy284/node-hash-backup/subpkgs/hb_native_fs?9aef1986e3f51b12800dbf0fbc08a51a84464e40",
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
