@@ -1,7 +1,7 @@
 #include <string>
 #include "Windows.h"
 
-struct ItemAttributes {
+struct ItemMeta {
   bool readonly;
   bool hidden;
   bool system;
@@ -9,7 +9,7 @@ struct ItemAttributes {
   bool compressed;
 };
 
-struct ItemAttributesSet {
+struct ItemMetaSet {
   bool setReadonly = false;
   bool readonly = false;
   bool setHidden = false;
@@ -28,8 +28,8 @@ struct ItemAttributesSet {
   uint64_t createTime = 0u;
 };
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage);
-bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, std::string* errorMessage);
+bool getItemMeta(std::wstring itemPath, ItemMeta* itemMeta, std::string* errorMessage);
+bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* errorMessage);
 
 enum class SymlinkType {
   FILE,

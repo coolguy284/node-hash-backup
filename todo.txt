@@ -1,6 +1,5 @@
 native module:
   replace setFileTimes and getSymlinkType with versions that call native module if it exists
-  rename itemattrib to meta
   replace set item attributes struct with std optional
   convert to node-addon-api api
 fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd

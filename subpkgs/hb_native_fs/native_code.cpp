@@ -58,99 +58,99 @@ FILETIME uLongLongIntToFileTime(ULONGLONG fileTimeInt) {
   return result;
 }
 
-bool getItemAttributes(std::wstring itemPath, ItemAttributes* itemAttributes, std::string* errorMessage) {
-  DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
+bool getItemMeta(std::wstring itemPath, ItemMeta* itemMeta, std::string* errorMessage) {
+  DWORD itemMetaResult = GetFileMetaW(itemPath.c_str());
   
-  if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
+  if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  itemAttributes->readonly = itemAttributesResult & FILE_ATTRIBUTE_READONLY;
-  itemAttributes->hidden = itemAttributesResult & FILE_ATTRIBUTE_HIDDEN;
-  itemAttributes->system = itemAttributesResult & FILE_ATTRIBUTE_SYSTEM;
-  itemAttributes->archive = itemAttributesResult & FILE_ATTRIBUTE_ARCHIVE;
-  itemAttributes->compressed = itemAttributesResult & FILE_ATTRIBUTE_COMPRESSED;
+  itemMeta->readonly = itemMetaResult & FILE_ATTRIBUTE_READONLY;
+  itemMeta->hidden = itemMetaResult & FILE_ATTRIBUTE_HIDDEN;
+  itemMeta->system = itemMetaResult & FILE_ATTRIBUTE_SYSTEM;
+  itemMeta->archive = itemMetaResult & FILE_ATTRIBUTE_ARCHIVE;
+  itemMeta->compressed = itemMetaResult & FILE_ATTRIBUTE_COMPRESSED;
   
   return true;
 }
 
 constexpr DWORD IGNORE_TIMESTAMP_WORD = 0xffffffff;
 
-bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, std::string* errorMessage) {
+bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* errorMessage) {
   FILETIME accessTime;
   FILETIME modifyTime;
   FILETIME createTime;
   
-  if (itemAttributes.setAccessTime) {
-    accessTime = uLongLongIntToFileTime(itemAttributes.accessTime);
+  if (itemMeta.setAccessTime) {
+    accessTime = uLongLongIntToFileTime(itemMeta.accessTime);
   } else {
     accessTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     accessTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  if (itemAttributes.setModifyTime) {
-    modifyTime = uLongLongIntToFileTime(itemAttributes.modifyTime);
+  if (itemMeta.setModifyTime) {
+    modifyTime = uLongLongIntToFileTime(itemMeta.modifyTime);
   } else {
     modifyTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     modifyTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  if (itemAttributes.setCreateTime) {
-    createTime = uLongLongIntToFileTime(itemAttributes.createTime);
+  if (itemMeta.setCreateTime) {
+    createTime = uLongLongIntToFileTime(itemMeta.createTime);
   } else {
     createTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     createTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  DWORD itemAttributesResult = GetFileAttributesW(itemPath.c_str());
+  DWORD itemMetaResult = GetFileMetaW(itemPath.c_str());
   
-  if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
+  if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  if (itemAttributes.setReadonly) {
-    itemAttributesResult &= ~FILE_ATTRIBUTE_READONLY;
-    if (itemAttributes.readonly) {
-      itemAttributesResult |= FILE_ATTRIBUTE_READONLY;
+  if (itemMeta.setReadonly) {
+    itemMetaResult &= ~FILE_ATTRIBUTE_READONLY;
+    if (itemMeta.readonly) {
+      itemMetaResult |= FILE_ATTRIBUTE_READONLY;
     }
   }
   
-  if (itemAttributes.setHidden) {
-    itemAttributesResult &= ~FILE_ATTRIBUTE_HIDDEN;
-    if (itemAttributes.hidden) {
-      itemAttributesResult |= FILE_ATTRIBUTE_HIDDEN;
+  if (itemMeta.setHidden) {
+    itemMetaResult &= ~FILE_ATTRIBUTE_HIDDEN;
+    if (itemMeta.hidden) {
+      itemMetaResult |= FILE_ATTRIBUTE_HIDDEN;
     }
   }
   
-  if (itemAttributes.setSystem) {
-    itemAttributesResult &= ~FILE_ATTRIBUTE_SYSTEM;
-    if (itemAttributes.system) {
-      itemAttributesResult |= FILE_ATTRIBUTE_SYSTEM;
+  if (itemMeta.setSystem) {
+    itemMetaResult &= ~FILE_ATTRIBUTE_SYSTEM;
+    if (itemMeta.system) {
+      itemMetaResult |= FILE_ATTRIBUTE_SYSTEM;
     }
   }
   
-  if (itemAttributes.setArchive) {
-    itemAttributesResult &= ~FILE_ATTRIBUTE_ARCHIVE;
-    if (itemAttributes.archive) {
-      itemAttributesResult |= FILE_ATTRIBUTE_ARCHIVE;
+  if (itemMeta.setArchive) {
+    itemMetaResult &= ~FILE_ATTRIBUTE_ARCHIVE;
+    if (itemMeta.archive) {
+      itemMetaResult |= FILE_ATTRIBUTE_ARCHIVE;
     }
   }
   
-  if (itemAttributes.setCompressed) {
-    itemAttributesResult &= ~FILE_ATTRIBUTE_COMPRESSED;
-    if (itemAttributes.compressed) {
-      itemAttributesResult |= FILE_ATTRIBUTE_COMPRESSED;
+  if (itemMeta.setCompressed) {
+    itemMetaResult &= ~FILE_ATTRIBUTE_COMPRESSED;
+    if (itemMeta.compressed) {
+      itemMetaResult |= FILE_ATTRIBUTE_COMPRESSED;
     }
   }
   
-  if (!SetFileAttributesW(itemPath.c_str(), itemAttributesResult)) {
+  if (!SetFileMetaW(itemPath.c_str(), itemMetaResult)) {
     *errorMessage = std::string("error setting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  if (itemAttributes.setAccessTime || itemAttributes.setModifyTime || itemAttributes.setCreateTime) {
+  if (itemMeta.setAccessTime || itemMeta.setModifyTime || itemMeta.setCreateTime) {
     HANDLE fileHandle = CreateFileW(
       itemPath.c_str(),
       0,
@@ -187,14 +187,14 @@ bool setItemAttributes(std::wstring itemPath, ItemAttributesSet itemAttributes, 
 }
 
 bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
-  DWORD itemAttributesResult = GetFileAttributesW(symlinkPath.c_str());
+  DWORD itemMetaResult = GetFileMetaW(symlinkPath.c_str());
   
-  if (itemAttributesResult == INVALID_FILE_ATTRIBUTES) {
+  if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting symlink attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  if (!(itemAttributesResult & FILE_ATTRIBUTE_REPARSE_POINT)) {
+  if (!(itemMetaResult & FILE_ATTRIBUTE_REPARSE_POINT)) {
     *errorMessage = "file path not a symlink / reparse point";
     return false;
   }
@@ -243,7 +243,7 @@ bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::str
   
   switch (reparseData.ReparseTag) {
     case IO_REPARSE_TAG_SYMLINK:
-      if (itemAttributesResult & FILE_ATTRIBUTE_DIRECTORY) {
+      if (itemMetaResult & FILE_ATTRIBUTE_DIRECTORY) {
         *symlinkType = SymlinkType::DIRECTORY;
       } else {
         *symlinkType = SymlinkType::FILE;

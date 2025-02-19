@@ -56,28 +56,28 @@ export const _unixSecStringToWindowsFiletimeBigint = unixSecStringToWindowsFilet
 const hbNativeFs = createRequire(import.meta.url)('./build/Release/hb_native_fs.node');
 
 export const {
-  getItemAttributes,
+  getItemMeta,
   getSymlinkType,
 } = hbNativeFs;
 const {
-  setItemAttributes: setItemAttributesInternal,
+  setItemMeta: setItemMetaInternal,
 } = hbNativeFs;
 
-export function setItemAttributes(itemPath, itemAttributes) {
-  if (typeof itemAttributes != 'object' || Array.isArray(itemAttributes)) {
-    throw new Error(`itemAttributes not object: ${typeof itemAttributes}`);
+export function setItemMeta(itemPath, itemMeta) {
+  if (typeof itemMeta != 'object' || Array.isArray(itemMeta)) {
+    throw new Error(`itemMeta not object: ${typeof itemMeta}`);
   }
   
-  const newItemAttributes = {
-    ...(itemAttributes.readonly != null ? { readonly: itemAttributes.readonly } : {}),
-    ...(itemAttributes.hidden != null ? { hidden: itemAttributes.hidden } : {}),
-    ...(itemAttributes.system != null ? { system: itemAttributes.system } : {}),
-    ...(itemAttributes.archive != null ? { archive: itemAttributes.archive } : {}),
-    ...(itemAttributes.compressed != null ? { compressed: itemAttributes.compressed } : {}),
-    ...(itemAttributes.accessTime != null ? { accessTime: unixSecStringToWindowsFiletimeBigint(itemAttributes.accessTime) } : {}),
-    ...(itemAttributes.modifyTime != null ? { modifyTime: unixSecStringToWindowsFiletimeBigint(itemAttributes.modifyTime) } : {}),
-    ...(itemAttributes.createTime != null ? { createTime: unixSecStringToWindowsFiletimeBigint(itemAttributes.createTime) } : {}),
+  const newItemMeta = {
+    ...(itemMeta.readonly != null ? { readonly: itemMeta.readonly } : {}),
+    ...(itemMeta.hidden != null ? { hidden: itemMeta.hidden } : {}),
+    ...(itemMeta.system != null ? { system: itemMeta.system } : {}),
+    ...(itemMeta.archive != null ? { archive: itemMeta.archive } : {}),
+    ...(itemMeta.compressed != null ? { compressed: itemMeta.compressed } : {}),
+    ...(itemMeta.accessTime != null ? { accessTime: unixSecStringToWindowsFiletimeBigint(itemMeta.accessTime) } : {}),
+    ...(itemMeta.modifyTime != null ? { modifyTime: unixSecStringToWindowsFiletimeBigint(itemMeta.modifyTime) } : {}),
+    ...(itemMeta.createTime != null ? { createTime: unixSecStringToWindowsFiletimeBigint(itemMeta.createTime) } : {}),
   };
   
-  setItemAttributesInternal(itemPath, newItemAttributes);
+  setItemMetaInternal(itemPath, newItemMeta);
 }
