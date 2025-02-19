@@ -27,8 +27,9 @@ Information tracked on symbolic link:
 ## Help
 
 ```
-NodeJS Hash Backup Tool v2.2.0
+NodeJS Hash Backup Tool v2.3.0
 LZMA Support: Installed
+Native FS Library: Not Installed
 
 Usage: node <path to folder of hash backup code> [command] [options]
   Command is optional. Options can be specified in either the format "--argument=value" or
@@ -168,6 +169,12 @@ Command `restore`:
     --setFileTimes=<boolean> (default true): If true, file access, modification, and creation
     times (creation time only on supported systems) will be set at end of restore.
         aliases: --set-file-times
+    --lowAccuracyFileTimes=<boolean> (default false): If true, file timestamps will be restored
+    using a quicker but less accurate method. WARNING: This method does not restore file creation
+    times! The quicker method uses a nodejs function instead of a shell process creation, which
+    is phenomenally quicker but causes precision loss after milliseconds generally due to double
+    precision floating point loss of unix timestamp seconds in libuv.
+        aliases: --low-accuracy-file-times
     --createParentFolders=<boolean> (default false): If true, the parent folders of the restore
     folder will be created.
         aliases: --create-parent-folders
