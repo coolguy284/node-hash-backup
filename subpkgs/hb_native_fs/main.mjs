@@ -14,7 +14,7 @@ function unixSecStringToWindowsFiletimeBigint(unixSecString) {
   // info: https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-filetime
   
   let match;
-  if ((match = /^(-)?(\d+)(\.\d+)?$/.exec(unixSecString)) == null) {
+  if ((match = /^(-)?(\d+)(?:\.(\d+))?$/.exec(unixSecString)) == null) {
     throw new Error(`unixSecString invalid format: ${unixSecString}`);
   }
   

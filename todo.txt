@@ -1,8 +1,8 @@
 native module:
   replace setFileTimes and getSymlinkType with versions that call native module if it exists
-fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd
 
 low prio:
+fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd
 remove all promise.all's as they cause nodejs to take up 10s of GB of ram for whatever reason
 call hb dispose if program termination
 backup cmd has name option but also namePrefix; if nameprefix is set, createbackup will return name of new backup; and will mass rename backups to leading zeros version upon power of 10; createbackup also have inheritFrom option; and a set unset backup inheritance separate subcommand; that can also link in sequence given prefix as well
