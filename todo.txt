@@ -8,6 +8,7 @@ native module:
   convert to node-addon-api api
   alternate data streams support
   flock support
+  linux support
 improved data storage on windows:
   save hidden, system, compressed, archive? flags
   detect alternate file streams on windows; store as path with ':'

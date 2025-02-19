@@ -153,7 +153,7 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
   if (itemMeta.accessTime.has_value() || itemMeta.modifyTime.has_value() || itemMeta.createTime.has_value()) {
     HANDLE fileHandle = CreateFileW(
       itemPath.c_str(),
-      0,
+      FILE_WRITE_ATTRIBUTES,
       FILE_SHARE_DELETE |
         FILE_SHARE_READ |
         FILE_SHARE_WRITE,

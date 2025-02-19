@@ -1,7 +1,7 @@
 {
   "name": "hash-backup-native-fs",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A native addon for node-hash-backup that adds support for platform specific operations base NodeJS does not provide.",
   "main": "main.mjs",
   "exports": {
