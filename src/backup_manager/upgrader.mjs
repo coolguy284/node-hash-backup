@@ -8,7 +8,6 @@ import {
   recursiveReaddir,
   setReadOnly,
   writeFileReplaceWhenDone,
-  unsetReadOnly,
 } from '../lib/fs.mjs';
 import { callBothLoggers } from '../lib/logger.mjs';
 import {
