@@ -473,6 +473,9 @@ export async function setFileTimes(fileTimeEntries, lowAccuracyFileTimes = false
             },
           );
         }
+        
+        // add 0ms pause to not stall event loop
+        await new Promise(r => setTimeout(r, 0));
       } else {
         let fileTimeEntriesRegular = [],
           fileTimeEntriesSymbolicLink = [];
