@@ -1,4 +1,5 @@
 #include <string>
+#include <optional>
 #include "Windows.h"
 
 struct ItemMeta {
@@ -10,22 +11,14 @@ struct ItemMeta {
 };
 
 struct ItemMetaSet {
-  bool setReadonly = false;
-  bool readonly = false;
-  bool setHidden = false;
-  bool hidden = false;
-  bool setSystem = false;
-  bool system = false;
-  bool setArchive = false;
-  bool archive = false;
-  bool setCompressed = false;
-  bool compressed = false;
-  bool setAccessTime = false;
-  uint64_t accessTime = 0u;
-  bool setModifyTime = false;
-  uint64_t modifyTime = 0u;
-  bool setCreateTime = false;
-  uint64_t createTime = 0u;
+  std::optional<bool> readonly = std::nullopt;
+  std::optional<bool> hidden = std::nullopt;
+  std::optional<bool> system = std::nullopt;
+  std::optional<bool> archive = std::nullopt;
+  std::optional<bool> compressed = std::nullopt;
+  std::optional<uint64_t> accessTime = std::nullopt;
+  std::optional<uint64_t> modifyTime = std::nullopt;
+  std::optional<uint64_t> createTime = std::nullopt;
 };
 
 bool getItemMeta(std::wstring itemPath, ItemMeta* itemMeta, std::string* errorMessage);

@@ -113,75 +113,99 @@ napi_value setItemMetaJS(napi_env env, napi_callback_info info) {
   
   ItemMetaSet newMeta;
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "readonly", &newMeta.setReadonly));
-  if (newMeta.setReadonly) {
+  bool readonlySet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "readonly", &readonlySet));
+  if (readonlySet) {
     napi_value readonlyObj;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "readonly", &readonlyObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bool(env, readonlyObj, &newMeta.readonly));
+    bool readonlyValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bool(env, readonlyObj, &readonlyValue));
+    newMeta.readonly = readonlyValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "hidden", &newMeta.setHidden));
-  if (newMeta.setHidden) {
+  bool hiddenSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "hidden", &hiddenSet));
+  if (hiddenSet) {
     napi_value hiddenObj;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "hidden", &hiddenObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bool(env, hiddenObj, &newMeta.hidden));
+    bool hiddenValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bool(env, hiddenObj, &hiddenValue));
+    newMeta.hidden = hiddenValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "system", &newMeta.setSystem));
-  if (newMeta.setSystem) {
+  bool systemSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "system", &systemSet));
+  if (systemSet) {
     napi_value systemObj;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "system", &systemObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bool(env, systemObj, &newMeta.system));
+    bool systemValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bool(env, systemObj, &systemValue));
+    newMeta.system = systemValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "archive", &newMeta.setArchive));
-  if (newMeta.setArchive) {
+  bool archiveSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "archive", &archiveSet));
+  if (archiveSet) {
     napi_value archiveObj;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "archive", &archiveObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bool(env, archiveObj, &newMeta.archive));
+    bool archiveValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bool(env, archiveObj, &archiveValue));
+    newMeta.archive = archiveValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "compressed", &newMeta.setCompressed));
-  if (newMeta.setCompressed) {
+  bool compressedSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "compressed", &compressedSet));
+  if (compressedSet) {
     napi_value compressedObj;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "compressed", &compressedObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bool(env, compressedObj, &newMeta.compressed));
+    bool compressedValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bool(env, compressedObj, &compressedValue));
+    newMeta.compressed = compressedValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "accessTime", &newMeta.setAccessTime));
-  if (newMeta.setAccessTime) {
+  bool accessTimeSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "accessTime", &accessTimeSet));
+  if (accessTimeSet) {
     napi_value accessTimeObj;
     bool lossless = false;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "accessTime", &accessTimeObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, accessTimeObj, &newMeta.accessTime, &lossless));
+    uint64_t accessTimeValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, accessTimeObj, &accessTimeValue, &lossless));
     if (!lossless) {
       NAPI_CALL_RETURN(env, napi_throw_error(env, nullptr, "access time bigint too large"));
       return nullptr;
     }
+    newMeta.accessTime = accessTimeValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "modifyTime", &newMeta.setModifyTime));
-  if (newMeta.setModifyTime) {
+  bool modifyTimeSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "modifyTime", &modifyTimeSet));
+  if (modifyTimeSet) {
     napi_value modifyTimeObj;
     bool lossless = false;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "modifyTime", &modifyTimeObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, modifyTimeObj, &newMeta.modifyTime, &lossless));
+    uint64_t modifyTimeValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, modifyTimeObj, &modifyTimeValue, &lossless));
     if (!lossless) {
       NAPI_CALL_RETURN(env, napi_throw_error(env, nullptr, "modify time bigint too large"));
       return nullptr;
     }
+    newMeta.modifyTime = modifyTimeValue;
   }
   
-  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "createTime", &newMeta.setCreateTime));
-  if (newMeta.setCreateTime) {
+  bool createTimeSet;
+  NAPI_CALL_RETURN(env, napi_has_named_property(env, itemMetaObj, "createTime", &createTimeSet));
+  if (createTimeSet) {
     napi_value createTimeObj;
     bool lossless = false;
     NAPI_CALL_RETURN(env, napi_get_named_property(env, itemMetaObj, "createTime", &createTimeObj));
-    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, createTimeObj, &newMeta.createTime, &lossless));
+    uint64_t createTimeValue;
+    NAPI_CALL_RETURN(env, napi_get_value_bigint_uint64(env, createTimeObj, &createTimeValue, &lossless));
     if (!lossless) {
       NAPI_CALL_RETURN(env, napi_throw_error(env, nullptr, "create time bigint too large"));
       return nullptr;
     }
+    newMeta.createTime = createTimeValue;
   }
   
   std::string errorMessage;

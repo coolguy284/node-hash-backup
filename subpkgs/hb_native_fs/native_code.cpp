@@ -59,7 +59,7 @@ FILETIME uLongLongIntToFileTime(ULONGLONG fileTimeInt) {
 }
 
 bool getItemMeta(std::wstring itemPath, ItemMeta* itemMeta, std::string* errorMessage) {
-  DWORD itemMetaResult = GetFileMetaW(itemPath.c_str());
+  DWORD itemMetaResult = GetFileAttributesW(itemPath.c_str());
   
   if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
@@ -82,75 +82,75 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
   FILETIME modifyTime;
   FILETIME createTime;
   
-  if (itemMeta.setAccessTime) {
-    accessTime = uLongLongIntToFileTime(itemMeta.accessTime);
+  if (itemMeta.accessTime.has_value()) {
+    accessTime = uLongLongIntToFileTime(itemMeta.accessTime.value());
   } else {
     accessTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     accessTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  if (itemMeta.setModifyTime) {
-    modifyTime = uLongLongIntToFileTime(itemMeta.modifyTime);
+  if (itemMeta.modifyTime.has_value()) {
+    modifyTime = uLongLongIntToFileTime(itemMeta.modifyTime.value());
   } else {
     modifyTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     modifyTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  if (itemMeta.setCreateTime) {
-    createTime = uLongLongIntToFileTime(itemMeta.createTime);
+  if (itemMeta.createTime.has_value()) {
+    createTime = uLongLongIntToFileTime(itemMeta.createTime.value());
   } else {
     createTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
     createTime.dwLowDateTime = IGNORE_TIMESTAMP_WORD;
   }
   
-  DWORD itemMetaResult = GetFileMetaW(itemPath.c_str());
+  DWORD itemMetaResult = GetFileAttributesW(itemPath.c_str());
   
   if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  if (itemMeta.setReadonly) {
+  if (itemMeta.readonly.has_value()) {
     itemMetaResult &= ~FILE_ATTRIBUTE_READONLY;
-    if (itemMeta.readonly) {
+    if (itemMeta.readonly.value()) {
       itemMetaResult |= FILE_ATTRIBUTE_READONLY;
     }
   }
   
-  if (itemMeta.setHidden) {
+  if (itemMeta.hidden.has_value()) {
     itemMetaResult &= ~FILE_ATTRIBUTE_HIDDEN;
-    if (itemMeta.hidden) {
+    if (itemMeta.hidden.value()) {
       itemMetaResult |= FILE_ATTRIBUTE_HIDDEN;
     }
   }
   
-  if (itemMeta.setSystem) {
+  if (itemMeta.system.has_value()) {
     itemMetaResult &= ~FILE_ATTRIBUTE_SYSTEM;
-    if (itemMeta.system) {
+    if (itemMeta.system.value()) {
       itemMetaResult |= FILE_ATTRIBUTE_SYSTEM;
     }
   }
   
-  if (itemMeta.setArchive) {
+  if (itemMeta.archive.has_value()) {
     itemMetaResult &= ~FILE_ATTRIBUTE_ARCHIVE;
-    if (itemMeta.archive) {
+    if (itemMeta.archive.value()) {
       itemMetaResult |= FILE_ATTRIBUTE_ARCHIVE;
     }
   }
   
-  if (itemMeta.setCompressed) {
+  if (itemMeta.compressed.has_value()) {
     itemMetaResult &= ~FILE_ATTRIBUTE_COMPRESSED;
-    if (itemMeta.compressed) {
+    if (itemMeta.compressed.value()) {
       itemMetaResult |= FILE_ATTRIBUTE_COMPRESSED;
     }
   }
   
-  if (!SetFileMetaW(itemPath.c_str(), itemMetaResult)) {
+  if (!SetFileAttributesW(itemPath.c_str(), itemMetaResult)) {
     *errorMessage = std::string("error setting item attributes: ") + getWindowsErrorMessage();
     return false;
   }
   
-  if (itemMeta.setAccessTime || itemMeta.setModifyTime || itemMeta.setCreateTime) {
+  if (itemMeta.accessTime.has_value() || itemMeta.modifyTime.has_value() || itemMeta.createTime.has_value()) {
     HANDLE fileHandle = CreateFileW(
       itemPath.c_str(),
       0,
@@ -164,7 +164,7 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
         FILE_FLAG_POSIX_SEMANTICS,
       nullptr
     );
-  
+    
     if (fileHandle == INVALID_HANDLE_VALUE) {
       *errorMessage = std::string("error opening file to set timestamps: ") + getWindowsErrorMessage();
       return false;
@@ -187,7 +187,7 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
 }
 
 bool getSymlinkType(std::wstring symlinkPath, SymlinkType* symlinkType, std::string* errorMessage) {
-  DWORD itemMetaResult = GetFileMetaW(symlinkPath.c_str());
+  DWORD itemMetaResult = GetFileAttributesW(symlinkPath.c_str());
   
   if (itemMetaResult == INVALID_FILE_ATTRIBUTES) {
     *errorMessage = std::string("error getting symlink attributes: ") + getWindowsErrorMessage();
