@@ -570,11 +570,11 @@ class BackupManager {
             
             await mkdir(dirname(newFilePath), { recursive: true });
             if (compressionUsed) {
-              await setReadOnly(compressedFilePath);
+              await setReadOnly(compressedFilePath, true);
               await rename(compressedFilePath, newFilePath);
             } else {
               await copyFile(filePath, newFilePath);
-              await setReadOnly(newFilePath);
+              await setReadOnly(newFilePath, true);
             }
             await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
           } finally {
@@ -600,7 +600,7 @@ class BackupManager {
           await copyFile(filePath, newFilePath);
           await writeFileReplaceWhenDone(metaFilePath, metaFileStringify(metaJson));
           
-          await setReadOnly(newFilePath);
+          await setReadOnly(newFilePath, true);
         }
       }
       
@@ -2095,7 +2095,7 @@ class BackupManager {
         for (const attribute of attributes) {
           switch (attribute) {
             case 'readonly':
-              await setReadOnly(outputPath);
+              await setReadOnly(outputPath, true);
               break;
             
             default:

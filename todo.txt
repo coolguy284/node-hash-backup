@@ -1,5 +1,5 @@
 native module:
-  replace setFileTimes and getSymlinkType with versions that call native module if it exists
+  replace setFileTimes with version that calls native module if it exists
 
 low prio:
 fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd

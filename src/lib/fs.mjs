@@ -30,6 +30,18 @@ import {
   unixNSIntToUTCTimeString,
 } from './time.mjs';
 
+let getItemMetaNative;
+let setItemMetaNative;
+let getSymlinkTypeNative;
+
+try {
+  ({
+    getItemMeta: getItemMetaNative,
+    setItemMeta: setItemMetaNative,
+    getSymlinkType: getSymlinkTypeNative,
+  } = await import('hash-backup-native-fs'));
+} catch { /* empty */ }
+
 const TEMP_NEW_FILE_SUFFIX = '_new';
 const LARGE_FILE_CHUNK_SIZE = 4 * 2 ** 20;
 export const SymlinkModes = Enum([
@@ -121,6 +133,10 @@ export function splitPath(pathToSplit) {
 async function getSymlinkType(symlinkPath) {
   if (process.platform != 'win32') {
     return null;
+  }
+  
+  if (getSymlinkTypeNative != null) {
+    return getSymlinkTypeNative(symlinkPath);
   }
   
   const windowsifiedSymlinkPath = symlinkPath.split('/').join('\\');
@@ -507,7 +523,7 @@ export async function setFileTimes(fileTimeEntries, lowAccuracyFileTimes = false
       
       for (const { filePath, readOnly } of fileTimeEntriesRegular) {
         if (readOnly) {
-          await unsetReadOnly(filePath);
+          await setReadOnly(filePath, false);
         }
       }
       
@@ -520,7 +536,7 @@ export async function setFileTimes(fileTimeEntries, lowAccuracyFileTimes = false
       
       for (const { filePath, readOnly } of fileTimeEntriesRegular) {
         if (readOnly) {
-          await setReadOnly(filePath);
+          await setReadOnly(filePath, true);
         }
       }
     } else {
@@ -560,50 +576,6 @@ export async function setFileTimes(fileTimeEntries, lowAccuracyFileTimes = false
   }
 }
 
-export async function setReadOnly(filePath) {
-  if (typeof filePath != 'string') {
-    throw new Error(`filePath not string: ${filePath}`);
-  }
-  
-  const currentPerms = (await lstat(filePath)).mode & 0o777;
-  const newPerms = currentPerms & 0o555;
-  
-  if (currentPerms != newPerms) {
-    // it would seem that lchmod should be used here, but chmod does not
-    // follow symlinks anyway apparently (at least on Windows), and lchmod
-    // (non promise ver) is apparently only implemented on macos
-    await chmod(filePath, newPerms);
-  }
-}
-
-export async function unsetReadOnly(filePath) {
-  if (typeof filePath != 'string') {
-    throw new Error(`filePath not string: ${filePath}`);
-  }
-  
-  const currentPerms = (await lstat(filePath)).mode & 0o777;
-  let newPerms = currentPerms;
-  
-  if (currentPerms & 0o400) {
-    newPerms |= 0o200;
-  }
-  
-  if (currentPerms & 0o040) {
-    newPerms |= 0o020;
-  }
-  
-  if (currentPerms & 0o004) {
-    newPerms |= 0o002;
-  }
-  
-  if (currentPerms != newPerms) {
-    // it would seem that lchmod should be used here, but chmod does not
-    // follow symlinks anyway apparently (at least on Windows), and lchmod
-    // (non promise ver) is apparently only implemented on macos
-    await chmod(filePath, newPerms);
-  }
-}
-
 export async function isReadOnly(filePath) {
   if (typeof filePath != 'string') {
     throw new Error(`filePath not string: ${filePath}`);
@@ -613,6 +585,68 @@ export async function isReadOnly(filePath) {
   const readOnlyPerms = currentPerms & 0o555;
   
   return currentPerms == readOnlyPerms;
+}
+
+export async function getAttributes(filePath) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
+  if (process.platform == 'win32' && getItemMetaNative) {
+    return getItemMetaNative(filePath);
+  } else {
+    return {
+      readonly: await isReadOnly(filePath),
+    };
+  }
+}
+
+export async function setReadOnly(filePath, readonly) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
+  if (typeof readonly != 'boolean') {
+    throw new Error(`readonly not boolean: ${readonly}`);
+  }
+  
+  const currentPerms = (await lstat(filePath)).mode & 0o777;
+  let newPerms = currentPerms;
+  
+  if (readonly) {
+    newPerms &= 0o555;
+  } else {
+    if (currentPerms & 0o400) {
+      newPerms |= 0o200;
+    }
+    
+    if (currentPerms & 0o040) {
+      newPerms |= 0o020;
+    }
+    
+    if (currentPerms & 0o004) {
+      newPerms |= 0o002;
+    }
+  }
+  
+  if (currentPerms != newPerms) {
+    // it would seem that lchmod should be used here, but chmod does not
+    // follow symlinks anyway apparently (at least on Windows), and lchmod
+    // (non promise ver) is apparently only implemented on macos
+    await chmod(filePath, newPerms);
+  }
+}
+
+export async function setAttributes(filePath, { readonly, hidden, system, archive, compressed }) {
+  if (typeof filePath != 'string') {
+    throw new Error(`filePath not string: ${filePath}`);
+  }
+  
+  if (process.platform == 'win32' && getItemMetaNative) {
+    setItemMetaNative(filePath, { readonly, hidden, system, archive, compressed });
+  } else {
+    await setReadOnly(filePath, readonly);
+  }
 }
 
 export async function safeRename(oldFilePath, newFilePath) {

@@ -147,7 +147,7 @@ async function upgradeDir1To2({
   
   const infoFilePath = join(backupDirPath, HB_FULL_INFO_FILE_NAME);
   
-  await unsetReadOnly(infoFilePath);
+  await setReadOnly(infoFilePath, false);
   
   await writeFileReplaceWhenDone(
     infoFilePath,
@@ -163,7 +163,7 @@ async function upgradeDir1To2({
   
   for (const fileName of backupFileNames) {
     const backupMetaFile = join(backupMetaFilePath, fileName);
-    await setReadOnly(backupMetaFile);
+    await setReadOnly(backupMetaFile, true);
   }
   
   callBothLoggers({ logger, globalLogger }, 'Setting data files to read-only...');
@@ -173,7 +173,7 @@ async function upgradeDir1To2({
   const dataFilePaths = await recursiveReaddir(filesFilePath, { includeDirs: false, entries: false });
   
   for (const filePath of dataFilePaths) {
-    await setReadOnly(filePath);
+    await setReadOnly(filePath, true);
   }
   
   callBothLoggers({ logger, globalLogger }, 'Finished upgrading hash backup store from version 1 to 2.');
