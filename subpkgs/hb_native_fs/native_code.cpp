@@ -76,6 +76,7 @@ bool getItemMeta(std::wstring itemPath, ItemMeta* itemMeta, std::string* errorMe
 }
 
 constexpr DWORD IGNORE_TIMESTAMP_WORD = 0xffffffff;
+constexpr ULONGLONG SENTINEL_TIMESTAMP_VALUE = 0xffffffffffffffff;
 
 bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* errorMessage) {
   FILETIME accessTime;
@@ -83,6 +84,12 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
   FILETIME createTime;
   
   if (itemMeta.accessTime.has_value()) {
+    if (itemMeta.accessTime.value() == SENTINEL_TIMESTAMP_VALUE) {
+      std::stringstream msgStream;
+      msgStream << "access time value equals sentinel value: " << SENTINEL_TIMESTAMP_VALUE;
+      *errorMessage = msgStream.str();
+      return false;
+    }
     accessTime = uLongLongIntToFileTime(itemMeta.accessTime.value());
   } else {
     accessTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
@@ -90,6 +97,12 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
   }
   
   if (itemMeta.modifyTime.has_value()) {
+    if (itemMeta.modifyTime.value() == SENTINEL_TIMESTAMP_VALUE) {
+      std::stringstream msgStream;
+      msgStream << "modify time value equals sentinel value: " << SENTINEL_TIMESTAMP_VALUE;
+      *errorMessage = msgStream.str();
+      return false;
+    }
     modifyTime = uLongLongIntToFileTime(itemMeta.modifyTime.value());
   } else {
     modifyTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;
@@ -97,6 +110,12 @@ bool setItemMeta(std::wstring itemPath, ItemMetaSet itemMeta, std::string* error
   }
   
   if (itemMeta.createTime.has_value()) {
+    if (itemMeta.createTime.value() == SENTINEL_TIMESTAMP_VALUE) {
+      std::stringstream msgStream;
+      msgStream << "create time value equals sentinel value: " << SENTINEL_TIMESTAMP_VALUE;
+      *errorMessage = msgStream.str();
+      return false;
+    }
     createTime = uLongLongIntToFileTime(itemMeta.createTime.value());
   } else {
     createTime.dwHighDateTime = IGNORE_TIMESTAMP_WORD;

@@ -3,9 +3,9 @@ import { createRequire } from 'node:module';
 const NUM_100NS_IN_SEC = 10000000n;
 const NUM_100NS_IN_SEC_LOG10 = 7;
 const UNIX_TO_MS_SEC_OFFSET = 11644473600n;
-const UINT64_MIN = 0n;
-const UINT64_MAX = 2n ** 64n - 1n;
-const UINT64_MAX_LENGTH = String(UINT64_MAX).length;
+const FILETIME_MIN = 0n;
+const FILETIME_MAX = 2n ** 64n - 2n;
+const UINT64_MAX_LENGTH = String(FILETIME_MAX).length;
 
 function unixSecStringToWindowsFiletimeBigint(unixSecString) {
   // unix string is string with decimal point (optional) represening seconds since Jan 1, 1970 UTC
@@ -39,12 +39,12 @@ function unixSecStringToWindowsFiletimeBigint(unixSecString) {
   const unix100NSInt = (int * NUM_100NS_IN_SEC + fraction) * (negative ? -1n : 1n);
   const ms100NSInt = unix100NSInt + (UNIX_TO_MS_SEC_OFFSET * NUM_100NS_IN_SEC);
   
-  if (ms100NSInt < UINT64_MIN) {
-    throw new Error(`unixSecString too small: ${unixSecString}, converts to 100ns int of: ${ms100NSInt} < ${UINT64_MIN}`);
+  if (ms100NSInt < FILETIME_MIN) {
+    throw new Error(`unixSecString too small: ${unixSecString}, converts to 100ns int of: ${ms100NSInt} < ${FILETIME_MIN}`);
   }
   
-  if (ms100NSInt > UINT64_MAX) {
-    throw new Error(`unixSecString too large: ${unixSecString}, converts to 100ns int of: ${ms100NSInt} > ${UINT64_MAX}`);
+  if (ms100NSInt > FILETIME_MAX) {
+    throw new Error(`unixSecString too large: ${unixSecString}, converts to 100ns int of: ${ms100NSInt} > ${FILETIME_MAX}`);
   }
   
   return ms100NSInt;
