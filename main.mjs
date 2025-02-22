@@ -3,6 +3,7 @@
 export { createBackupManager } from './src/backup_manager/backup_manager.mjs';
 export {
   initBackupDir,
+  getBackupCreationDate,
   getBackupInfo,
   getEntryInfo,
   getFileStreamByBackupPath,

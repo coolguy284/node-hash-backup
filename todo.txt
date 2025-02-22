@@ -1,3 +1,5 @@
+non-default option in taking backup to use old backup as reference, and only check files for storing that have a mtime or ctime or birthtime greater than the corresponding value for the same file already in the backup; otherwise, just assume file is the same
+
 low prio:
 fix code to use fsutil to detect junction vs symlink; and read dir attribute to detect symlinkd
 remove all promise.all's as they cause nodejs to take up 10s of GB of ram for whatever reason
@@ -123,6 +125,7 @@ investigate why using this in fullBackupInfoDump causes 9GB of data to be placed
     )
   );
 add crc32 and crc64 as supported hashes
+backup assess function, that compares the creation time of a backup with the last modified date of a folder and all subfiles and folders, and determines whether a backup is necessary 
 
 unnecessary / difficult:
 make sure all async subfunctions / function calls in every async function are awaited

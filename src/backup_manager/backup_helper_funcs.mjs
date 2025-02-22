@@ -432,3 +432,19 @@ export async function verifyHashBackupDir({
     await backupMgr[Symbol.asyncDispose]();
   }
 }
+
+export async function getBackupCreationDate({
+  backupDir,
+  name,
+  logger = console.log,
+}) {
+  let backupMgr = await createBackupManager(backupDir, {
+    globalLogger: logger,
+  });
+  
+  try {
+    return await backupMgr.getBackupCreationDate(name);
+  } finally {
+    await backupMgr[Symbol.asyncDispose]();
+  }
+}
