@@ -28,10 +28,10 @@
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.20.0",
+    "@eslint/js": "^9.21.0",
     "@stylistic/eslint-plugin": "^4.0.1",
-    "@types/node": "^22.13.4",
-    "eslint": "^9.20.1",
+    "@types/node": "^22.13.5",
+    "eslint": "^9.21.0",
     "globals": "^16.0.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.1"
