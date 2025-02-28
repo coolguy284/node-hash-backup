@@ -378,6 +378,14 @@ export const COMMANDS = new Map(
               conversion: toBool,
             },
           ],
+          
+          [
+            'timestampOnlyFileIdenticalCheckBackup',
+            
+            {
+              aliases: ['timestamp-only-file-identical-check-backup'],
+            },
+          ],
         ],
         
         helpMsg: [
@@ -411,6 +419,8 @@ export const COMMANDS = new Map(
           '        aliases: --check-duplicate-hashes',
           '    --ignoreErrors (default false): If true, errors when adding a file to the backup will be ignored and the file will not be added to the backup.',
           '        aliases: --ignore-errors',
+          '    --timestampOnlyFileIdenticalCheckBackup: If this is set, it is a backup name whose timestamps will exclusively be used to decide if pathToBackup files need to be added, instead of reading the entire file contents, checking the hash, and if identical, checking the file in the hash backup for a collision. This should be much faster, at the expense of not knowing if the file has secretly changed while keeping timestamps the same.',
+          '        aliases: --timestamp-only-file-identical-check-backup',
         ].join('\n'),
       },
     ],

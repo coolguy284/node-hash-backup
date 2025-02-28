@@ -20,6 +20,7 @@ import {
 import {
   dirname,
   join,
+  relative,
   resolve,
 } from 'node:path';
 import { pipeline } from 'node:stream/promises';
@@ -38,6 +39,7 @@ import {
   safeRename,
   setFileTimes,
   setReadOnly,
+  splitPath,
   SymlinkModes,
   testCreateFile,
   writeFileReplaceWhenDone,
@@ -47,6 +49,7 @@ import { unixSecStringToUnixNSInt } from '../lib/time.mjs';
 import { streamsEqual } from '../lib/stream_equality.mjs';
 import {
   awaitFileDeletion,
+  BACKUP_PATH_SEP,
   backupFileStringify,
   createCompressor,
   createDecompressor,
@@ -423,14 +426,28 @@ class BackupManager {
     };
   }
   
-  async #addFileBytesToStore({
-    fileBytes,
+  async #addFilePathBytesToStore({
     filePath,
+    stats: { mtime, ctime, birthtime },
     checkForDuplicateHashes,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
+    pastBackupEntry,
     logger,
   }) {
+    if (pastBackupEntry != null) {
+      if (
+        pastBackupEntry.mtime == mtime &&
+        pastBackupEntry.ctime == ctime &&
+        pastBackupEntry.birthtime == birthtime
+      ) {
+        this.#log(logger, 'File already in backup dir (modtime check)');
+        return pastBackupEntry.hash;
+      }
+    }
+    
+    const fileBytes = await readLargeFile(filePath);
+    
     const fileHashHex = await this.#hashBytes(fileBytes);
     
     this.#log(logger, `Hash: ${fileHashHex}`);
@@ -493,11 +510,24 @@ class BackupManager {
   
   async #addFilePathStreamToStore({
     filePath,
+    stats: { mtime, ctime, birthtime },
     checkForDuplicateHashes,
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
+    pastBackupEntry,
     logger,
   }) {
+    if (pastBackupEntry != null) {
+      if (
+        pastBackupEntry.mtime == mtime &&
+        pastBackupEntry.ctime == ctime &&
+        pastBackupEntry.birthtime == birthtime
+      ) {
+        this.#log(logger, 'File already in backup dir (modtime check)');
+        return pastBackupEntry.hash;
+      }
+    }
+    
     const fileHandle = await open(filePath);
     
     try {
@@ -799,6 +829,7 @@ class BackupManager {
     compressionMinimumSizeThreshold,
     compressionMaximumSizeThreshold,
     checkForDuplicateHashes,
+    pastBackupEntry = null,
     logger,
   }) {
     const backupEntry = await getAndAddBackupEntry({
@@ -807,24 +838,30 @@ class BackupManager {
       stats,
       symlinkType,
       addingLogger: data => this.#log(logger, data),
-      addFileToStoreFunc: async () => {
+      addFileToStoreFunc: async ({
+        mtime,
+        ctime,
+        birthtime,
+      }) => {
         // only called if file or something else that will be attempted to be read as a file
         if (stats.size <= inMemoryCutoffSize) {
-          const fileBytes = await readLargeFile(subFileOrFolderPath);
-          return await this.#addFileBytesToStore({
-            fileBytes,
+          return await this.#addFilePathBytesToStore({
             filePath: subFileOrFolderPath,
+            stats: { mtime, ctime, birthtime },
             checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
+            pastBackupEntry,
             logger,
           });
         } else {
           return await this.#addFilePathStreamToStore({
             filePath: subFileOrFolderPath,
+            stats: { mtime, ctime, birthtime },
             checkForDuplicateHashes,
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
+            pastBackupEntry,
             logger,
           });
         }
@@ -1420,6 +1457,7 @@ class BackupManager {
     compressionMaximumSizeThreshold = Infinity,
     checkForDuplicateHashes = true,
     ignoreErrors = false,
+    timestampOnlyFileIdenticalCheckBackup: timestampCheckBackup = null,
     logger = null,
   }) {
     this.#ensureBackupDirLive();
@@ -1470,6 +1508,10 @@ class BackupManager {
       throw new Error(`ignoreErrors not boolean: ${typeof ignoreErrors}`);
     }
     
+    if (typeof timestampCheckBackup != 'string' && timestampCheckBackup != null) {
+      throw new Error(`timestampOnlyFileIdenticalCheckBackup not string or null: ${typeof timestampCheckBackup}`);
+    }
+    
     if (typeof logger != 'function' && logger != null) {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
@@ -1480,6 +1522,12 @@ class BackupManager {
     
     if (await this.hasBackup(backupName)) {
       throw new Error(`backup with name ${JSON.stringify(backupName)} already exists`);
+    }
+    
+    if (timestampCheckBackup != null) {
+      if (!(await this.hasBackup(timestampCheckBackup))) {
+        throw new Error(`timestamp reference backup with name ${JSON.stringify(timestampCheckBackup)} does not exist`);
+      }
     }
     
     const {
@@ -1519,6 +1567,15 @@ class BackupManager {
     
     this.#log(logger, `Starting backup of ${JSON.stringify(fileOrFolderPath)} with name ${JSON.stringify(backupName)}`);
     
+    let subtreeInfo = null;
+    
+    if (timestampCheckBackup != null) {
+      subtreeInfo = new Map(
+        (await this.getSubtreeInfoFromBackup({ backupName: timestampCheckBackup }))
+          .map(entry => [entry.path, entry])
+      );
+    }
+    
     const dirContents = await recursiveReaddir(fileOrFolderPath, {
       excludedFilesOrFolders,
       includeDirs: true,
@@ -1530,6 +1587,12 @@ class BackupManager {
     let newEntries = [];
     
     for (const { filePath, stats, symlinkType } of dirContents) {
+      const backupInternalNativePath = relative(fileOrFolderPath, filePath);
+      const relativeFilePath =
+        backupInternalNativePath == '' ?
+          '.' :
+          splitPath(backupInternalNativePath).join(BACKUP_PATH_SEP);
+      
       if (ignoreErrors) {
         try {
           newEntries.push(
@@ -1542,6 +1605,7 @@ class BackupManager {
               compressionMinimumSizeThreshold,
               compressionMaximumSizeThreshold,
               checkForDuplicateHashes,
+              pastBackupEntry: subtreeInfo?.get?.(relativeFilePath),
               logger,
             })
           );
@@ -1559,6 +1623,7 @@ class BackupManager {
             compressionMinimumSizeThreshold,
             compressionMaximumSizeThreshold,
             checkForDuplicateHashes,
+            pastBackupEntry: subtreeInfo?.get?.(relativeFilePath),
             logger,
           })
         );

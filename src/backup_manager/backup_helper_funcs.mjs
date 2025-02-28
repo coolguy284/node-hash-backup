@@ -90,6 +90,7 @@ export async function performBackup({
   compressionMaximumSizeThreshold = Infinity,
   checkForDuplicateHashes = true,
   ignoreErrors = false,
+  timestampOnlyFileIdenticalCheckBackup = null,
   logger = console.log,
 }) {
   let backupMgr = await createBackupManager(backupDir, {
@@ -109,6 +110,7 @@ export async function performBackup({
       compressionMaximumSizeThreshold,
       checkForDuplicateHashes,
       ignoreErrors,
+      timestampOnlyFileIdenticalCheckBackup,
     });
   } finally {
     await backupMgr[Symbol.asyncDispose]();

@@ -622,7 +622,11 @@ export async function getAndAddBackupEntry({
       ...(
         addFileToStoreFunc != null ?
           {
-            hash: await addFileToStoreFunc(),
+            hash: await addFileToStoreFunc({
+              mtime,
+              ctime,
+              birthtime,
+            }),
           } :
           {}
       ),

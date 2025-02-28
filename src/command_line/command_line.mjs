@@ -723,6 +723,7 @@ export async function executeCommandLine({
           compressionMaximumSizeThreshold: keyedArgs.get('compressionMaximumSizeThreshold'),
           checkForDuplicateHashes: keyedArgs.get('checkDuplicateHashes'),
           ignoreErrors: keyedArgs.get('ignoreErrors'),
+          timestampOnlyFileIdenticalCheckBackup: keyedArgs.get('timestampOnlyFileIdenticalCheckBackup'),
           logger,
         });
         break;

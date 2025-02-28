@@ -1,3 +1,4 @@
+check filemode fs stats for symlink type
 non-default option in taking backup to use old backup as reference, and only check files for storing that have a mtime or ctime or birthtime greater than the corresponding value for the same file already in the backup; otherwise, just assume file is the same
 
 low prio:
