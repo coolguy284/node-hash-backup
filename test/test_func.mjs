@@ -122,6 +122,7 @@ class TestManager {
   #logLines = [];
   #randomMgr = new RandomManager();
   #inMemoryCutoffSize;
+  #timestampShortcut;
   #testSymlink;
   
   // public funcs
@@ -129,11 +130,13 @@ class TestManager {
   constructor({
     logger = console.log,
     inMemoryCutoffSize = Infinity,
+    timestampShortcut = false,
     testSymlink = false,
   } = {}) {
     this.#logger = logger;
     this.#boundLogger = this.timestampLog.bind(this);
     this.#inMemoryCutoffSize = inMemoryCutoffSize;
+    this.#timestampShortcut = timestampShortcut;
     this.#testSymlink = testSymlink;
   }
   
@@ -353,6 +356,7 @@ class TestManager {
       backupDir,
       name,
       inMemoryCutoffSize: this.#inMemoryCutoffSize,
+      timestampOnlyFileIdenticalCheckBackup: this.#timestampShortcut,
       logger: this.#boundLogger,
     });
     
@@ -369,6 +373,7 @@ class TestManager {
       basePath: join(tmpDir, 'restore', name),
       name,
       inMemoryCutoffSize: this.#inMemoryCutoffSize,
+      timestampOnlyFileIdenticalCheckBackup: this.#timestampShortcut,
       logger: this.#boundLogger,
     });
     
@@ -540,14 +545,17 @@ async function performSubTest({
   doLogFile,
   awaitUserInputAtEnd,
   inMemoryCutoffSize,
+  timestampShortcut,
 }) {
   let testMgr = new TestManager({
     logger,
     inMemoryCutoffSize,
+    timestampShortcut,
     testSymlink,
   });
   
   testMgr.timestampLog(`inMemoryCutoffSize: ${inMemoryCutoffSize}`);
+  testMgr.timestampLog(`timestampShortcut: ${timestampShortcut}`);
   
   // create dirs
   await mkdir(LOGS_DIR, { recursive: true });
@@ -728,6 +736,8 @@ export async function performMainTest({
   awaitUserInputAtEnd = false,
   memoryOnlySubTest = true,
   streamOnlySubTest = true,
+  timestampOnlySubtest = true,
+  contentsOnlySubtest = true,
 } = {}) {
   if (testOnlyRandomName) {
     let randomMgr = new RandomManager();
@@ -747,31 +757,67 @@ export async function performMainTest({
   }
   
   if (memoryOnlySubTest) {
-    await performSubTest({
-      testDeliberateModification,
-      verboseFinalValidationLog,
-      doNotSaveLogIfTestPassed,
-      doNotSaveTestDirIfTestPassed,
-      testSymlink,
-      logger,
-      doLogFile,
-      awaitUserInputAtEnd,
-      inMemoryCutoffSize: Infinity,
-    });
+    if (timestampOnlySubtest) {
+      await performSubTest({
+        testDeliberateModification,
+        verboseFinalValidationLog,
+        doNotSaveLogIfTestPassed,
+        doNotSaveTestDirIfTestPassed,
+        testSymlink,
+        logger,
+        doLogFile,
+        awaitUserInputAtEnd,
+        inMemoryCutoffSize: Infinity,
+        timestampShortcut: true,
+      });
+    }
+    
+    if (contentsOnlySubtest) {
+      await performSubTest({
+        testDeliberateModification,
+        verboseFinalValidationLog,
+        doNotSaveLogIfTestPassed,
+        doNotSaveTestDirIfTestPassed,
+        testSymlink,
+        logger,
+        doLogFile,
+        awaitUserInputAtEnd,
+        inMemoryCutoffSize: Infinity,
+        timestampShortcut: false,
+      });
+    }
   }
   
   if (streamOnlySubTest) {
-    await performSubTest({
-      testDeliberateModification,
-      verboseFinalValidationLog,
-      doNotSaveLogIfTestPassed,
-      doNotSaveTestDirIfTestPassed,
-      testSymlink,
-      logger,
-      doLogFile,
-      awaitUserInputAtEnd,
-      inMemoryCutoffSize: -1,
-    });
+    if (timestampOnlySubtest) {
+      await performSubTest({
+        testDeliberateModification,
+        verboseFinalValidationLog,
+        doNotSaveLogIfTestPassed,
+        doNotSaveTestDirIfTestPassed,
+        testSymlink,
+        logger,
+        doLogFile,
+        awaitUserInputAtEnd,
+        inMemoryCutoffSize: -1,
+        timestampShortcut: true,
+      });
+    }
+    
+    if (contentsOnlySubtest) {
+      await performSubTest({
+        testDeliberateModification,
+        verboseFinalValidationLog,
+        doNotSaveLogIfTestPassed,
+        doNotSaveTestDirIfTestPassed,
+        testSymlink,
+        logger,
+        doLogFile,
+        awaitUserInputAtEnd,
+        inMemoryCutoffSize: -1,
+        timestampShortcut: false,
+      });
+    }
   }
   
   logger('All tests pass');

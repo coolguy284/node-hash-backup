@@ -11,6 +11,8 @@ import {
   nomodif = no deliberate modification testing
   nomem = no testing of in-memory-only mode
   nostream = no testing of stream-only mode
+  notimestamp = no testing of timestamp mode
+  nocontents = no testing of file contents only mode
   auto | noauto = do not pause (auto) or pause (noauto) at end of each test for user input
 */
 
@@ -22,6 +24,8 @@ const KNOWN_ARGS = new Set([
   'nomodif',
   'nomem',
   'nostream',
+  'notimestamp',
+  'nocontents',
   'auto',
   'noauto',
 ]);
@@ -50,6 +54,8 @@ if (args.has('onlyminor')) {
     ),
     memoryOnlySubTest: !args.has('nomem'),
     streamOnlySubTest: !args.has('nostream'),
+    timestampOnlySubtest: !args.has('notimestamp'),
+    contentsOnlySubtest: !args.has('nocontents'),
     ...(
       args.has('auto') || args.has('noauto') ?
         {
