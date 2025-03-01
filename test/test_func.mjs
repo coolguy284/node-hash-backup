@@ -351,13 +351,26 @@ class TestManager {
   async BackupTestFuncs_performBackupWithArgs(tmpDir, backupDir, name) {
     this.timestampLog(`starting backup ${name}`);
     
-    let returnValue = await performBackup({
+    const tsBackup =
+      this.#timestampShortcut && name.endsWith('.1') ?
+        name.slice(0, -2) :
+        null;
+    
+    const returnValue = await performBackup({
       basePath: join(tmpDir, 'data', name),
       backupDir,
       name,
       inMemoryCutoffSize: this.#inMemoryCutoffSize,
-      timestampOnlyFileIdenticalCheckBackup: this.#timestampShortcut,
-      logger: this.#boundLogger,
+      timestampOnlyFileIdenticalCheckBackup: tsBackup,
+      logger: (...vals) => {
+        if (tsBackup == null) {
+          if (vals.length > 0 && vals[0].includes('File already in backup dir (modtime check)')) {
+            throw new Error('modtime check occurred despite no timestamp reference backup');
+          }
+          
+          this.timestampLog(...vals);
+        }
+      },
     });
     
     this.timestampLog(`finished backup ${name}`);
@@ -368,7 +381,7 @@ class TestManager {
   async BackupTestFuncs_performRestoreWithArgs(tmpDir, backupDir, name) {
     this.timestampLog(`starting restore ${name}`);
     
-    let returnValue = await performRestore({
+    const returnValue = await performRestore({
       backupDir,
       basePath: join(tmpDir, 'restore', name),
       name,
