@@ -348,13 +348,10 @@ class TestManager {
     this.timestampLog(`finished copythenmodif ${basePathCopy}`);
   }
 
-  async BackupTestFuncs_performBackupWithArgs(tmpDir, backupDir, name) {
+  async BackupTestFuncs_performBackupWithArgs(tmpDir, backupDir, name, tsBackup = null, requireModtimeCheck = false) {
     this.timestampLog(`starting backup ${name}`);
     
-    const tsBackup =
-      this.#timestampShortcut && name.endsWith('.1') ?
-        name.slice(0, -2) :
-        null;
+    let modtimeChecked = false;
     
     const returnValue = await performBackup({
       basePath: join(tmpDir, 'data', name),
@@ -369,9 +366,17 @@ class TestManager {
           }
           
           this.timestampLog(...vals);
+        } else {
+          if (requireModtimeCheck && vals.length > 0 && vals[0].includes('File already in backup dir (modtime check)')) {
+            modtimeChecked = true;
+          }
         }
       },
     });
+    
+    if (requireModtimeCheck && !modtimeChecked) {
+      throw new Error('modtime check required but did not occur');
+    }
     
     this.timestampLog(`finished backup ${name}`);
     
@@ -607,7 +612,7 @@ async function performSubTest({
       });
       testMgr.timestampLog('finished initbackupdir');
       
-      let printBackupInfo = async () => {
+      const printBackupInfo = async () => {
         testMgr.timestampLog('starting getbackupinfo');
         testMgr.timestampLog(await getBackupInfo({ backupDir, logger: testMgr.getBoundLogger() }));
         testMgr.timestampLog('finished getbackupinfo');
@@ -616,25 +621,31 @@ async function performSubTest({
       // print empty info
       await printBackupInfo();
       
-      let backupOrRestore = async backupOrRestoreFunc => {
+      const backupOrRestore = async (backupOrRestoreFunc, mode) => {
         await backupOrRestoreFunc(testDir, backupDir, 'manual1');
         await backupOrRestoreFunc(testDir, backupDir, 'manual2');
         await backupOrRestoreFunc(testDir, backupDir, 'manual3');
         await backupOrRestoreFunc(testDir, backupDir, 'manual4');
         for (let i = 0; i < 10; i++) {
           await backupOrRestoreFunc(testDir, backupDir, 'random' + i);
-          await backupOrRestoreFunc(testDir, backupDir, 'random' + i + '.1');
+          if (mode == 'backup') {
+            await backupOrRestoreFunc(testDir, backupDir, 'random' + i + '.1', 'random' + i);
+          } else if (mode == 'restore') {
+            await backupOrRestoreFunc(testDir, backupDir, 'random' + i + '.1');
+          } else {
+            throw new Error(`mode unknown: ${mode}`);
+          }
         }
       };
       
       // perform backups
-      await backupOrRestore(testMgr.BackupTestFuncs_performBackupWithArgs.bind(testMgr));
+      await backupOrRestore(testMgr.BackupTestFuncs_performBackupWithArgs.bind(testMgr), 'backup');
       
       // print filled info
       await printBackupInfo();
       
       // perform restores
-      await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr));
+      await backupOrRestore(testMgr.BackupTestFuncs_performRestoreWithArgs.bind(testMgr), 'restore');
       
       // check validity of restores
       await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'manual1', undefined, verboseFinalValidationLog);
@@ -644,6 +655,18 @@ async function performSubTest({
       for (let i = 0; i < 10; i++) {
         await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i, undefined, verboseFinalValidationLog);
         await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random' + i + '.1', undefined, verboseFinalValidationLog);
+      }
+      
+      if (timestampShortcut) {
+        // extra timestamp shortcut testing
+        await cp(join(testDir, 'data', 'random9.1'), join(testDir, 'data', 'random9.1b'), { recursive: true });
+        await testMgr.DirectoryModificationFuncs_mildModif(join(testDir, 'data', 'random9.1b'));
+        await testMgr.BackupTestFuncs_performBackupWithArgs(testDir, backupDir, 'random9.1b');
+        await testMgr.BackupTestFuncs_performBackupWithArgs(testDir, backupDir, 'random9.1b2', 'random9.1b', true);
+        await testMgr.BackupTestFuncs_performRestoreWithArgs(testDir, backupDir, 'random9.1b');
+        await testMgr.BackupTestFuncs_performRestoreWithArgs(testDir, backupDir, 'random9.1b2');
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random9.1b', undefined, verboseFinalValidationLog);
+        await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random9.1b2', undefined, verboseFinalValidationLog);
       }
       
       if (testDeliberateModification) {
