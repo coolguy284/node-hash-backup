@@ -364,13 +364,13 @@ class TestManager {
           if (vals.length > 0 && vals[0].includes('File already in backup dir (modtime check)')) {
             throw new Error('modtime check occurred despite no timestamp reference backup');
           }
-          
-          this.timestampLog(...vals);
         } else {
           if (requireModtimeCheck && vals.length > 0 && vals[0].includes('File already in backup dir (modtime check)')) {
             modtimeChecked = true;
           }
         }
+        
+        this.timestampLog(...vals);
       },
     });
     
