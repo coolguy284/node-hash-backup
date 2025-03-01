@@ -659,14 +659,21 @@ async function performSubTest({
       
       if (timestampShortcut) {
         // extra timestamp shortcut testing
+        testMgr.timestampLog('testing timestamp shortcut');
+        
         await cp(join(testDir, 'data', 'random9.1'), join(testDir, 'data', 'random9.1b'), { recursive: true });
         await testMgr.DirectoryModificationFuncs_mildModif(join(testDir, 'data', 'random9.1b'));
         await testMgr.BackupTestFuncs_performBackupWithArgs(testDir, backupDir, 'random9.1b');
-        await testMgr.BackupTestFuncs_performBackupWithArgs(testDir, backupDir, 'random9.1b2', 'random9.1b', true);
         await testMgr.BackupTestFuncs_performRestoreWithArgs(testDir, backupDir, 'random9.1b');
-        await testMgr.BackupTestFuncs_performRestoreWithArgs(testDir, backupDir, 'random9.1b2');
         await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random9.1b', undefined, verboseFinalValidationLog);
+        testMgr.timestampLog('rename data/{random9.1b -> random9.1b2}');
+        await rename(join(testDir, 'data', 'random9.1b'), join(testDir, 'data', 'random9.1b2'));
+        await testMgr.DirectoryModificationFuncs_mildModif(join(testDir, 'data', 'random9.1b2'));
+        await testMgr.BackupTestFuncs_performBackupWithArgs(testDir, backupDir, 'random9.1b2', 'random9.1b', true);
+        await testMgr.BackupTestFuncs_performRestoreWithArgs(testDir, backupDir, 'random9.1b2');
         await testMgr.BackupTestFuncs_checkRestoreAccuracy(testDir, 'random9.1b2', undefined, verboseFinalValidationLog);
+        
+        testMgr.timestampLog('timestamp shortcut finished');
       }
       
       if (testDeliberateModification) {
