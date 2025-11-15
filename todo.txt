@@ -1,4 +1,5 @@
-timestampOnlyFileIdenticalCheckBackup is a key-value argument when it shouldn't be?
+backup_manager.mjs:1555 Cannot access 'backupFilePath' before initialization
+hash backup not excluding backupdir properly when it is subdir of main dir
 
 check filemode fs stats for symlink type
 non-default option in taking backup to use old backup as reference, and only check files for storing that have a mtime or ctime or birthtime greater than the corresponding value for the same file already in the backup; otherwise, just assume file is the same
