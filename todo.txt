@@ -1,4 +1,3 @@
-backup_manager.mjs:1555 Cannot access 'backupFilePath' before initialization
 hash backup not excluding backupdir properly when it is subdir of main dir
 
 check filemode fs stats for symlink type

@@ -1552,7 +1552,7 @@ class BackupManager {
             pathToBackupDir,
           ];
         } else {
-          throw new Error(`backupDirPath (${backupFilePath}) is a subfolder of fileOrFolderPath (${fileOrFolderPath})`);
+          throw new Error(`backupDirPath (${this.#backupDirPath}) is a subfolder of fileOrFolderPath (${fileOrFolderPath})`);
         }
         break;
     }
