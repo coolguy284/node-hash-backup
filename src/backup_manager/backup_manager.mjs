@@ -1123,7 +1123,7 @@ class BackupManager {
     cacheEnabled = true,
     logger = null,
     globalLogger = null,
-  }) {
+  } = {}) {
     return this.#initManager({
       backupDirPath,
       awaitLockFileDeletionTimeout,
@@ -1190,7 +1190,7 @@ class BackupManager {
     compressionParams = null,
     treatWarningsAsErrors = false,
     logger = null,
-  }) {
+  } = {}) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -1400,7 +1400,7 @@ class BackupManager {
     this.#allowFullBackupDirDestroy = newAllowFullBackupDirDestroy;
   }
   
-  async destroyBackupDir({ logger }) {
+  async destroyBackupDir({ logger = null } = {}) {
     if (this.#disposed) {
       throw new Error('BackupManager already disposed');
     }
@@ -2212,7 +2212,7 @@ class BackupManager {
     this.#log(logger, `Successfully restored backup ${JSON.stringify(backupName)} to ${JSON.stringify(outputFileOrFolderPath)}`);
   }
   
-  async pruneUnreferencedFiles({ logger = null }) {
+  async pruneUnreferencedFiles({ logger = null } = {}) {
     if (typeof logger != 'function' && logger != null) {
       throw new Error(`logger not function or null: ${typeof logger}`);
     }
