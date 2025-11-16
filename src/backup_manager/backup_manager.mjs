@@ -2225,10 +2225,10 @@ class BackupManager {
     
     let referencedFilesInStore = new Set();
     
-    for (const backupName of this.listBackups()) {
-      for (const { entry } of this.#getCachedBackupData(backupName)) {
-        if (entry.type == 'file') {
-          referencedFilesInStore.add(entry.hash);
+    for (const backupName of await this.listBackups()) {
+      for (const { type, hash } of (await this.#getCachedBackupData(backupName)).entries.values()) {
+        if (type == 'file') {
+          referencedFilesInStore.add(hash);
         }
       }
     }
