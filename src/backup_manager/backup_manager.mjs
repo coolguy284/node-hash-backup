@@ -1549,7 +1549,7 @@ class BackupManager {
         if (allowBackupDirSubPathOfFileOrFolderPath) {
           excludedFilesOrFolders = [
             ...excludedFilesOrFolders,
-            pathToBackupDir,
+            `${fileOrFolderPath}/${pathToBackupDir}`,
           ];
         } else {
           throw new Error(`backupDirPath (${this.#backupDirPath}) is a subfolder of fileOrFolderPath (${fileOrFolderPath})`);
