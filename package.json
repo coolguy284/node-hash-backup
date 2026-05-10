@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
   "optionalDependencies": {
-    "hash-backup-native-fs": "coolguy284/node-hash-backup-native-fs#730adaef0e25ed73a4e3a22e56ebd395afabbff1",
+    "hash-backup-native-fs": "coolguy284/node-hash-backup-native-fs#4416a703acb1a77ee5df1c4c15b4be5e52d17107",
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
