@@ -37,6 +37,7 @@
     "typescript-eslint": "^8.67.0"
   },
   "allowScripts": {
-    "lzma-native@8.0.6": true
+    "lzma-native@8.0.6": true,
+    "github:coolguy284/node-hash-backup-native-fs#4013080a05f8ee162ae85de75c8c1f55e5187dba": true
   }
 }
