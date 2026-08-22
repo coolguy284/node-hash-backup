@@ -1,7 +1,7 @@
 {
   "name": "hash-backup",
   "type": "module",
-  "version": "2.6.2",
+  "version": "2.6.2.1",
   "description": "A deduplicating backup system that stores each file by its hash, but also stores metadata (timestamps, readonly attribute, and type of symlink (on Windows)), aiming to be perfect storage.",
   "main": "main.mjs",
   "exports": {
@@ -24,16 +24,19 @@
   },
   "homepage": "https://github.com/coolguy284/node-hash-backup#readme",
   "optionalDependencies": {
-    "hash-backup-native-fs": "coolguy284/node-hash-backup-native-fs#4416a703acb1a77ee5df1c4c15b4be5e52d17107",
+    "hash-backup-native-fs": "coolguy284/node-hash-backup-native-fs#73b5ca755f95855b31c8b452bcfca55c4dbe1bce",
     "lzma-native": "^8.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/node": "^25.6.2",
+    "@types/node": "^26.2.0",
     "eslint": "^10.3.0",
-    "globals": "^17.6.0",
+    "globals": "^17.11.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.67.0"
+  },
+  "allowScripts": {
+    "lzma-native@8.0.6": true
   }
 }
